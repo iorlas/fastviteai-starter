@@ -6,6 +6,20 @@ help: ## Show this help message
 
 .DEFAULT_GOAL := help
 
+.PHONY: bootstrap
+bootstrap: ## Bootstrap frontend for first-time setup
+	@echo "📦 Installing frontend dependencies..."
+	pnpm install
+	@echo "\n📝 Setting up frontend environment file..."
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "✓ Created .env from .env.example"; \
+	else \
+		echo "⚠  .env already exists, skipping"; \
+	fi
+	@echo "\n✅ Frontend bootstrap complete!"
+	@echo "   💡 Tip: Run 'make codegen' to regenerate API client after backend changes"
+
 .PHONY: install
 install: ## Install dependencies with pnpm
 	pnpm install

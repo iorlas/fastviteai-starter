@@ -36,6 +36,7 @@ Each directory has a self-documenting Makefile. **See Makefiles for all availabl
 
 ```bash
 # Root (Docker Compose)
+make bootstrap        # Bootstrap project for first-time setup
 make dev              # Start all services (build + remove orphans)
 make db               # Start database only (for local development)
 make down             # Stop all services
@@ -43,6 +44,7 @@ make check            # Run pre-commit hooks on all files
 
 # Backend
 cd backend
+make bootstrap        # Bootstrap backend (install deps, create .env)
 make dev              # Start uvicorn server with hot reload
 make check            # Format + lint with auto-fix + type check
 make test             # Run tests with coverage
@@ -51,6 +53,7 @@ make migrate-create MSG="description"  # Create new migration
 
 # Frontend
 cd frontend
+make bootstrap        # Bootstrap frontend (install deps, create .env, codegen)
 make dev              # Start Vite dev server
 make check            # Format + lint with auto-fix
 make test             # Run tests with coverage
@@ -226,6 +229,8 @@ API versioning: All endpoints under `/api/v1` prefix (configurable in `app.core.
 **See [backend/README.md#api-documentation](backend/README.md#api-documentation) for more details.**
 
 ## Development Workflow
+
+**First-time setup:** Run `make bootstrap` to set up the project (installs dependencies, creates `.env` files, sets up database and migrations).
 
 1. **Start services:** `make dev` (Docker) OR run backend/frontend separately (see Quick Start)
 2. **Backend changes:**

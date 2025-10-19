@@ -7,6 +7,7 @@ with sensible defaults for local development.
 
 from enum import Enum
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -34,12 +35,20 @@ class Settings(BaseSettings):
     """
 
     # CORS Configuration
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins_str: str = Field(
+        default="http://localhost:3000,http://localhost:5173",
+        alias="cors_origins",
+    )
     """
-    Allowed CORS origins for frontend applications.
+    Allowed CORS origins for frontend applications (comma-separated string).
     Defaults to common local development ports (3000 for Create React App, 5173 for Vite).
-    Override via CORS_ORIGINS environment variable (comma-separated list).
+    Override via CORS_ORIGINS environment variable.
     """
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parse CORS origins from comma-separated string to list."""
+        return [origin.strip() for origin in self.cors_origins_str.split(",") if origin.strip()]
 
     # Environment
     environment: Environment = Environment.DEVELOPMENT
@@ -78,6 +87,7 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
+        "env_parse_enums": True,
     }
 
     @property

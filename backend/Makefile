@@ -6,6 +6,19 @@ help: ## Show this help message
 
 .DEFAULT_GOAL := help
 
+.PHONY: bootstrap
+bootstrap: ## Bootstrap backend for first-time setup
+	@echo "📦 Installing backend dependencies..."
+	uv sync
+	@echo "\n📝 Setting up backend environment file..."
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "✓ Created .env from .env.example"; \
+		echo "⚠  Please review .env and update SECRET_KEY and JWT_SECRET for production"; \
+	else \
+		echo "⚠  .env already exists, skipping"; \
+	fi
+
 .PHONY: install
 install: ## Install dependencies with uv
 	uv sync
