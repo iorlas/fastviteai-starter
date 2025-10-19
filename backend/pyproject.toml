@@ -1,0 +1,136 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.17.0",
+    "asyncpg>=0.30.0",
+    "fastapi>=0.119.0",
+    "fastapi-users[sqlalchemy]>=14.0.1",
+    "greenlet>=3.2.4",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary]>=3.2.10",
+    "pydantic-settings>=2.11.0",
+    "python-jose[cryptography]>=3.5.0",
+    "sqlalchemy>=2.0.44",
+    "structlog>=25.4.0",
+    "uvicorn[standard]>=0.37.0",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.21.0",
+    "factory-boy>=3.3.3",
+    "faker>=37.11.0",
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.14.0",
+    "testcontainers[postgresql]>=4.13.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["tests", "app"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Core rules
+# E/W: pycodestyle errors and warnings
+# F: Pyflakes
+# I: isort
+# N: pep8-naming
+# UP: pyupgrade
+#
+# Quality and safety rules
+# ASYNC: flake8-async (async patterns - critical for asyncpg/SQLAlchemy)
+# S: flake8-bandit (security - critical for passlib/python-jose)
+# B: flake8-bugbear (bug detection)
+# C4: flake8-comprehensions (idiomatic Python)
+# SIM: flake8-simplify (code simplification)
+# T20: flake8-print (enforce structlog usage)
+# PERF: Perflint (performance improvements)
+# RUF: Ruff-specific rules
+#
+# Safety nets for future code
+# DTZ: flake8-datetimez (timezone-aware datetimes)
+# PD: pandas-vet (pandas best practices - for future use)
+#
+# Code style
+# ISC: flake8-implicit-str-concat (string concatenation)
+# ICN: flake8-import-conventions (import naming)
+# PIE: flake8-pie (miscellaneous improvements)
+# EM: flake8-errmsg (error message formatting)
+# COM: flake8-commas (trailing commas)
+# SLF: flake8-self (private member access)
+# TID: flake8-tidy-imports (import organization)
+#
+# Framework-specific
+# FAST: FastAPI-specific rules (modern Annotated pattern, response_model)
+# PT: flake8-pytest-style (pytest best practices)
+# FURB: refurb (Python modernization)
+# FBT: flake8-boolean-trap (prevent ambiguous boolean args)
+select = [
+    "E", "F", "I", "N", "W", "UP",
+    "ASYNC", "S", "B", "C4", "SIM", "T20", "PERF", "RUF",
+    "DTZ", "PD", "ISC", "ICN", "PIE",
+    "EM", "COM", "SLF", "TID",
+    "FAST", "PT", "FURB", "FBT",
+]
+
+ignore = [
+    "SIM105",  # Allow try-except-pass (alternative: contextlib.suppress)
+    "COM812",  # Conflicts with Ruff formatter - must be disabled
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# Allow FastAPI dependency injection patterns (prevents B008 false positives)
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Form",
+    "fastapi.File",
+]
+
+[tool.ruff.lint.flake8-pytest-style]
+# Use parentheses for pytest fixtures and marks (modern style)
+fixture-parentheses = true
+mark-parentheses = true
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: allow assert statements, print, hardcoded passwords, subprocess, and string literals in exceptions
+"tests/**/*.py" = ["S101", "S105", "S607", "T20", "EM"]
+"app/**/test_*.py" = ["S101", "S105", "T20", "EM"]
+
+# Settings: allow hardcoded default passwords (dev mode only)
+"app/core/settings.py" = ["S105"]
+
+# SQLAlchemy models: allow quoted type hints for forward references in relationships
+"app/features/*/models.py" = ["UP037"]
+
+[tool.ty.environment]
+python-version = "3.12"
+python = "./.venv"
+
+[tool.ty.rules]
+# Core type safety - error
+possibly-unresolved-reference = "error"
+invalid-argument-type = "error"
+missing-argument = "error"
+unsupported-operator = "error"
+division-by-zero = "error"
+
+# Code quality - warn
+unused-ignore-comment = "warn"
+redundant-cast = "warn"

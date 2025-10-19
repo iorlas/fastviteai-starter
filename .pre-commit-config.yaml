@@ -1,0 +1,50 @@
+# Pre-commit hooks configuration
+# Runs quality checks before each commit using LOCAL tools (installed via uv/pnpm)
+#
+# Installation:
+#   cd backend && uv run pre-commit install
+#
+# Manual run:
+#   uv run pre-commit run --all-files
+#
+# Bypass (emergency use only):
+#   git commit --no-verify
+
+repos:
+  - repo: local
+    hooks:
+      # Backend hooks (Python) - Order: format → lint → type check
+
+      - id: ruff-format
+        name: ruff format (backend)
+        entry: bash -c 'cd backend && uv run ruff format .'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
+      - id: ruff-check
+        name: ruff check (backend)
+        entry: bash -c 'cd backend && uv run ruff check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
+      - id: ty
+        name: ty (backend type checking)
+        entry: bash -c 'cd backend && uvx ty check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
+      # Frontend hooks (TypeScript/JavaScript/JSON)
+
+      - id: biome-check
+        name: biome check (frontend)
+        entry: bash -c 'cd frontend && pnpm biome check --write src/'
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json]
+        pass_filenames: false
+        always_run: true

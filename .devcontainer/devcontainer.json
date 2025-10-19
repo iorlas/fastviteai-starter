@@ -1,0 +1,61 @@
+{
+    "name": "AI Starter (React + FastAPI + Claude Code)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22"
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12"
+        },
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "charliermarsh.ruff",
+                "ms-azuretools.vscode-docker",
+                "esbenp.prettier-vscode",
+                "dbaeumer.vscode-eslint",
+                "redhat.vscode-yaml",
+                "github.copilot-chat", // optional alongside Claude
+                "GitHub.vscode-github-actions"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.testing.pytestEnabled": true,
+                "editor.formatOnSave": true
+            }
+        }
+    },
+    "remoteEnv": {
+        "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+    },
+    "postCreateCommand": [
+        "npm -g i pnpm",
+        "pipx install uv || true",
+        "pipx ensurepath",
+        "pnpm -v && node -v && python -V",
+        "bash ./bin/spec-init"
+    ],
+    "forwardPorts": [
+        5173,
+        8000
+    ],
+    "portsAttributes": {
+        "5173": {
+            "label": "Vite (frontend)"
+        },
+        "8000": {
+            "label": "FastAPI (backend)"
+        }
+    },
+    "mounts": [
+        "source=${localEnv:HOME}/.cache/uv,target=/home/vscode/.cache/uv,type=bind"
+    ]
+}
