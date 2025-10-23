@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo $VIRTUAL_ENV)",
+      "Bash(find /Users/iorlas/Projects/my/ailabbrains -maxdepth 2 -type f ( -name \"*.toml\" -o -name \"*.txt\" -o -name \"*.cfg\" -o -name \".python-version\" -o -name \"*.lock\" -o -name \"*.ini\" ))",
+      "Bash(find /Users/iorlas/Projects/my/ailabbrains -maxdepth 1 -type f ( -name \"README*\" -o -name \"*.md\" -o -name \"*.txt\" -o -name \"*.yml\" -o -name \"*.yaml\" ))",
+      "Bash(python3 -m pip --version)",
+      "Bash(cat /Users/iorlas/Projects/my/ailabbrains/.claude*)",
+      "Bash(/opt/homebrew/bin/python3 -m site)",
+      "Bash(cat /Users/iorlas/Projects/my/ailabbrains/frontend/tsconfig.json)",
+      "Bash(pnpm lint:fix)",
+      "Bash(pnpm biome check src/components/StatusBadge.tsx src/features/status/hooks/useHealthStatus.tsx src/features/status/components/StatusCard.tsx src/features/status/components/StatusOverview.tsx src/features/status/StatusPage.tsx src/routes/health.tsx)",
+      "mcp__ide__getDiagnostics",
+      "Bash(pnpm lint)",
+      "Bash(make help)",
+      "Bash(test -f /Users/iorlas/Projects/my/ailabbrains/backend/README.md)",
+      "Bash(test -f /Users/iorlas/Projects/my/ailabbrains/frontend/README.md)",
+      "Bash(cat /Users/iorlas/Projects/my/ailabbrains/frontend/README.md)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:docs.pydantic.dev)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:docs.astral.sh)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
+}

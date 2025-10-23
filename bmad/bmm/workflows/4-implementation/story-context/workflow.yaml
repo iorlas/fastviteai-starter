@@ -19,7 +19,6 @@ validation: "{installed_path}/checklist.md"
 # Variables and inputs
 variables:
   story_path: "" # Explicit story path; auto-discovered if empty
-  auto_update_status: false
   story_dir: "{config_source}:dev_story_location"
   story_selection_limit: 10
   tech_spec_search_dir: "{project-root}/docs"
