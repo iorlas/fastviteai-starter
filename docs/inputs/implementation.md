@@ -1,0 +1,1 @@
+We want to use MedusaJS as a foundation core.
