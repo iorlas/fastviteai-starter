@@ -23,7 +23,14 @@
       "WebFetch(domain:docs.pydantic.dev)",
       "WebFetch(domain:stackoverflow.com)",
       "WebFetch(domain:docs.astral.sh)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(test:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:laragent.ai)",
+      "WebFetch(domain:discord.com)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:www.dataart.com)",
+      "WebFetch(domain:www.databricks.com)"
     ],
     "deny": [],
     "ask": []
