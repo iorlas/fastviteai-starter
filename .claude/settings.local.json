@@ -32,7 +32,11 @@
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline -1)",
       "SlashCommand(/bmad:bmm:workflows:tech-spec)",
       "SlashCommand(/bmad:bmm:workflows:prd)",
-      "SlashCommand(/bmad:bmm:workflows:tech-spec-sm)"
+      "SlashCommand(/bmad:bmm:workflows:tech-spec-sm)",
+      "Bash(uv --version:*)",
+      "Bash(dagster project scaffold:*)",
+      "Bash(uv add:*)",
+      "Bash(uv run:*)"
     ],
     "deny": [],
     "ask": []

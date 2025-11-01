@@ -1,0 +1,159 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>Project Foundation & Resources</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/story-link-pipeline-1.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>a properly configured Dagster project with all necessary resources</iWant>
+    <soThat>I can build and test the ETL pipeline locally</soThat>
+    <tasks>
+      <task id="1" ac="1">Initialize backend directory structure</task>
+      <task id="2" ac="1">Run `dagster project scaffold --name dagster_project`</task>
+      <task id="3" ac="1">Add core dependencies via uv: dagster, dagster-webserver, httpx, beautifulsoup4, yt-dlp, feedparser, pydantic, python-dotenv</task>
+      <task id="4" ac="1">Add dev dependencies: pytest, pytest-asyncio, ruff</task>
+      <task id="5" ac="2">Create input directory and files (backend/storage/input/manual_links.txt, monitoring_list.txt)</task>
+      <task id="6" ac="3">Create .env file with environment variables</task>
+      <task id="7" ac="4">Implement OpenRouter client resource in resources/openrouter_client.py with API endpoint, authentication, model config, and request/response handling</task>
+      <task id="8" ac="1">Verify Dagster UI launches via `uv run dagster dev -f backend/dagster_project/repository.py`</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Dagster web UI accessible at localhost:3000 via `uv run dagster dev`</criterion>
+    <criterion id="2">Input directory and files created (`backend/storage/input/`)</criterion>
+    <criterion id="3">Environment variables loaded correctly from `.env` file</criterion>
+    <criterion id="4">OpenRouter resource initializes without errors</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Development Setup</section>
+        <snippet>Prerequisites: Python 3.12+, uv package manager, OpenRouter API key. All dependencies added via `uv add` commands.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Implementation Stack</section>
+        <snippet>Core dependencies: dagster 1.7.0+, dagster-webserver 1.7.0+, httpx 0.27.0+, beautifulsoup4 4.12.0+, yt-dlp 2024.4.9+, feedparser 6.0.11+, pydantic 2.7.0+, python-dotenv 1.0.0+. Dev dependencies: pytest 8.0.0+, pytest-asyncio 0.23.0+, ruff 0.4.0+.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Implementation Guide → Phase 1</section>
+        <snippet>Phase 1 goal: Set up Dagster project structure, dependencies, and basic pipeline skeleton. Initialize backend, run dagster project scaffold, install dependencies.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Source Tree Structure</section>
+        <snippet>Project structure includes backend/dagster_project/ with assets/, jobs/, schedules/, resources/ (openrouter_client.py), ops/, and repository.py. Storage divided into input/ (manual_links.txt, monitoring_list.txt) and artifacts/ (html/, videos/, summaries/).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Technical Details → OpenRouter Integration</section>
+        <snippet>OpenRouter API endpoint: https://openrouter.ai/api/v1/chat/completions. Model: openai/gpt-4o (configurable). Environment variables: OPENROUTER_API_KEY, OPENROUTER_MODEL, DAGSTER_HOME.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <!-- Greenfield project: No existing code to reference yet -->
+      <!-- This story creates the initial backend structure -->
+    </code>
+    <dependencies>
+      <python>
+        <!-- Existing Root Dependencies -->
+        <package name="openai" version=">=1.0.0" scope="root"/>
+        <package name="structlog" version=">=23.0.0" scope="root"/>
+        <package name="pydantic" version=">=2.12.2" scope="root"/>
+
+        <!-- To Be Added by This Story -->
+        <package name="dagster" version=">=1.7.0" scope="backend" status="to-add"/>
+        <package name="dagster-webserver" version=">=1.7.0" scope="backend" status="to-add"/>
+        <package name="httpx" version=">=0.27.0" scope="backend" status="to-add"/>
+        <package name="beautifulsoup4" version=">=4.12.0" scope="backend" status="to-add"/>
+        <package name="yt-dlp" version=">=2024.4.9" scope="backend" status="to-add"/>
+        <package name="feedparser" version=">=6.0.11" scope="backend" status="to-add"/>
+        <package name="python-dotenv" version=">=1.0.0" scope="backend" status="to-add"/>
+
+        <!-- Dev Dependencies -->
+        <package name="pytest" version=">=8.0.0" scope="dev"/>
+        <package name="pytest-asyncio" version=">=0.23.0" scope="backend-dev" status="to-add"/>
+        <package name="ruff" version=">=0.4.0" scope="dev"/>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Use Dagster CLI to scaffold project structure via `dagster project scaffold --name dagster_project`</constraint>
+    <constraint type="dependency-management">Use uv for all dependency management (consistent with existing project pattern)</constraint>
+    <constraint type="storage">File-based storage initially (no database complexity)</constraint>
+    <constraint type="directory-structure">Follow structure in tech-spec.md: backend/dagster_project/ with assets/, jobs/, schedules/, resources/, ops/, and repository.py</constraint>
+    <constraint type="auto-creation">Auto-create storage directories in code (artifact directories created by assets in Story 2)</constraint>
+    <constraint type="testing">Minimal testing for MVP (essential E2E only)</constraint>
+    <constraint type="configuration">Environment variables loaded from .env file via python-dotenv</constraint>
+    <constraint type="code-quality">Use ruff for linting (configured in pyproject.toml)</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>OpenRouter Client Resource</name>
+      <kind>Dagster Resource</kind>
+      <signature>OpenRouterClient resource class with API endpoint configuration, authentication, model selection, and request/response handling methods</signature>
+      <path>backend/dagster_project/resources/openrouter_client.py</path>
+      <notes>Should configure API endpoint (https://openrouter.ai/api/v1/chat/completions), handle authentication via OPENROUTER_API_KEY env var, support model configuration (default: openai/gpt-4o), and implement basic request/response handling for LLM calls</notes>
+    </interface>
+    <interface>
+      <name>Environment Variables</name>
+      <kind>Configuration</kind>
+      <signature>
+        OPENROUTER_API_KEY: API key for OpenRouter
+        OPENROUTER_MODEL: Model identifier (default: openai/gpt-4o)
+        DAGSTER_HOME: Dagster home directory (default: ./backend/.dagster)
+      </signature>
+      <path>backend/.env</path>
+      <notes>Loaded via python-dotenv, required before Dagster UI launch</notes>
+    </interface>
+    <interface>
+      <name>Input Files</name>
+      <kind>File System</kind>
+      <signature>
+        backend/storage/input/manual_links.txt: One URL per line for manual processing
+        backend/storage/input/monitoring_list.txt: RSS/Reddit URLs for monitoring
+      </signature>
+      <path>backend/storage/input/</path>
+      <notes>Created by this story, consumed by link ingestion asset in Story 2</notes>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: pytest 8.0.0+ with pytest-asyncio for async tests. MVP strategy: Minimal testing with essential E2E integration tests only. Test structure: backend/tests/ with integration/ and fixtures/ subdirectories. Manual testing via Dagster UI to verify artifacts and metadata. Ruff configured for linting (pyproject.toml).
+    </standards>
+    <locations>
+      backend/tests/
+      backend/tests/integration/
+      backend/tests/fixtures/
+    </locations>
+    <ideas>
+      <test ac="1">Verify Dagster UI launches successfully at localhost:3000</test>
+      <test ac="1">Test dagster dev command execution without errors</test>
+      <test ac="2">Verify input directory structure created correctly (backend/storage/input/)</test>
+      <test ac="2">Confirm manual_links.txt and monitoring_list.txt files exist</test>
+      <test ac="3">Test .env file loading and environment variable access</test>
+      <test ac="3">Verify OPENROUTER_API_KEY, OPENROUTER_MODEL, and DAGSTER_HOME variables are set</test>
+      <test ac="4">Test OpenRouter client resource initialization</test>
+      <test ac="4">Verify API endpoint configuration (https://openrouter.ai/api/v1/chat/completions)</test>
+      <test ac="4">Test authentication handling with OPENROUTER_API_KEY</test>
+      <test ac="4">Verify model configuration defaults to openai/gpt-4o</test>
+      <test>Integration test: Full project setup verification (dependencies, structure, configuration)</test>
+    </ideas>
+  </tests>
+</story-context>

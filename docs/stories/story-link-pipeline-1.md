@@ -1,6 +1,6 @@
 # Story: Project Foundation & Resources
 
-Status: Draft
+Status: Ready for Development
 
 ## Story
 
@@ -72,7 +72,7 @@ Bootstrap a Dagster project using CLI scaffolding, install all dependencies via 
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- `docs/stories/story-link-pipeline-1.context.xml` (Generated: 2025-11-01)
 
 ### Agent Model Used
 

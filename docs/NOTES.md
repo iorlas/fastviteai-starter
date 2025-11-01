@@ -12,3 +12,13 @@ LLM estimated it as:
   4. Track progress - Agents will automatically update statuses as they work
   5. Re-run this workflow - To refresh auto-detected statuses at any time
 
+
+
+ Development Flow:
+  drafted → ready-for-dev → in-progress → review → done
+
+  You're now ready to begin Story 1 implementation! Would you like to:
+  - Create story context for Story 1 (/bmad:bmm:workflows:story-context)
+  - Go directly to development (/bmad:bmm:workflows:dev-story)
+  - Review the sprint status file first
+
