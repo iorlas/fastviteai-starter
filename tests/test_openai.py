@@ -1,4 +1,4 @@
-"""Test OpenRouter client resource."""
+"""Test OpenAI resource."""
 
 import os
 from pathlib import Path
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from dotenv import load_dotenv
 
-from dagster_project.resources.openrouter_client import OpenRouterClient
+from dagster_project.resources.openai import OpenAIClient
 
 
 @pytest.fixture(scope="module")
@@ -26,38 +26,38 @@ def mock_context():
     return context
 
 
-def test_openrouter_client_initialization(load_env):
-    """Test that OpenRouter client can be initialized."""
-    client = OpenRouterClient()
+def test_openai_client_initialization(load_env):
+    """Test that OpenAI client can be initialized."""
+    client = OpenAIClient()
     assert client is not None
     assert hasattr(client, "api_key")
     assert hasattr(client, "model")
     assert hasattr(client, "base_url")
 
 
-def test_openrouter_client_config(load_env):
-    """Test OpenRouter client configuration."""
-    client = OpenRouterClient()
+def test_openai_client_config(load_env):
+    """Test OpenAI client configuration."""
+    client = OpenAIClient()
     assert client.base_url == "https://openrouter.ai/api/v1"
-    assert client.model == os.getenv("OPENROUTER_MODEL", "openai/gpt-4o")
+    assert client.model == os.getenv("OPENAI_MODEL", "openai/gpt-4o")
     assert client.timeout == 30.0
 
 
-def test_openrouter_client_validation_with_api_key(load_env, mock_context):
+def test_openai_client_validation_with_api_key(load_env, mock_context):
     """Test that client validates successfully when API key is present."""
     # Set a test API key
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
-        client = OpenRouterClient()
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
+        client = OpenAIClient()
         # Should not raise an error
         client.setup_for_execution(mock_context)
         mock_context.log.info.assert_called_once()
 
 
-def test_openrouter_client_initialization_parameters(load_env):
+def test_openai_client_initialization_parameters(load_env):
     """Test that OpenAI client is initialized with correct parameters."""
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
-        with patch("dagster_project.resources.openrouter_client.OpenAI") as mock_openai:
-            client = OpenRouterClient()
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
+        with patch("dagster_project.resources.openai.OpenAI") as mock_openai:
+            client = OpenAIClient()
             # Access the client property to trigger initialization
             _ = client.client
             # Verify OpenAI client was initialized with correct parameters
@@ -69,18 +69,18 @@ def test_openrouter_client_initialization_parameters(load_env):
             )
 
 
-def test_openrouter_client_validation_without_api_key(mock_context):
+def test_openai_client_validation_without_api_key(mock_context):
     """Test that client validation fails when API key is missing."""
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}, clear=True):
-        client = OpenRouterClient()
-        with pytest.raises(ValueError, match="OPENROUTER_API_KEY"):
+    with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
+        client = OpenAIClient()
+        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
             client.setup_for_execution(mock_context)
 
 
 def test_chat_completion_request_structure(load_env, mock_context):
     """Test that chat_completion constructs request correctly."""
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
-        resource = OpenRouterClient()
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
+        resource = OpenAIClient()
 
         messages = [{"role": "user", "content": "Hello"}]
 
@@ -117,8 +117,8 @@ def test_chat_completion_request_structure(load_env, mock_context):
 
 def test_get_completion_text(load_env):
     """Test extracting completion text from response."""
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
-        client = OpenRouterClient()
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
+        client = OpenAIClient()
 
         # Create mock OpenAI response object
         response = MagicMock()

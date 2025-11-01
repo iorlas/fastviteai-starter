@@ -95,3 +95,4 @@ history/
 
 .dagster
 .env
+artifacts/

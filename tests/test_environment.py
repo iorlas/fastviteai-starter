@@ -25,8 +25,8 @@ def test_env_file_exists():
 def test_environment_variables_loaded(load_env):
     """Test that all required environment variables are set."""
     required_vars = [
-        "OPENROUTER_API_KEY",
-        "OPENROUTER_MODEL",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
         "DAGSTER_HOME",
     ]
 
@@ -36,9 +36,9 @@ def test_environment_variables_loaded(load_env):
         assert value != "", f"Environment variable {var} should not be empty"
 
 
-def test_openrouter_model_default(load_env):
-    """Test that OPENROUTER_MODEL has the correct default value."""
-    model = os.getenv("OPENROUTER_MODEL")
+def test_openai_model_default(load_env):
+    """Test that OPENAI_MODEL has the correct default value."""
+    model = os.getenv("OPENAI_MODEL")
     assert model == "openai/gpt-4o", "Default model should be openai/gpt-4o"
 
 

@@ -66,6 +66,7 @@ def save_summary(
 @asset(
     name="summarization",
     deps=["content_extraction"],
+    required_resource_keys={"openai"},
     retry_policy=RetryPolicy(
         max_retries=3,
         delay=1,  # Initial delay in seconds
@@ -81,7 +82,7 @@ def summarization_asset(
 ) -> dict:
     """Generate AI summaries for extracted content.
 
-    Uses OpenRouter resource to generate summaries via LLM API.
+    Uses OpenAI resource to generate summaries via LLM API.
     Saves summaries with metadata to artifacts/summaries/.
     On failure after retries, saves error details with status="failed".
 
@@ -103,8 +104,8 @@ def summarization_asset(
         project_root = Path(__file__).parent.parent.parent
     summaries_dir = project_root / "artifacts" / "summaries"
 
-    # Access OpenRouter resource
-    openrouter = context.resources.openrouter
+    # Access OpenAI resource
+    openai = context.resources.openai
 
     successful_summaries = 0
     failed_summaries = 0
@@ -137,7 +138,7 @@ def summarization_asset(
 
             # Call LLM API with timing
             start_time = time.time()
-            response = openrouter.chat_completion(
+            response = openai.chat_completion(
                 context,
                 messages=messages,
                 temperature=0.7,
@@ -146,7 +147,7 @@ def summarization_asset(
             latency_ms = (time.time() - start_time) * 1000
 
             # Extract summary text
-            summary_text = openrouter.get_completion_text(response)
+            summary_text = openai.get_completion_text(response)
 
             # Extract token usage
             tokens_used = (
@@ -156,7 +157,7 @@ def summarization_asset(
             )
 
             # Extract model name
-            model_used = response.model if hasattr(response, "model") else openrouter.model
+            model_used = response.model if hasattr(response, "model") else openai.model
 
             # Log metadata to Dagster
             context.add_output_metadata(

@@ -1,4 +1,4 @@
-"""OpenRouter API client resource for Dagster."""
+"""OpenAI API client resource for Dagster."""
 
 import os
 from functools import cached_property
@@ -13,27 +13,27 @@ from pydantic import Field
 load_dotenv()
 
 
-class OpenRouterClient(ConfigurableResource):
-    """OpenRouter API client resource for making LLM requests.
+class OpenAIClient(ConfigurableResource):
+    """OpenAI API client resource for making LLM requests.
 
     Attributes:
-        api_key: OpenRouter API key (loaded from OPENROUTER_API_KEY env var)
+        api_key: OpenAI API key (loaded from OPENAI_API_KEY env var)
         model: Model identifier to use (default: openai/gpt-4o)
-        base_url: OpenRouter API base URL
+        base_url: OpenAI API base URL
         timeout: Request timeout in seconds
     """
 
     api_key: str = Field(
-        default_factory=lambda: os.getenv("OPENROUTER_API_KEY", ""),
-        description="OpenRouter API key",
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", ""),
+        description="OpenAI API key",
     )
     model: str = Field(
-        default_factory=lambda: os.getenv("OPENROUTER_MODEL", "openai/gpt-4o"),
+        default_factory=lambda: os.getenv("OPENAI_MODEL", "openai/gpt-4o"),
         description="Model identifier",
     )
     base_url: str = Field(
-        default_factory=lambda: os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-        description="OpenRouter API base URL",
+        default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
+        description="OpenAI API base URL",
     )
     timeout: float = Field(default=30.0, description="Request timeout in seconds")
 
@@ -42,7 +42,7 @@ class OpenRouterClient(ConfigurableResource):
         """OpenAI client instance (lazy initialized on first access).
 
         Returns:
-            Configured OpenAI client for OpenRouter API
+            Configured OpenAI client for API
         """
         return OpenAI(
             api_key=self.api_key,
@@ -55,14 +55,14 @@ class OpenRouterClient(ConfigurableResource):
         """Validate that required configuration is present."""
         if not self.api_key:
             raise ValueError(
-                "OPENROUTER_API_KEY environment variable is required but not set. "
+                "OPENAI_API_KEY environment variable is required but not set. "
                 "Please set it in your .env file or environment."
             )
 
     def setup_for_execution(self, context) -> None:
         """Called by Dagster when the resource is initialized."""
         self._validate_config()
-        context.log.info(f"OpenRouter client initialized with model: {self.model}")
+        context.log.info(f"OpenAI client initialized with model: {self.model}")
 
     def chat_completion(
         self,
@@ -72,7 +72,7 @@ class OpenRouterClient(ConfigurableResource):
         max_tokens: int | None = None,
         **kwargs: Any,
     ) -> Any:
-        """Make a chat completion request to OpenRouter.
+        """Make a chat completion request to OpenAI.
 
         Args:
             context: Dagster execution context for logging
@@ -91,7 +91,7 @@ class OpenRouterClient(ConfigurableResource):
 
         # Log request metadata
         context.log.debug(
-            f"OpenRouter API request: model={self.model}, "
+            f"OpenAI API request: model={self.model}, "
             f"messages={len(messages)}, temp={temperature}, "
             f"max_tokens={max_tokens or 'unlimited'}"
         )
@@ -107,7 +107,7 @@ class OpenRouterClient(ConfigurableResource):
 
         # Log response metadata (token usage, model)
         context.log.debug(
-            f"OpenRouter API response: model={response.model}, "
+            f"OpenAI API response: model={response.model}, "
             f"completion_tokens={response.usage.completion_tokens}, "
             f"prompt_tokens={response.usage.prompt_tokens}, "
             f"total_tokens={response.usage.total_tokens}"
@@ -128,4 +128,4 @@ class OpenRouterClient(ConfigurableResource):
 
 
 # Resource factory for Dagster definitions
-openrouter_resource = OpenRouterClient()
+openai_resource = OpenAIClient()
