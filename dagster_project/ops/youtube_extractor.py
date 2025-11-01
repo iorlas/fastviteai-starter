@@ -1,5 +1,3 @@
-"""YouTube video transcript extraction using yt-dlp."""
-
 from datetime import UTC, datetime
 from typing import NamedTuple
 
@@ -8,18 +6,6 @@ from yt_dlp.utils import DownloadError
 
 
 class YouTubeContent(NamedTuple):
-    """Extracted content from a YouTube video.
-
-    Attributes:
-        url: Original URL
-        title: Video title
-        transcript: Video transcript text
-        description: Video description (used as fallback)
-        channel: Channel name
-        duration: Video duration in seconds
-        metadata: Additional metadata dictionary
-    """
-
     url: str
     title: str
     transcript: str
@@ -30,26 +16,10 @@ class YouTubeContent(NamedTuple):
 
 
 class YouTubeExtractionError(Exception):
-    """Error during YouTube extraction."""
-
     pass
 
 
 def extract_youtube_content(url: str) -> YouTubeContent:
-    """Extract transcript and metadata from a YouTube video.
-
-    Uses yt-dlp to fetch video information and transcript.
-    Falls back to video description if transcript is unavailable.
-
-    Args:
-        url: The YouTube URL to extract content from
-
-    Returns:
-        YouTubeContent object with extracted data
-
-    Raises:
-        YouTubeExtractionError: If extraction fails
-    """
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -115,14 +85,6 @@ def extract_youtube_content(url: str) -> YouTubeContent:
 
 
 def _extract_transcript(info: dict) -> str:
-    """Extract transcript text from video info.
-
-    Args:
-        info: Video information dictionary from yt-dlp
-
-    Returns:
-        Transcript text or empty string if not available
-    """
     # Try automatic captions first
     if "automatic_captions" in info:
         for lang in ["en", "en-US", "en-GB"]:

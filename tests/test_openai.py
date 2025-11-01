@@ -1,5 +1,3 @@
-"""Test OpenAI resource."""
-
 import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -12,7 +10,6 @@ from dagster_project.resources.openai import OpenAIClient
 
 @pytest.fixture(scope="module")
 def load_env():
-    """Load environment variables from .env file."""
     project_root = Path(__file__).parent.parent
     env_path = project_root / ".env"
     load_dotenv(env_path)
@@ -20,14 +17,12 @@ def load_env():
 
 @pytest.fixture
 def mock_context():
-    """Create a mock Dagster context."""
     context = MagicMock()
     context.log = MagicMock()
     return context
 
 
 def test_openai_client_initialization(load_env):
-    """Test that OpenAI client can be initialized."""
     client = OpenAIClient()
     assert client is not None
     assert hasattr(client, "api_key")
@@ -36,7 +31,6 @@ def test_openai_client_initialization(load_env):
 
 
 def test_openai_client_config(load_env):
-    """Test OpenAI client configuration."""
     client = OpenAIClient()
     assert client.base_url == "https://openrouter.ai/api/v1"
     assert client.model == os.getenv("OPENAI_MODEL", "openai/gpt-4o")
@@ -44,7 +38,6 @@ def test_openai_client_config(load_env):
 
 
 def test_openai_client_validation_with_api_key(load_env, mock_context):
-    """Test that client validates successfully when API key is present."""
     # Set a test API key
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         client = OpenAIClient()
@@ -54,7 +47,6 @@ def test_openai_client_validation_with_api_key(load_env, mock_context):
 
 
 def test_openai_client_initialization_parameters(load_env):
-    """Test that OpenAI client is initialized with correct parameters."""
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         with patch("dagster_project.resources.openai.OpenAI") as mock_openai:
             client = OpenAIClient()
@@ -70,7 +62,6 @@ def test_openai_client_initialization_parameters(load_env):
 
 
 def test_openai_client_validation_without_api_key(mock_context):
-    """Test that client validation fails when API key is missing."""
     with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
         client = OpenAIClient()
         with pytest.raises(ValueError, match="OPENAI_API_KEY"):
@@ -78,7 +69,6 @@ def test_openai_client_validation_without_api_key(mock_context):
 
 
 def test_chat_completion_request_structure(load_env, mock_context):
-    """Test that chat_completion constructs request correctly."""
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         resource = OpenAIClient()
 
@@ -116,7 +106,6 @@ def test_chat_completion_request_structure(load_env, mock_context):
 
 
 def test_get_completion_text(load_env):
-    """Test extracting completion text from response."""
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         client = OpenAIClient()
 

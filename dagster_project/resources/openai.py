@@ -1,5 +1,3 @@
-"""OpenAI API client resource for Dagster."""
-
 import os
 from functools import cached_property
 from typing import Any
@@ -14,15 +12,6 @@ load_dotenv()
 
 
 class OpenAIClient(ConfigurableResource):
-    """OpenAI API client resource for making LLM requests.
-
-    Attributes:
-        api_key: OpenAI API key (loaded from OPENAI_API_KEY env var)
-        model: Model identifier to use (default: openai/gpt-4o)
-        base_url: OpenAI API base URL
-        timeout: Request timeout in seconds
-    """
-
     api_key: str = Field(
         default_factory=lambda: os.getenv("OPENAI_API_KEY", ""),
         description="OpenAI API key",
@@ -39,11 +28,6 @@ class OpenAIClient(ConfigurableResource):
 
     @cached_property
     def client(self) -> OpenAI:
-        """OpenAI client instance (lazy initialized on first access).
-
-        Returns:
-            Configured OpenAI client for API
-        """
         return OpenAI(
             api_key=self.api_key,
             base_url=self.base_url,
@@ -52,7 +36,6 @@ class OpenAIClient(ConfigurableResource):
         )
 
     def _validate_config(self) -> None:
-        """Validate that required configuration is present."""
         if not self.api_key:
             raise ValueError(
                 "OPENAI_API_KEY environment variable is required but not set. "
@@ -60,7 +43,6 @@ class OpenAIClient(ConfigurableResource):
             )
 
     def setup_for_execution(self, context) -> None:
-        """Called by Dagster when the resource is initialized."""
         self._validate_config()
         context.log.info(f"OpenAI client initialized with model: {self.model}")
 
@@ -72,21 +54,6 @@ class OpenAIClient(ConfigurableResource):
         max_tokens: int | None = None,
         **kwargs: Any,
     ) -> Any:
-        """Make a chat completion request to OpenAI.
-
-        Args:
-            context: Dagster execution context for logging
-            messages: List of message dictionaries with 'role' and 'content' keys
-            temperature: Sampling temperature (0.0 to 2.0)
-            max_tokens: Maximum tokens to generate (optional)
-            **kwargs: Additional parameters to pass to the API
-
-        Returns:
-            OpenAI response object
-
-        Raises:
-            openai.APIError: If the request fails
-        """
         self._validate_config()
 
         # Log request metadata
@@ -116,14 +83,6 @@ class OpenAIClient(ConfigurableResource):
         return response
 
     def get_completion_text(self, response: Any) -> str:
-        """Extract the completion text from an API response.
-
-        Args:
-            response: OpenAI response object from chat_completion()
-
-        Returns:
-            The generated text content
-        """
         return response.choices[0].message.content
 
 

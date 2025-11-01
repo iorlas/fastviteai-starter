@@ -1,0 +1,38 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2025-11-02T00:00:00Z",
+    "last_updated": "2025-11-02T00:01:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "quick",
+  "project_root": "/Users/iorlas/Projects/my/ailabbrains",
+  "output_folder": "/Users/iorlas/Projects/my/ailabbrains/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2025-11-02T00:01:00Z",
+      "summary": "Classified as monolith with 1 part (data pipeline)"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2025-11-02T00:02:00Z",
+      "summary": "Found 6 existing docs"
+    }
+  ],
+  "current_step": "step_3",
+  "findings": {
+    "project_classification": "monolith, 1 part, Python/Dagster data pipeline"
+  },
+  "project_types": [
+    {
+      "part_id": "main",
+      "project_type_id": "data",
+      "display_name": "Data Pipeline"
+    }
+  ],
+  "outputs_generated": ["project-scan-report.json"],
+  "resume_instructions": "Continue from step 2"
+}

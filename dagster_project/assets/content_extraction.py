@@ -1,5 +1,3 @@
-"""Content extraction asset for routing URLs to appropriate extractors."""
-
 import json
 from pathlib import Path
 from typing import NamedTuple
@@ -19,19 +17,6 @@ from dagster_project.ops.youtube_extractor import (
 
 
 class ExtractedContent(NamedTuple):
-    """Content extracted from a URL.
-
-    Attributes:
-        url: Original URL
-        url_hash: SHA256 hash of the URL
-        content_type: Type of content (html or youtube)
-        title: Content title
-        text: Main text content (article or transcript)
-        metadata: Additional metadata
-        extraction_success: Whether extraction succeeded
-        error_message: Error message if extraction failed
-    """
-
     url: str
     url_hash: str
     content_type: str
@@ -43,14 +28,6 @@ class ExtractedContent(NamedTuple):
 
 
 def is_youtube_url(url: str) -> bool:
-    """Check if URL is a YouTube video.
-
-    Args:
-        url: The URL to check
-
-    Returns:
-        True if URL is a YouTube video
-    """
     parsed = urlparse(url)
     return parsed.netloc in ["youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"]
 
@@ -59,12 +36,6 @@ def save_extracted_content(
     content: ExtractedContent,
     output_dir: Path,
 ) -> None:
-    """Save extracted content to JSON file.
-
-    Args:
-        content: Extracted content object
-        output_dir: Directory to save to (html/ or videos/)
-    """
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{content.url_hash}.json"
 
@@ -94,21 +65,6 @@ def content_extraction_asset(
     context: AssetExecutionContext,
     link_ingestion: list[LinkRecord],
 ) -> list[ExtractedContent]:
-    """Extract content from URLs using appropriate extractors.
-
-    Routes URLs to HTML or YouTube extractors based on URL pattern.
-    Saves extracted content to artifacts/html/ or artifacts/videos/.
-
-    Config:
-        project_root: Path to project root directory (default: auto-detected from __file__)
-
-    Args:
-        context: Dagster execution context
-        link_ingestion: List of links from link_ingestion asset
-
-    Returns:
-        List of ExtractedContent objects
-    """
     # Get project root from config or auto-detect
     project_root_str = context.op_config.get("project_root")
     if project_root_str:

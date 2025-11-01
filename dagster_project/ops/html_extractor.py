@@ -1,5 +1,3 @@
-"""HTML content extraction using BeautifulSoup4."""
-
 from datetime import UTC, datetime
 from typing import NamedTuple
 
@@ -8,17 +6,6 @@ from bs4 import BeautifulSoup
 
 
 class HTMLContent(NamedTuple):
-    """Extracted content from an HTML page.
-
-    Attributes:
-        url: Original URL
-        title: Page title
-        content: Main text content (cleaned)
-        author: Author name (if found)
-        publish_date: Publication date (if found)
-        metadata: Additional metadata dictionary
-    """
-
     url: str
     title: str
     content: str
@@ -28,27 +15,10 @@ class HTMLContent(NamedTuple):
 
 
 class HTMLExtractionError(Exception):
-    """Error during HTML extraction."""
-
     pass
 
 
 def extract_html_content(url: str, timeout: int = 30) -> HTMLContent:
-    """Extract content from an HTML article.
-
-    Uses BeautifulSoup4 with common selector fallbacks for title and content.
-    Cleans content by removing scripts, styles, and common ad elements.
-
-    Args:
-        url: The URL to extract content from
-        timeout: Request timeout in seconds
-
-    Returns:
-        HTMLContent object with extracted data
-
-    Raises:
-        HTMLExtractionError: If extraction fails
-    """
     try:
         # Fetch HTML content
         response = httpx.get(url, timeout=timeout, follow_redirects=True)
@@ -99,7 +69,6 @@ def extract_html_content(url: str, timeout: int = 30) -> HTMLContent:
 
 
 def _extract_title(soup: BeautifulSoup) -> str:
-    """Extract page title with fallbacks."""
     # Try common title selectors in order
     selectors = [
         ("h1", {"class_": lambda x: x and "title" in x.lower()}),
@@ -123,7 +92,6 @@ def _extract_title(soup: BeautifulSoup) -> str:
 
 
 def _extract_content(soup: BeautifulSoup) -> str:
-    """Extract main content with fallbacks."""
     # Try common content containers in order
     selectors = [
         ("article", {}),
@@ -159,7 +127,6 @@ def _extract_content(soup: BeautifulSoup) -> str:
 
 
 def _extract_author(soup: BeautifulSoup) -> str | None:
-    """Extract author with fallbacks."""
     selectors = [
         ("meta", {"name": "author"}),
         ("meta", {"property": "article:author"}),
@@ -179,7 +146,6 @@ def _extract_author(soup: BeautifulSoup) -> str | None:
 
 
 def _extract_publish_date(soup: BeautifulSoup) -> str | None:
-    """Extract publish date with fallbacks."""
     selectors = [
         ("meta", {"property": "article:published_time"}),
         ("meta", {"name": "publish_date"}),

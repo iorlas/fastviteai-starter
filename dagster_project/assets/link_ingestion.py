@@ -1,5 +1,3 @@
-"""Link ingestion asset for reading and processing link files."""
-
 import hashlib
 from pathlib import Path
 from typing import NamedTuple
@@ -10,40 +8,16 @@ from dagster_project.ops.watchers import RSSWatcher, RSSWatcherError
 
 
 class LinkRecord(NamedTuple):
-    """Record for a link to be processed.
-
-    Attributes:
-        url: The URL to process
-        url_hash: SHA256 hash of the URL (first 16 chars)
-        source_file: Which input file this came from (manual or monitoring)
-    """
-
     url: str
     url_hash: str
     source_file: str
 
 
 def compute_url_hash(url: str) -> str:
-    """Compute SHA256 hash of URL, returning first 16 characters.
-
-    Args:
-        url: The URL to hash
-
-    Returns:
-        First 16 characters of SHA256 hash
-    """
     return hashlib.sha256(url.encode()).hexdigest()[:16]
 
 
 def read_links_from_file(file_path: Path) -> list[str]:
-    """Read links from a text file, one per line.
-
-    Args:
-        file_path: Path to the input file
-
-    Returns:
-        List of URLs (empty lines and comments removed)
-    """
     if not file_path.exists():
         return []
 
@@ -66,19 +40,6 @@ def read_links_from_file(file_path: Path) -> list[str]:
     },
 )
 def link_ingestion_asset(context: AssetExecutionContext) -> list[LinkRecord]:
-    """Ingest links from input files and filter out already-processed links.
-
-    Reads manual_links.txt and/or monitoring_list.txt based on source_filter config,
-    computes URL hashes, and returns only links that don't have existing summary files.
-
-    Config:
-        source_filter: Which source to read from - "manual", "monitoring", or "both"
-            (default: "both")
-        project_root: Path to project root directory (default: auto-detected from __file__)
-
-    Returns:
-        List of LinkRecord objects for unprocessed links
-    """
     # Get source filter from config (default to "both" for backwards compatibility)
     source_filter = context.op_config.get("source_filter", "both")
 

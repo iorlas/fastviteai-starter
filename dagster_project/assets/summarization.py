@@ -1,5 +1,3 @@
-"""Summarization asset for generating AI summaries of extracted content."""
-
 import json
 import time
 from pathlib import Path
@@ -10,14 +8,6 @@ from dagster_project.assets.content_extraction import ExtractedContent
 
 
 def create_summarization_prompt(content: ExtractedContent) -> list[dict[str, str]]:
-    """Create prompt messages for summarization.
-
-    Args:
-        content: Extracted content to summarize
-
-    Returns:
-        List of message dictionaries for LLM API
-    """
     system_message = {
         "role": "system",
         "content": (
@@ -49,13 +39,6 @@ def save_summary(
     summary_data: dict,
     output_dir: Path,
 ) -> None:
-    """Save summary to JSON file.
-
-    Args:
-        url_hash: Hash of the URL
-        summary_data: Summary data dictionary
-        output_dir: Directory to save to (summaries/)
-    """
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{url_hash}.json"
 
@@ -80,22 +63,6 @@ def summarization_asset(
     context: AssetExecutionContext,
     content_extraction: list[ExtractedContent],
 ) -> dict:
-    """Generate AI summaries for extracted content.
-
-    Uses OpenAI resource to generate summaries via LLM API.
-    Saves summaries with metadata to artifacts/summaries/.
-    On failure after retries, saves error details with status="failed".
-
-    Config:
-        project_root: Path to project root directory (default: auto-detected from __file__)
-
-    Args:
-        context: Dagster execution context
-        content_extraction: List of extracted content from content_extraction asset
-
-    Returns:
-        Summary statistics dictionary
-    """
     # Get project root from config or auto-detect
     project_root_str = context.op_config.get("project_root")
     if project_root_str:

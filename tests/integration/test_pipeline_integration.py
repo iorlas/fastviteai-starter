@@ -1,12 +1,3 @@
-"""Integration tests for the complete pipeline.
-
-Tests the full flow from link ingestion through content extraction, including
-RSS watcher integration, error handling, and deduplication.
-
-These are integration tests (not E2E) - they use mocking for external dependencies
-like HTTP requests and RSS feed parsing for speed and reliability.
-"""
-
 import json
 from unittest.mock import MagicMock, PropertyMock, patch
 
@@ -20,7 +11,6 @@ from dagster_project.ops.watchers import RSSWatcher
 
 @pytest.fixture
 def mock_rss_feed():
-    """Mock RSS feed XML content for testing."""
     return """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
     <channel>
@@ -43,7 +33,6 @@ def mock_rss_feed():
 
 @pytest.fixture
 def e2e_test_env(tmp_path):
-    """Create complete test environment with all required files and directories."""
     # Create input files
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -68,13 +57,6 @@ def e2e_test_env(tmp_path):
 
 @pytest.mark.integration
 def test_rss_watcher_integration(e2e_test_env, mock_rss_feed):
-    """Test that RSSWatcher correctly discovers links from RSS feeds.
-
-    Verifies:
-    - RSS feed URLs are detected in monitoring_list.txt
-    - RSSWatcher.fetch_links() is called for RSS feeds
-    - Discovered links are added to the ingestion pipeline
-    """
     with patch("feedparser.parse") as mock_parse:
         # Mock feedparser to return our test feed
         mock_feed = MagicMock()
@@ -109,13 +91,6 @@ def test_rss_watcher_integration(e2e_test_env, mock_rss_feed):
 
 @pytest.mark.integration
 def test_deduplication_skips_processed_links(e2e_test_env):
-    """Test that pipeline skips links with existing summary files.
-
-    Verifies:
-    - First run processes all links
-    - Second run skips links with existing summaries
-    - Deduplication works correctly
-    """
     # Create a mock summary file to simulate already-processed link
     summaries_dir = e2e_test_env / "artifacts" / "summaries"
     from dagster_project.assets.link_ingestion import compute_url_hash
@@ -141,18 +116,10 @@ def test_deduplication_skips_processed_links(e2e_test_env):
 
 @pytest.mark.integration
 def test_error_handling_with_invalid_url(e2e_test_env):
-    """Test that extraction errors are properly logged and saved.
-
-    Verifies:
-    - Invalid URLs trigger extraction errors
-    - Error details are saved to extraction artifacts
-    - Pipeline continues processing other links
-    """
     # Add an invalid URL to manual_links.txt
     manual_file = e2e_test_env / "manual_links.txt"
     manual_file.write_text(
-        "# Links with one invalid URL\n"
-        "https://this-domain-does-not-exist-12345.com/article\n"
+        "# Links with one invalid URL\nhttps://this-domain-does-not-exist-12345.com/article\n"
     )
 
     # Create context for link ingestion
@@ -167,9 +134,7 @@ def test_error_handling_with_invalid_url(e2e_test_env):
 
     # Create context for content extraction
     extract_context = build_asset_context()
-    type(extract_context).op_config = PropertyMock(
-        return_value={"project_root": str(e2e_test_env)}
-    )
+    type(extract_context).op_config = PropertyMock(return_value={"project_root": str(e2e_test_env)})
 
     # Run content extraction (should handle error gracefully)
     extractions = content_extraction_asset(extract_context, links)
@@ -195,13 +160,6 @@ def test_error_handling_with_invalid_url(e2e_test_env):
 
 @pytest.mark.integration
 def test_malformed_rss_feed_handling(e2e_test_env):
-    """Test that malformed RSS feeds are handled gracefully.
-
-    Verifies:
-    - Malformed RSS feeds don't crash the pipeline
-    - Warning is logged for failed RSS parsing
-    - Other links continue to be processed
-    """
     # Create monitoring_list with malformed RSS feed URL
     monitoring_file = e2e_test_env / "monitoring_list.txt"
     monitoring_file.write_text(
@@ -234,13 +192,6 @@ def test_malformed_rss_feed_handling(e2e_test_env):
 
 @pytest.mark.integration
 def test_rss_watcher_fetch_links_directly():
-    """Test RSSWatcher.fetch_links() method directly with mock feed.
-
-    Verifies:
-    - Protocol implementation is correct
-    - Link extraction from RSS entries works
-    - Both 'link' and 'href' fields are supported
-    """
     with patch("feedparser.parse") as mock_parse:
         # Test with standard RSS 'link' field
         mock_feed = MagicMock()
@@ -263,14 +214,6 @@ def test_rss_watcher_fetch_links_directly():
 
 @pytest.mark.integration
 def test_full_pipeline_with_summarization(e2e_test_env):
-    """Test complete pipeline flow: ingestion → extraction → summarization.
-
-    This is a comprehensive E2E test that verifies:
-    - Links are ingested correctly
-    - Content is extracted (mocked for speed)
-    - Summaries are generated (mocked for speed)
-    - All artifacts are saved in correct locations
-    """
     # Mock HTTP requests for content extraction
     with patch("httpx.get") as mock_get:
         # Mock HTML response

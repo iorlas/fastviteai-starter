@@ -1,5 +1,3 @@
-"""Monitoring schedule for periodic link processing."""
-
 from dagster import ScheduleDefinition
 
 from dagster_project.jobs.monitoring_pipeline import monitoring_pipeline_job

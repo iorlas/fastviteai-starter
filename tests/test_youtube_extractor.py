@@ -1,5 +1,3 @@
-"""Test YouTube extractor."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -14,7 +12,6 @@ from dagster_project.ops.youtube_extractor import (
 
 @pytest.fixture
 def mock_youtube_info():
-    """Mock YouTube video info."""
     return {
         "id": "test_video_id",
         "title": "Test Video Title",
@@ -29,7 +26,6 @@ def mock_youtube_info():
 
 
 def test_extract_youtube_content_success(mock_youtube_info):
-    """Test successful YouTube content extraction."""
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()
         mock_ydl.extract_info.return_value = mock_youtube_info
@@ -48,7 +44,6 @@ def test_extract_youtube_content_success(mock_youtube_info):
 
 
 def test_extract_youtube_content_fallback_to_description(mock_youtube_info):
-    """Test that description is used when transcript is unavailable."""
     # Remove transcript-related fields
     mock_youtube_info.pop("automatic_captions", None)
     mock_youtube_info.pop("subtitles", None)
@@ -67,7 +62,6 @@ def test_extract_youtube_content_fallback_to_description(mock_youtube_info):
 
 
 def test_extract_youtube_content_private_video():
-    """Test handling of private/unavailable videos."""
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()
         # Simulate DownloadError with "private" message
@@ -83,7 +77,6 @@ def test_extract_youtube_content_private_video():
 
 
 def test_extract_youtube_content_metadata(mock_youtube_info):
-    """Test metadata extraction."""
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()
         mock_ydl.extract_info.return_value = mock_youtube_info

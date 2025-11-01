@@ -1,5 +1,3 @@
-"""Test link ingestion asset."""
-
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,13 +12,11 @@ from dagster_project.assets.link_ingestion import (
 
 @pytest.fixture
 def mock_context():
-    """Create a proper Dagster asset context."""
     return build_asset_context()
 
 
 @pytest.fixture
 def temp_project_root(tmp_path):
-    """Create temporary project structure."""
     # Create manual_links.txt
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -43,7 +39,6 @@ def temp_project_root(tmp_path):
 
 
 def test_compute_url_hash():
-    """Test URL hash computation."""
     url = "https://example.com/test"
     hash_result = compute_url_hash(url)
 
@@ -58,7 +53,6 @@ def test_compute_url_hash():
 
 
 def test_read_links_from_file(tmp_path):
-    """Test reading links from file."""
     # Create test file
     test_file = tmp_path / "test_links.txt"
     test_file.write_text(
@@ -74,7 +68,6 @@ def test_read_links_from_file(tmp_path):
 
 
 def test_read_links_from_nonexistent_file(tmp_path):
-    """Test reading from non-existent file."""
     nonexistent_file = tmp_path / "does_not_exist.txt"
     links = read_links_from_file(nonexistent_file)
 
@@ -82,8 +75,6 @@ def test_read_links_from_nonexistent_file(tmp_path):
 
 
 def test_link_ingestion_with_temp_files(mock_context, temp_project_root):
-    """Test link ingestion with temporary files."""
-
     # We need to mock the project_root path resolution
     def mock_file_path():
         return temp_project_root / "dagster_project" / "assets" / "link_ingestion.py"
@@ -114,7 +105,6 @@ def test_link_ingestion_with_temp_files(mock_context, temp_project_root):
 
 
 def test_link_ingestion_filters_duplicates():
-    """Test URL hash-based deduplication logic."""
     # Test that same URL produces same hash
     url = "https://example.com/test"
     hash1 = compute_url_hash(url)

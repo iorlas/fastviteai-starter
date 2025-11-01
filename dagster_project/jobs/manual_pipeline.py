@@ -1,5 +1,3 @@
-"""Manual pipeline job for processing manual_links.txt."""
-
 from dagster import AssetSelection, define_asset_job
 
 # Define job that processes all pipeline assets

@@ -1,5 +1,3 @@
-"""Dagster ops for content extraction."""
-
 from dagster_project.ops.html_extractor import (
     HTMLContent,
     HTMLExtractionError,

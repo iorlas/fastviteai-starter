@@ -1,5 +1,3 @@
-"""Integration tests for pipeline jobs to verify source filtering."""
-
 from unittest.mock import PropertyMock
 
 import pytest
@@ -10,7 +8,6 @@ from dagster_project.assets.link_ingestion import link_ingestion_asset
 
 @pytest.fixture
 def temp_env_with_files(tmp_path):
-    """Create temporary environment with separate input files."""
     # Create input files with different links
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -33,7 +30,6 @@ def temp_env_with_files(tmp_path):
 
 
 def test_manual_pipeline_filters_manual_only(temp_env_with_files):
-    """Test that manual_pipeline only processes links from manual_links.txt."""
     # Create context with source_filter="manual"
     context = build_asset_context()
     type(context).op_config = PropertyMock(
@@ -50,7 +46,6 @@ def test_manual_pipeline_filters_manual_only(temp_env_with_files):
 
 
 def test_monitoring_pipeline_filters_monitoring_only(temp_env_with_files):
-    """Test that monitoring_pipeline only processes links from monitoring_list.txt."""
     # Create context with source_filter="monitoring"
     context = build_asset_context()
     type(context).op_config = PropertyMock(
@@ -67,7 +62,6 @@ def test_monitoring_pipeline_filters_monitoring_only(temp_env_with_files):
 
 
 def test_both_filter_processes_all_links(temp_env_with_files):
-    """Test that source_filter='both' processes links from both files."""
     # Create context with source_filter="both"
     context = build_asset_context()
     type(context).op_config = PropertyMock(
@@ -88,7 +82,6 @@ def test_both_filter_processes_all_links(temp_env_with_files):
 
 
 def test_default_filter_is_both(temp_env_with_files):
-    """Test that default behavior processes both files when no filter specified."""
     # Create context without source_filter (should default to "both")
     context = build_asset_context()
     type(context).op_config = PropertyMock(return_value={"project_root": str(temp_env_with_files)})

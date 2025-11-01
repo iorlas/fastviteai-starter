@@ -1,5 +1,3 @@
-"""Test HTML extractor."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,7 +11,6 @@ from dagster_project.ops.html_extractor import (
 
 @pytest.fixture
 def sample_html():
-    """Sample HTML content for testing."""
     return """
     <!DOCTYPE html>
     <html>
@@ -37,7 +34,6 @@ def sample_html():
 
 @pytest.fixture
 def mock_httpx_response(sample_html):
-    """Mock httpx response."""
     mock_response = MagicMock()
     mock_response.text = sample_html
     mock_response.url = "https://example.com/article"
@@ -46,7 +42,6 @@ def mock_httpx_response(sample_html):
 
 
 def test_extract_html_content_success(mock_httpx_response):
-    """Test successful HTML content extraction."""
     with patch("dagster_project.ops.html_extractor.httpx.get", return_value=mock_httpx_response):
         result = extract_html_content("https://example.com/article")
 
@@ -60,7 +55,6 @@ def test_extract_html_content_success(mock_httpx_response):
 
 
 def test_extract_html_content_cleans_unwanted_elements(mock_httpx_response):
-    """Test that unwanted elements are removed."""
     with patch("dagster_project.ops.html_extractor.httpx.get", return_value=mock_httpx_response):
         result = extract_html_content("https://example.com/article")
 
@@ -71,7 +65,6 @@ def test_extract_html_content_cleans_unwanted_elements(mock_httpx_response):
 
 
 def test_extract_html_content_http_error():
-    """Test handling of HTTP errors."""
     with patch("dagster_project.ops.html_extractor.httpx.get") as mock_get:
         mock_get.side_effect = Exception("Network error")
 
@@ -80,7 +73,6 @@ def test_extract_html_content_http_error():
 
 
 def test_extract_html_content_metadata():
-    """Test metadata extraction."""
     html = """
     <html>
     <head><title>Test</title></head>

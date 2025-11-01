@@ -1,5 +1,3 @@
-"""Monitoring pipeline job for processing monitoring_list.txt."""
-
 from dagster import AssetSelection, define_asset_job
 
 # Define job that processes all pipeline assets
