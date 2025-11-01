@@ -1,11 +1,12 @@
 """OpenRouter API client resource for Dagster."""
 
 import os
+from functools import cached_property
 from typing import Any
 
-import httpx
 from dagster import ConfigurableResource
 from dotenv import load_dotenv
+from openai import OpenAI
 from pydantic import Field
 
 # Load environment variables from .env file
@@ -18,7 +19,7 @@ class OpenRouterClient(ConfigurableResource):
     Attributes:
         api_key: OpenRouter API key (loaded from OPENROUTER_API_KEY env var)
         model: Model identifier to use (default: openai/gpt-4o)
-        api_endpoint: OpenRouter API endpoint URL
+        base_url: OpenRouter API base URL
         timeout: Request timeout in seconds
     """
 
@@ -30,11 +31,25 @@ class OpenRouterClient(ConfigurableResource):
         default_factory=lambda: os.getenv("OPENROUTER_MODEL", "openai/gpt-4o"),
         description="Model identifier",
     )
-    api_endpoint: str = Field(
-        default="https://openrouter.ai/api/v1/chat/completions",
-        description="OpenRouter API endpoint",
+    base_url: str = Field(
+        default_factory=lambda: os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+        description="OpenRouter API base URL",
     )
     timeout: float = Field(default=30.0, description="Request timeout in seconds")
+
+    @cached_property
+    def client(self) -> OpenAI:
+        """OpenAI client instance (lazy initialized on first access).
+
+        Returns:
+            Configured OpenAI client for OpenRouter API
+        """
+        return OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            max_retries=3,
+            timeout=self.timeout,
+        )
 
     def _validate_config(self) -> None:
         """Validate that required configuration is present."""
@@ -51,52 +66,65 @@ class OpenRouterClient(ConfigurableResource):
 
     def chat_completion(
         self,
+        context,
         messages: list[dict[str, str]],
         temperature: float = 0.7,
         max_tokens: int | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> Any:
         """Make a chat completion request to OpenRouter.
 
         Args:
+            context: Dagster execution context for logging
             messages: List of message dictionaries with 'role' and 'content' keys
             temperature: Sampling temperature (0.0 to 2.0)
             max_tokens: Maximum tokens to generate (optional)
             **kwargs: Additional parameters to pass to the API
 
         Returns:
-            API response as a dictionary
+            OpenAI response object
 
         Raises:
-            httpx.HTTPError: If the request fails
+            openai.APIError: If the request fails
         """
         self._validate_config()
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        # Log request metadata
+        context.log.debug(
+            f"OpenRouter API request: model={self.model}, "
+            f"messages={len(messages)}, temp={temperature}, "
+            f"max_tokens={max_tokens or 'unlimited'}"
+        )
 
-        payload = {"model": self.model, "messages": messages, "temperature": temperature, **kwargs}
+        # Make API call using OpenAI client
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
 
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
+        # Log response metadata (token usage, model)
+        context.log.debug(
+            f"OpenRouter API response: model={response.model}, "
+            f"completion_tokens={response.usage.completion_tokens}, "
+            f"prompt_tokens={response.usage.prompt_tokens}, "
+            f"total_tokens={response.usage.total_tokens}"
+        )
 
-        with httpx.Client(timeout=self.timeout) as client:
-            response = client.post(self.api_endpoint, headers=headers, json=payload)
-            response.raise_for_status()
-            return response.json()
+        return response
 
-    def get_completion_text(self, response: dict[str, Any]) -> str:
+    def get_completion_text(self, response: Any) -> str:
         """Extract the completion text from an API response.
 
         Args:
-            response: API response dictionary from chat_completion()
+            response: OpenAI response object from chat_completion()
 
         Returns:
             The generated text content
         """
-        return response["choices"][0]["message"]["content"]
+        return response.choices[0].message.content
 
 
 # Resource factory for Dagster definitions

@@ -1,6 +1,6 @@
 # Story: Core ETL Pipeline Implementation
 
-Status: Draft
+Status: ready-for-dev
 
 ## Story
 
@@ -109,7 +109,7 @@ Implement the complete Dagster asset graph for link processing: ingest links fro
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- `docs/stories/story-link-pipeline-2.context.xml` - Generated 2025-11-01
 
 ### Agent Model Used
 

@@ -32,13 +32,13 @@ def test_openrouter_client_initialization(load_env):
     assert client is not None
     assert hasattr(client, "api_key")
     assert hasattr(client, "model")
-    assert hasattr(client, "api_endpoint")
+    assert hasattr(client, "base_url")
 
 
 def test_openrouter_client_config(load_env):
     """Test OpenRouter client configuration."""
     client = OpenRouterClient()
-    assert client.api_endpoint == "https://openrouter.ai/api/v1/chat/completions"
+    assert client.base_url == "https://openrouter.ai/api/v1"
     assert client.model == os.getenv("OPENROUTER_MODEL", "openai/gpt-4o")
     assert client.timeout == 30.0
 
@@ -53,6 +53,22 @@ def test_openrouter_client_validation_with_api_key(load_env, mock_context):
         mock_context.log.info.assert_called_once()
 
 
+def test_openrouter_client_initialization_parameters(load_env):
+    """Test that OpenAI client is initialized with correct parameters."""
+    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
+        with patch("dagster_project.resources.openrouter_client.OpenAI") as mock_openai:
+            client = OpenRouterClient()
+            # Access the client property to trigger initialization
+            _ = client.client
+            # Verify OpenAI client was initialized with correct parameters
+            mock_openai.assert_called_once_with(
+                api_key="test_key",
+                base_url="https://openrouter.ai/api/v1",
+                max_retries=3,
+                timeout=30.0,
+            )
+
+
 def test_openrouter_client_validation_without_api_key(mock_context):
     """Test that client validation fails when API key is missing."""
     with patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}, clear=True):
@@ -61,33 +77,42 @@ def test_openrouter_client_validation_without_api_key(mock_context):
             client.setup_for_execution(mock_context)
 
 
-def test_chat_completion_request_structure(load_env):
+def test_chat_completion_request_structure(load_env, mock_context):
     """Test that chat_completion constructs request correctly."""
     with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
-        client = OpenRouterClient()
+        resource = OpenRouterClient()
 
         messages = [{"role": "user", "content": "Hello"}]
 
-        with patch("httpx.Client") as mock_client:
-            mock_response = MagicMock()
-            mock_response.json.return_value = {"choices": [{"message": {"content": "Hi there"}}]}
-            mock_client.return_value.__enter__.return_value.post.return_value = mock_response
+        # Create mock response object
+        mock_response = MagicMock()
+        mock_response.model = "openai/gpt-4o"
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Hi there"
+        mock_response.usage.completion_tokens = 10
+        mock_response.usage.prompt_tokens = 5
+        mock_response.usage.total_tokens = 15
 
-            client.chat_completion(messages, temperature=0.5, max_tokens=100)
+        # Mock the client property and its method
+        with patch.object(resource, "client") as mock_client:
+            mock_client.chat.completions.create = MagicMock(return_value=mock_response)
 
-            # Verify the request was made
-            mock_client.return_value.__enter__.return_value.post.assert_called_once()
-            call_args = mock_client.return_value.__enter__.return_value.post.call_args
+            # Call chat_completion
+            response = resource.chat_completion(
+                mock_context, messages, temperature=0.5, max_tokens=100
+            )
 
-            # Check URL
-            assert call_args[0][0] == client.api_endpoint
+            # Verify the API call was made with correct parameters
+            mock_client.chat.completions.create.assert_called_once_with(
+                model=resource.model,
+                messages=messages,
+                temperature=0.5,
+                max_tokens=100,
+            )
 
-            # Check payload structure
-            payload = call_args[1]["json"]
-            assert payload["model"] == client.model
-            assert payload["messages"] == messages
-            assert payload["temperature"] == 0.5
-            assert payload["max_tokens"] == 100
+            # Verify debug logging was called
+            assert mock_context.log.debug.call_count == 2  # Request and response logging
+            assert response == mock_response
 
 
 def test_get_completion_text(load_env):
@@ -95,7 +120,10 @@ def test_get_completion_text(load_env):
     with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test_key"}):
         client = OpenRouterClient()
 
-        response = {"choices": [{"message": {"content": "Test response"}}]}
+        # Create mock OpenAI response object
+        response = MagicMock()
+        response.choices = [MagicMock()]
+        response.choices[0].message.content = "Test response"
 
         text = client.get_completion_text(response)
         assert text == "Test response"

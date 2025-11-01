@@ -77,6 +77,6 @@ def test_openrouter_resource_initialization(load_env):
     client = OpenRouterClient()
 
     # Should initialize without errors
-    assert client.api_endpoint == "https://openrouter.ai/api/v1/chat/completions"
+    assert client.base_url == "https://openrouter.ai/api/v1"
     assert client.model in ["openai/gpt-4o", os.getenv("OPENROUTER_MODEL")]
     assert client.timeout == 30.0

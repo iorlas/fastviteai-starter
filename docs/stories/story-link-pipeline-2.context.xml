@@ -1,0 +1,244 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Core ETL Pipeline Implementation</title>
+    <status>Draft</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/story-link-pipeline-2.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user</asA>
+    <iWant>to process links from input files through extraction and summarization</iWant>
+    <soThat>I can read AI-generated summaries of articles and videos</soThat>
+    <tasks>
+### Link Ingestion Asset
+- [ ] Implement `assets/link_ingestion.py` (AC: #1, #7)
+  - [ ] Read `manual_links.txt` and `monitoring_list.txt`
+  - [ ] For each URL, compute hash: SHA256(url)[:16]
+  - [ ] Check if `artifacts/summaries/{hash}.json` exists
+  - [ ] Return list of unprocessed URL objects (summary file doesn't exist)
+
+### Content Extraction Asset
+- [ ] Implement HTML extractor in `ops/html_extractor.py` (AC: #2)
+  - [ ] Use BeautifulSoup4 with common selector fallbacks
+  - [ ] Clean content (remove scripts, styles, ads)
+  - [ ] Extract metadata (title, author, publish date)
+  - [ ] Handle extraction errors gracefully
+- [ ] Implement YouTube extractor in `ops/youtube_extractor.py` (AC: #3)
+  - [ ] Use yt-dlp for transcript extraction
+  - [ ] Fallback to video description if no transcript
+  - [ ] Handle private/unavailable videos
+- [ ] Implement `assets/content_extraction.py` (AC: #3, #4, #5)
+  - [ ] Route to appropriate extractor based on URL
+  - [ ] Generate URL hash (SHA256[:16])
+  - [ ] Auto-create directories: `Path.mkdir(parents=True, exist_ok=True)`
+  - [ ] Save extracted content to `artifacts/html/` or `artifacts/videos/`
+  - [ ] Return extracted content objects
+
+### Summarization Asset
+- [ ] Implement `assets/summarization.py` (AC: #3, #4, #5, #6, #9)
+  - [ ] Integrate OpenRouter resource
+  - [ ] Create prompt template for summarization
+  - [ ] Use Dagster default retry mechanism (exponential backoff)
+  - [ ] Call LLM API with extracted content
+  - [ ] Auto-create summaries directory: `Path.mkdir(parents=True, exist_ok=True)`
+  - [ ] On success:
+    - [ ] Log metadata to Dagster: `context.add_output_metadata({"model": "...", "tokens": ..., "latency_ms": ...})`
+    - [ ] Save summary with `status: "success"` to `artifacts/summaries/{url_hash}.json`
+  - [ ] On failure (after all retries):
+    - [ ] Save error details with `status: "failed"` to `artifacts/summaries/{url_hash}.json`
+    - [ ] Include error message, type, and retry count
+
+### Jobs & Schedules
+- [ ] Create `jobs/manual_pipeline.py` - processes manual_links.txt only (AC: #1)
+  - [ ] Define job with all assets
+  - [ ] Configure for on-demand triggering via UI
+- [ ] Create `jobs/monitoring_pipeline.py` - processes monitoring_list.txt only (AC: #2, #7)
+  - [ ] Define job with all assets
+  - [ ] Link to schedule
+- [ ] Create `schedules/monitoring_schedule.py` (AC: #7)
+  - [ ] Implement 6-hour cron schedule: `0 */6 * * *`
+  - [ ] Link to monitoring_pipeline job
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Manual pipeline processes manual_links.txt end-to-end (input file → artifacts)
+2. Monitoring pipeline processes monitoring_list.txt end-to-end
+3. HTML articles are extracted and summarized correctly
+4. YouTube videos are transcribed and summarized correctly
+5. Artifacts saved with proper naming convention (URL hash, auto-create directories)
+6. Dagster metadata tracks all summarization runs (model, tokens, latency)
+7. Monitoring schedule triggers every 6 hours automatically
+8. Duplicate and failed links are skipped (check if summary file exists)
+9. Failed links save error details in summary file with status="failed"
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock Technical Specification</title>
+        <section>Technical Details - Sections 1-3</section>
+        <snippet>Link Ingestion, Content Extraction, and Summarization asset implementations with OpenRouter integration, file storage patterns, URL hashing (SHA256[:16]), and auto-directory creation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock Technical Specification</title>
+        <section>Implementation Guide - Phase 2</section>
+        <snippet>Complete task breakdown for Core Pipeline Implementation including link ingestion, content extraction (HTML/YouTube), summarization asset with metadata tracking, jobs (manual/monitoring), and 6-hour schedule.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock Technical Specification</title>
+        <section>Source Tree Structure</section>
+        <snippet>Dagster project structure with assets/, jobs/, schedules/, resources/, ops/ directories. Storage structure with artifacts/html/, artifacts/videos/, artifacts/summaries/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>DeepRock Epic Breakdown</title>
+        <section>Story 2: Core ETL Pipeline</section>
+        <snippet>Goal is to implement complete end-to-end link processing pipeline with link ingestion, content extraction, summarization, jobs, and schedules. Estimated 3.5 points (6-8 hours).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/definitions.py</path>
+        <kind>module</kind>
+        <symbol>defs</symbol>
+        <lines>1-13</lines>
+        <reason>Dagster Definitions entry point where new jobs and schedules must be registered. Currently has openrouter resource registered.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/openrouter_client.py</path>
+        <kind>resource</kind>
+        <symbol>OpenRouterClient</symbol>
+        <lines>16-131</lines>
+        <reason>Existing OpenRouter resource to use for summarization. Provides chat_completion() and get_completion_text() methods. Uses environment variables for configuration.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets.py</path>
+        <kind>module</kind>
+        <symbol>N/A</symbol>
+        <lines>1-2</lines>
+        <reason>Empty assets module - this is where new assets (link_ingestion, content_extraction, summarization) should be created.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_openrouter_client.py</path>
+        <kind>test</kind>
+        <symbol>Multiple test functions</symbol>
+        <lines>1-130</lines>
+        <reason>Test patterns for OpenRouter client using pytest, mocking, and fixtures. Shows how to test Dagster resources.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_storage.py</path>
+        <kind>test</kind>
+        <symbol>Multiple test functions</symbol>
+        <lines>1-40</lines>
+        <reason>Test patterns for storage directories. Shows project structure validation approach.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version="1.7.0+" />
+        <package name="dagster-webserver" version="1.7.0+" />
+        <package name="httpx" version="0.27.0+" />
+        <package name="beautifulsoup4" version="4.12.0+" />
+        <package name="yt-dlp" version="2024.4.9+" />
+        <package name="feedparser" version="6.0.11+" />
+        <package name="pydantic" version="2.7.0+" />
+        <package name="python-dotenv" version="1.0.0+" />
+        <package name="openai" version="latest" note="Used by OpenRouterClient" />
+        <package name="pytest" version="8.0.0+" dev="true" />
+        <package name="pytest-asyncio" version="0.23.0+" dev="true" />
+        <package name="ruff" version="0.4.0+" dev="true" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Use Dagster asset-based architecture (not ops-based)
+    - All assets must use Path.mkdir(parents=True, exist_ok=True) for directory creation
+    - URL hashing must use SHA256(url)[:16] for consistency
+    - Deduplication: check if summary file exists (artifacts/summaries/{hash}.json)
+    - Use Dagster default retry mechanism (exponential backoff) - do not implement custom retry
+    - All metadata must be logged via context.add_output_metadata()
+    - OpenRouter client accessed via resource: context.resources.openrouter
+    - Failed links must save error details with status="failed" (do not raise exceptions after retries)
+    - File storage structure: artifacts/html/, artifacts/videos/, artifacts/summaries/
+    - Jobs must be separate: manual_pipeline (manual_links.txt) and monitoring_pipeline (monitoring_list.txt)
+    - Schedule cron: "0 */6 * * *" (every 6 hours)
+    - Testing: Use pytest with fixtures and mocking patterns shown in existing tests
+    - Code style: Follow existing patterns (type hints, docstrings, Pydantic models)
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>OpenRouterClient.chat_completion</name>
+      <kind>resource method</kind>
+      <signature>chat_completion(context, messages: list[dict[str, str]], temperature: float = 0.7, max_tokens: int | None = None, **kwargs) -> Any</signature>
+      <path>dagster_project/resources/openrouter_client.py</path>
+    </interface>
+    <interface>
+      <name>OpenRouterClient.get_completion_text</name>
+      <kind>resource method</kind>
+      <signature>get_completion_text(response: Any) -> str</signature>
+      <path>dagster_project/resources/openrouter_client.py</path>
+    </interface>
+    <interface>
+      <name>Dagster Asset</name>
+      <kind>decorator</kind>
+      <signature>@asset(name="asset_name", deps=["dependency_asset"])</signature>
+      <path>dagster framework</path>
+    </interface>
+    <interface>
+      <name>Dagster Job</name>
+      <kind>decorator</kind>
+      <signature>@job(name="job_name")</signature>
+      <path>dagster framework</path>
+    </interface>
+    <interface>
+      <name>Dagster Schedule</name>
+      <kind>decorator</kind>
+      <signature>@schedule(cron_schedule="0 */6 * * *", job=job_name)</signature>
+      <path>dagster framework</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Use pytest as the testing framework with fixtures for setup/teardown. Mock external dependencies (API calls, file I/O) using unittest.mock. Follow patterns from existing tests: create mock Dagster contexts, use MagicMock for resources, test both success and error paths. For integration tests, use real file paths but isolated test directories. Test coverage should focus on essential E2E flow validation rather than exhaustive unit tests (MVP approach).
+    </standards>
+    <locations>
+      <location>tests/integration/</location>
+      <location>tests/</location>
+    </locations>
+    <ideas>
+      <test ac="1,2">
+        <description>E2E test: Process sample links from test input files through full pipeline</description>
+        <approach>Create test input files with sample HTML and YouTube URLs. Run full asset graph. Verify summary files created in correct locations with proper structure.</approach>
+      </test>
+      <test ac="3">
+        <description>Unit test: HTML extraction handles common article structures</description>
+        <approach>Test HTML extractor with sample article HTML. Verify title, content, and metadata extraction. Test content cleaning (script/style removal).</approach>
+      </test>
+      <test ac="4">
+        <description>Unit test: YouTube extractor handles transcripts and fallbacks</description>
+        <approach>Mock yt-dlp responses. Test transcript extraction success path. Test fallback to description when transcript unavailable.</approach>
+      </test>
+      <test ac="5,8">
+        <description>Unit test: URL hashing and deduplication logic</description>
+        <approach>Test SHA256[:16] hashing produces consistent results. Test deduplication by checking summary file existence. Verify files auto-create in correct directories.</approach>
+      </test>
+      <test ac="6">
+        <description>Integration test: Dagster metadata tracking</description>
+        <approach>Run summarization asset. Inspect Dagster context metadata. Verify model, tokens, latency are logged via add_output_metadata().</approach>
+      </test>
+      <test ac="9">
+        <description>Unit test: Failed link error handling</description>
+        <approach>Mock API failure. Verify error details saved to summary file with status="failed". Verify retry count tracked.</approach>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

@@ -38,7 +38,7 @@ story_location: {project-root}/docs/stories
 development_status:
   epic-1: backlog
   story-link-pipeline-1: done
-  story-link-pipeline-1.1: drafted
-  story-link-pipeline-2: drafted
+  story-link-pipeline-1.1: done
+  story-link-pipeline-2: ready-for-dev
   story-link-pipeline-3: drafted
   epic-1-retrospective: optional

@@ -44,7 +44,9 @@
       "Bash(xargs kill:*)",
       "Bash(kill:*)",
       "Bash(make check:*)",
-      "Bash(uv pip list:*)"
+      "Bash(uv pip list:*)",
+      "Bash(uv pip show:*)",
+      "Bash(uv remove:*)"
     ],
     "deny": [],
     "ask": []
