@@ -94,3 +94,4 @@ config/
 history/
 
 .dagster
+.env
