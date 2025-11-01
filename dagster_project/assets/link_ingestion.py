@@ -6,6 +6,8 @@ from typing import NamedTuple
 
 from dagster import AssetExecutionContext, Field, asset
 
+from dagster_project.ops.watchers import RSSWatcher, RSSWatcherError
+
 
 class LinkRecord(NamedTuple):
     """Record for a link to be processed.
@@ -102,8 +104,33 @@ def link_ingestion_asset(context: AssetExecutionContext) -> list[LinkRecord]:
         context.log.info(f"Found {len(manual_links)} links in manual_links.txt")
 
     if source_filter in ("monitoring", "both"):
-        monitoring_links = read_links_from_file(monitoring_file)
-        context.log.info(f"Found {len(monitoring_links)} links in monitoring_list.txt")
+        monitoring_urls = read_links_from_file(monitoring_file)
+        context.log.info(f"Found {len(monitoring_urls)} URLs in monitoring_list.txt")
+
+        # Process monitoring URLs - some may be RSS feeds that need watcher processing
+        watcher = RSSWatcher()
+        for url in monitoring_urls:
+            # Heuristic: Check if URL looks like an RSS feed
+            is_rss_feed = any(
+                pattern in url.lower()
+                for pattern in [".xml", ".rss", "/feed", "/rss", "feeds/", "atom.xml"]
+            )
+
+            if is_rss_feed:
+                context.log.info(f"Detected RSS feed: {url}")
+                try:
+                    # Use watcher to discover links from RSS feed
+                    discovered_links = watcher.fetch_links(url)
+                    context.log.info(
+                        f"RSSWatcher discovered {len(discovered_links)} links from {url}"
+                    )
+                    monitoring_links.extend(discovered_links)
+                except RSSWatcherError as e:
+                    context.log.warning(f"Failed to fetch RSS feed {url}: {e}")
+                    # Continue processing other URLs even if one RSS feed fails
+            else:
+                # Not an RSS feed, treat as regular link
+                monitoring_links.append(url)
 
     # Process all links and filter out duplicates
     unprocessed_links = []

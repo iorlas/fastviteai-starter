@@ -1,3 +1,16 @@
+# DeepRock
+
+Content processing pipeline that ingests links from various sources, extracts content, and generates AI-powered summaries.
+
+## Features
+
+- **Link Ingestion**: Process links from manual input or automated monitoring sources
+- **RSS Feed Monitoring**: Automatically discover new content from RSS/Atom feeds
+- **Content Extraction**: Extract article text from HTML pages and YouTube videos
+- **AI Summarization**: Generate concise summaries using OpenRouter LLM models
+- **Automated Scheduling**: Background monitoring of RSS feeds every 6 hours
+- **Extensible Architecture**: Pluggable watcher protocol for future content sources
+
 ## Requirements
 
 - Python 3.12+
@@ -26,8 +39,12 @@ uv run dagster dev
 # Manual links (processed on-demand)
 echo "https://example.com/article" >> manual_links.txt
 
-# Monitoring links (processed every 6 hours automatically)
+# Monitoring links - supports both direct URLs and RSS feeds
 echo "https://news.ycombinator.com/rss" >> monitoring_list.txt
+echo "https://example.com/feed.xml" >> monitoring_list.txt
+
+# RSS feeds are automatically detected and processed by RSSWatcher
+# Direct article URLs can also be added to monitoring_list.txt
 ```
 
 **Note:** Create input files from templates if they don't exist:

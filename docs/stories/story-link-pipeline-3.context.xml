@@ -1,0 +1,259 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-1</epicId>
+    <storyId>3</storyId>
+    <title>Watchers & Production Polish</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/story-link-pipeline-3.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user</asA>
+    <iWant>automated monitoring of RSS feeds with extensible watcher architecture</iWant>
+    <soThat>new content is automatically discovered and processed without manual intervention</soThat>
+    <tasks>
+### Watcher System
+- [ ] Define Watcher protocol in `ops/watchers.py` (AC: #2)
+  - [ ] Create `Watcher` protocol with `fetch_links()` method
+  - [ ] Add type hints and docstrings for extensibility
+- [ ] Implement RSSWatcher (AC: #1)
+  - [ ] Use feedparser to parse RSS feeds
+  - [ ] Extract article URLs from feed entries
+  - [ ] Handle malformed feeds gracefully
+  - [ ] Return list of discovered URLs
+- [ ] Integrate watcher into `link_ingestion` asset (AC: #1)
+  - [ ] Read monitoring_list.txt
+  - [ ] Pass RSS URLs to RSSWatcher
+  - [ ] Merge discovered links with manual links
+
+### Error Handling Verification
+- [ ] Verify error handling works correctly (AC: #3)
+  - [ ] Test with invalid URL (should save error in summary file)
+  - [ ] Verify Dagster logger captures errors
+  - [ ] Confirm retry behavior with transient failures
+  - [ ] Ensure final failure saves to summary file with status="failed"
+
+### Testing & Documentation
+- [ ] Write essential E2E integration test (AC: #4)
+  - [ ] `tests/integration/test_pipeline_e2e.py`
+  - [ ] Test full pipeline with sample HTML and YouTube URLs
+  - [ ] Verify deduplication (re-run should skip existing)
+  - [ ] Verify failure tracking (test with invalid URL)
+  - [ ] Add test fixtures: sample_article.html, sample_links.txt
+- [ ] Update README.md (AC: #5)
+  - [ ] Add brief project overview
+  - [ ] Document setup steps (match tech-spec)
+  - [ ] Add basic usage instructions
+  - [ ] Keep it minimal
+- [ ] Create example monitoring_list.txt (AC: #6)
+  - [ ] Add 2-3 sample RSS feeds (e.g., Hacker News RSS)
+  - [ ] Include comments explaining format
+  - [ ] Document that future watchers can be added via protocol
+
+### Code Quality
+- [ ] Run ruff for basic linting
+  - [ ] `uv run ruff check backend/dagster_project`
+  - [ ] Fix critical issues only
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. RSS feeds in `monitoring_list.txt` are monitored automatically
+2. Watcher protocol defined for future extensibility
+3. Failed extractions are logged with error details in summary files
+4. Essential E2E integration test passes
+5. README includes minimal setup and usage instructions
+6. Example `monitoring_list.txt` provided with sample RSS feeds
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Custom Watchers (subsection 6)</section>
+        <snippet>Defines Watcher protocol with fetch_links() method for extensibility. MVP implementation is RSSWatcher using feedparser. Future watchers can implement the protocol for Reddit, Twitter, Hacker News, etc.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Implementation Guide → Phase 3: Watchers and Polish</section>
+        <snippet>Tasks: Implement Watcher protocol, RSSWatcher, integrate into link_ingestion, verify error handling, write E2E test, update README, create example monitoring_list.txt. AC: RSS monitored automatically, failed extractions logged, E2E test passes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Testing Approach</section>
+        <snippet>Essential integration test verifies full pipeline E2E with sample HTML/YouTube URLs, tests deduplication (re-run should skip existing), verifies failure tracking in summary files. Test structure: tests/integration/test_pipeline_e2e.py with fixtures.</snippet>
+      </doc>
+      <doc>
+        <path>README.md</path>
+        <title>DeepRock README</title>
+        <section>Usage</section>
+        <snippet>Documents basic usage: uv run dagster dev, adding links to manual_links.txt and monitoring_list.txt, creating input files from templates. Includes known limitation about YouTube transcript extraction.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/assets/link_ingestion.py</path>
+        <kind>asset</kind>
+        <symbol>link_ingestion_asset</symbol>
+        <lines>59-152</lines>
+        <reason>Core asset that will be extended to integrate RSSWatcher. Currently reads manual/monitoring files; needs to call watcher for RSS feeds</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/link_ingestion.py</path>
+        <kind>model</kind>
+        <symbol>LinkRecord</symbol>
+        <lines>10-22</lines>
+        <reason>Data structure for links returned by ingestion - watcher must produce compatible output</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/link_ingestion.py</path>
+        <kind>function</kind>
+        <symbol>compute_url_hash</symbol>
+        <lines>24-33</lines>
+        <reason>URL hashing function used for deduplication - watcher-discovered links will use this</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/content_extraction.py</path>
+        <kind>asset</kind>
+        <symbol>content_extraction_asset</symbol>
+        <lines>86-212</lines>
+        <reason>Shows error handling pattern - extraction errors saved to artifacts with error_message. Watcher integration should follow similar pattern</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/summarization.py</path>
+        <kind>asset</kind>
+        <symbol>summarization_asset</symbol>
+        <lines>66-231</lines>
+        <reason>Demonstrates retry policy and error handling - saves failed status to summary files with error details, relevant for AC #3</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/html_extractor.py</path>
+        <kind>op</kind>
+        <symbol>extract_html_content</symbol>
+        <lines>36-98</lines>
+        <reason>Example extractor op pattern - shows error handling with custom exception types. Template for implementing watcher ops</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/youtube_extractor.py</path>
+        <kind>op</kind>
+        <symbol>extract_youtube_content</symbol>
+        <lines>38-114</lines>
+        <reason>Another extractor example - shows structured return type pattern. Watchers should follow similar structure</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/jobs/manual_pipeline.py</path>
+        <kind>job</kind>
+        <symbol>manual_pipeline_job</symbol>
+        <lines>8-17</lines>
+        <reason>Shows how jobs configure asset filtering. Monitoring pipeline uses similar pattern to filter for monitoring sources</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_jobs.py</path>
+        <kind>test</kind>
+        <symbol>test_manual_pipeline_filters_manual_only</symbol>
+        <lines>35-49</lines>
+        <reason>Integration test pattern using build_asset_context and PropertyMock. Template for E2E test implementation</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version="1.12.0+" />
+        <package name="dagster-webserver" version="1.12.0+" />
+        <package name="feedparser" version="6.0.12+" />
+        <package name="beautifulsoup4" version="4.14.2+" />
+        <package name="yt-dlp" version="2025.10.22+" />
+        <package name="httpx" />
+        <package name="openai" version="1.0.0+" />
+        <package name="pydantic" version="2.12.2+" />
+        <package name="pytest" version="8.4.2+" />
+        <package name="pytest-asyncio" version="1.2.0+" />
+        <package name="ruff" version="0.14.0+" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Follow existing Dagster asset/op patterns (use NamedTuple for returns, proper config_schema)
+    - Use Protocol from typing for Watcher interface (not ABC)
+    - Place watcher implementations in dagster_project/ops/watchers.py
+    - Integration tests go in tests/integration/ with fixtures in tests/fixtures/
+    - Error handling: Log errors via Dagster logger, save failures to summary files with status="failed"
+    - Use feedparser library for RSS parsing (already in dependencies)
+    - Auto-create directories with Path.mkdir(parents=True, exist_ok=True)
+    - Follow existing naming conventions: snake_case for files/functions, PascalCase for classes
+    - Keep README minimal - match existing style in README.md
+    - Run ruff for linting, fix only critical issues
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>Watcher Protocol</name>
+      <kind>Protocol (typing)</kind>
+      <signature>class Watcher(Protocol):
+    def fetch_links(self, source_url: str) -> list[str]:
+        """Extract links from a monitored source"""
+        ...</signature>
+      <path>dagster_project/ops/watchers.py (to be created)</path>
+    </interface>
+    <interface>
+      <name>RSSWatcher.fetch_links</name>
+      <kind>Method</kind>
+      <signature>def fetch_links(self, source_url: str) -> list[str]</signature>
+      <path>dagster_project/ops/watchers.py (to be created)</path>
+    </interface>
+    <interface>
+      <name>link_ingestion_asset config</name>
+      <kind>Asset config schema</kind>
+      <signature>config_schema = {
+    "source_filter": Field(str, default_value="both", is_required=False),
+    "project_root": Field(str, is_required=False),
+}</signature>
+      <path>dagster_project/assets/link_ingestion.py:61-64</path>
+    </interface>
+    <interface>
+      <name>LinkRecord</name>
+      <kind>NamedTuple</kind>
+      <signature>class LinkRecord(NamedTuple):
+    url: str
+    url_hash: str
+    source_file: str</signature>
+      <path>dagster_project/assets/link_ingestion.py:10-22</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Use pytest for all testing. Integration tests use build_asset_context and PropertyMock for config. Create test fixtures in tests/fixtures/ (sample HTML, RSS feeds, link files). Tests marked with @pytest.mark.integration. Use tmp_path fixture for isolated file operations. Follow AAA pattern (Arrange-Act-Assert).</standards>
+    <locations>
+      - tests/integration/test_pipeline_e2e.py (new - essential E2E test)
+      - tests/fixtures/sample_article.html (new - test fixture)
+      - tests/fixtures/sample_links.txt (new - test fixture)
+      - tests/integration/test_jobs.py (existing - source filter tests)
+    </locations>
+    <ideas>
+      <test id="AC1" criteria="RSS feeds monitored automatically">
+        - Test RSSWatcher.fetch_links() with sample RSS feed
+        - Verify extracted article URLs are returned
+        - Test with malformed RSS (should handle gracefully)
+      </test>
+      <test id="AC2" criteria="Watcher protocol defined">
+        - Verify Protocol type checking works
+        - Test that RSSWatcher implements protocol correctly
+      </test>
+      <test id="AC3" criteria="Failed extractions logged">
+        - Test with invalid URL in pipeline
+        - Verify summary file created with status="failed"
+        - Verify error details present in summary file
+        - Test extraction failure flow (HTML and YouTube)
+      </test>
+      <test id="AC4" criteria="E2E integration test passes">
+        - Full pipeline execution with sample HTML + YouTube URLs
+        - Test deduplication (re-run should skip existing summaries)
+        - Test failure tracking (invalid URL → failed summary)
+        - Verify all artifacts created in correct locations
+      </test>
+    </ideas>
+  </tests>
+</story-context>

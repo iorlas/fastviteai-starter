@@ -5,17 +5,33 @@
 # Empty lines are ignored.
 #
 # Supported URL types:
+# - RSS/Atom feeds (.xml, .rss, /feed, /rss URLs) - automatically discovered via RSSWatcher
 # - HTML articles (any http/https URL)
 # - YouTube videos (youtube.com or youtu.be URLs)
 #
 # Usage:
 # 1. Copy this file to monitoring_list.txt: cp monitoring_list.txt.template monitoring_list.txt
-# 2. Add URLs you want to monitor continuously (blogs, channels, news sites, etc.)
+# 2. Add URLs you want to monitor continuously (RSS feeds, blogs, news sites, etc.)
 # 3. The monitoring_schedule will automatically process these every 6 hours
 #
-# Note: The system tracks already-processed links, so adding the same URL multiple
-# times or leaving it in the list won't result in duplicate processing.
+# RSS Feed Behavior:
+# - RSS feeds are automatically detected by URL pattern (.xml, .rss, /feed, etc.)
+# - RSSWatcher discovers individual article links from the feed
+# - Each discovered article is processed through the extraction pipeline
+# - Malformed feeds are logged as warnings and don't stop processing
 #
-# Example URLs (uncomment to use):
-# https://blog.example.com/feed
+# Future Extensibility:
+# - The Watcher protocol allows adding new content sources (Reddit, Twitter, Hacker News, etc.)
+# - See dagster_project/ops/watchers.py for implementation details
+#
+# Note: The system tracks already-processed links via summary files, so adding the same
+# URL multiple times or leaving it in the list won't result in duplicate processing.
+#
+# Example RSS Feeds (uncomment to use):
+# https://news.ycombinator.com/rss
+# https://lobste.rs/rss
+# https://www.reddit.com/r/programming/.rss
+#
+# Example Direct URLs:
+# https://blog.example.com/latest-post
 # https://www.youtube.com/watch?v=dQw4w9WgXcQ
