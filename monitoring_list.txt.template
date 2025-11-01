@@ -1,0 +1,21 @@
+# Monitoring List Template
+#
+# This file is used by the monitoring_pipeline to process links automatically every 6 hours.
+# Add one URL per line. Lines starting with # are treated as comments.
+# Empty lines are ignored.
+#
+# Supported URL types:
+# - HTML articles (any http/https URL)
+# - YouTube videos (youtube.com or youtu.be URLs)
+#
+# Usage:
+# 1. Copy this file to monitoring_list.txt: cp monitoring_list.txt.template monitoring_list.txt
+# 2. Add URLs you want to monitor continuously (blogs, channels, news sites, etc.)
+# 3. The monitoring_schedule will automatically process these every 6 hours
+#
+# Note: The system tracks already-processed links, so adding the same URL multiple
+# times or leaving it in the list won't result in duplicate processing.
+#
+# Example URLs (uncomment to use):
+# https://blog.example.com/feed
+# https://www.youtube.com/watch?v=dQw4w9WgXcQ

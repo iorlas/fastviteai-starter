@@ -1,0 +1,18 @@
+# Manual Links Template
+#
+# This file is used by the manual_pipeline to process links on-demand via Dagster UI.
+# Add one URL per line. Lines starting with # are treated as comments.
+# Empty lines are ignored.
+#
+# Supported URL types:
+# - HTML articles (any http/https URL)
+# - YouTube videos (youtube.com or youtu.be URLs)
+#
+# Usage:
+# 1. Copy this file to manual_links.txt: cp manual_links.txt.template manual_links.txt
+# 2. Add your URLs (one per line)
+# 3. Trigger the manual_pipeline job in Dagster UI
+#
+# Example URLs (uncomment to use):
+# https://example.com/article
+# https://www.youtube.com/watch?v=dQw4w9WgXcQ

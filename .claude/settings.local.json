@@ -46,7 +46,10 @@
       "Bash(make check:*)",
       "Bash(uv pip list:*)",
       "Bash(uv pip show:*)",
-      "Bash(uv remove:*)"
+      "Bash(uv remove:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python -m ruff check:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
