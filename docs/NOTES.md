@@ -20,5 +20,6 @@ LLM estimated it as:
   You're now ready to begin Story 1 implementation! Would you like to:
   - Create story context for Story 1 (/bmad:bmm:workflows:story-context)
   - Go directly to development (/bmad:bmm:workflows:dev-story)
-  - Review the sprint status file first
+    -  /bmad:bmm:workflows:code-review 
+  - Review the sprint status file first 
 

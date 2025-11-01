@@ -36,7 +36,15 @@
       "Bash(uv --version:*)",
       "Bash(dagster project scaffold:*)",
       "Bash(uv add:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(touch:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(kill:*)",
+      "Bash(make check:*)",
+      "Bash(uv pip list:*)"
     ],
     "deny": [],
     "ask": []

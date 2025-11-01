@@ -4,13 +4,28 @@ version = "0.1.0"
 description = "aggregates knowledge from various sources using LLMs"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["openai>=1.0.0", "structlog>=23.0.0", "pydantic>=2.12.2"]
+dependencies = [
+    "openai>=1.0.0",
+    "structlog>=23.0.0",
+    "pydantic>=2.12.2",
+    "dagster>=1.12.0",
+    "dagster-webserver>=1.12.0",
+    "httpx>=0.28.1",
+    "beautifulsoup4>=4.14.2",
+    "yt-dlp>=2025.10.22",
+    "feedparser>=6.0.12",
+    "python-dotenv>=1.2.1",
+]
 
 [dependency-groups]
 dev = [
+    "dagster>=1.12.0",
+    "dagster-cloud>=1.12.0",
+    "dagster-webserver>=1.12.0",
     "factory-boy>=3.3.3",
     "faker>=37.11.0",
     "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "pytest-mock>=3.15.1",
     "ruff>=0.14.0",
 ]
@@ -45,6 +60,9 @@ division-by-zero = "error"
 # Code quality - warn
 unused-ignore-comment = "warn"
 redundant-cast = "warn"
+
+[tool.dagster]
+module_name = "dagster_project.definitions"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

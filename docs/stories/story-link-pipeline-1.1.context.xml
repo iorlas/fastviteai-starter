@@ -1,0 +1,169 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.1</storyId>
+    <title>Refactor OpenRouter Client to Use OpenAI Library</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/story-link-pipeline-1.1.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to use the official OpenAI library for OpenRouter API calls</iWant>
+    <soThat>I get built-in retry logic, better error handling, and response validation</soThat>
+    <tasks>
+- Update `dagster_project/resources/openrouter_client.py`:
+  - Replace httpx imports with openai imports
+  - Update OpenRouterClient to use OpenAI client
+  - Configure base_url and max_retries in setup_for_execution
+  - Update chat_completion to use client.chat.completions.create
+  - Add debug logging: log request metadata (model, message count, temperature)
+  - Add debug logging: log response metadata (completion tokens, model used)
+  - Update get_completion_text to use OpenAI response object
+- Update tests:
+  - `tests/test_openrouter_client.py` - Update mocks for OpenAI library
+  - Verify all 19 tests still pass
+- Remove httpx from dependencies:
+  - Check if httpx is used elsewhere (grep for httpx imports)
+  - If not used: `uv remove httpx`
+  - If used elsewhere: Document and keep
+- Run quality checks: `make check`
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. OpenRouter client uses OpenAI library instead of httpx
+2. Client configured with `base_url="https://openrouter.ai/api/v1"`
+3. Built-in retry logic enabled (`max_retries=3`)
+4. Debug logging added for API calls (request and response metadata)
+5. All existing tests pass with updated implementation
+6. httpx dependency removed from pyproject.toml (if not used elsewhere)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/stories/story-link-pipeline-1.md</path>
+        <title>Story 1: Project Foundation & Resources</title>
+        <section>Senior Developer Review - Architectural Decisions</section>
+        <snippet>Identified opportunity to use OpenAI Python library (already installed) instead of custom httpx implementation. Would automatically address all 3 LOW severity findings: built-in retry logic with exponential backoff, better error handling and context, response validation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Key Design Decisions</section>
+        <snippet>Dagster default retry strategy (exponential backoff). OpenRouter for LLM access (GPT-4o or similar via unified API). Dagster metadata for run tracking and metrics (model, tokens, latency).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Technical Details → OpenRouter Integration</section>
+        <snippet>OpenRouter API endpoint: https://openrouter.ai/api/v1/chat/completions. Model: openai/gpt-4o (configurable). Environment variables: OPENROUTER_API_KEY, OPENROUTER_MODEL. OpenRouter is OpenAI API-compatible.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec.md</path>
+        <title>DeepRock - Technical Specification</title>
+        <section>Retry Strategy</section>
+        <snippet>Use Dagster's default retry mechanism (exponential backoff). If all retries exhausted → save failure status to summary file. Failed links won't be retried in future runs. Manual recovery: delete failed summary file to force retry.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/openrouter_client.py</path>
+        <kind>resource</kind>
+        <symbol>OpenRouterClient</symbol>
+        <lines>15-103</lines>
+        <reason>Current httpx-based implementation to be refactored to use OpenAI library. ConfigurableResource pattern, validation in setup_for_execution, chat_completion and get_completion_text methods.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/openrouter_client.py</path>
+        <kind>resource</kind>
+        <symbol>chat_completion</symbol>
+        <lines>52-88</lines>
+        <reason>Main method to refactor - replace httpx client with OpenAI client.chat.completions.create. Add debug logging for request/response metadata.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/openrouter_client.py</path>
+        <kind>resource</kind>
+        <symbol>get_completion_text</symbol>
+        <lines>90-99</lines>
+        <reason>Response parsing method - update to work with OpenAI response object structure.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_openrouter_client.py</path>
+        <kind>test</kind>
+        <symbol>test_chat_completion_request_structure</symbol>
+        <lines>64-91</lines>
+        <reason>Test mocking httpx.Client - needs to be updated to mock OpenAI client instead. All 5 tests in file need mock updates.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="openai" version=">=1.0.0" status="already-installed" scope="root"/>
+        <package name="httpx" version=">=0.27.0" status="to-remove" note="Only used in openrouter_client.py, safe to remove after refactor"/>
+        <package name="dagster" version="1.12.0" status="installed"/>
+        <package name="pydantic" version=">=2.12.2" status="installed"/>
+        <package name="python-dotenv" version=">=1.0.0" status="installed"/>
+        <package name="pytest" version=">=8.0.0" status="installed" scope="dev"/>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Maintain Dagster ConfigurableResource pattern - do not change the class inheritance or resource structure</constraint>
+    <constraint type="api-compatibility">OpenRouter is OpenAI API-compatible - use base_url="https://openrouter.ai/api/v1" with OpenAI client</constraint>
+    <constraint type="backward-compatibility">Keep same method signatures for chat_completion and get_completion_text - only internal implementation changes</constraint>
+    <constraint type="logging">Add debug logging for API calls - log request metadata (model, messages count, temperature) and response metadata (tokens, model)</constraint>
+    <constraint type="retry-config">Configure max_retries=3 in OpenAI client initialization for built-in retry logic</constraint>
+    <constraint type="testing">All 19 existing tests must pass - update mocks from httpx.Client to openai.OpenAI client</constraint>
+    <constraint type="dependency-cleanup">Remove httpx from pyproject.toml only after verifying it's not used elsewhere (grep confirms safe to remove)</constraint>
+    <constraint type="context-parameter">Add context parameter to chat_completion method for Dagster logging - assets must pass context when calling</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>OpenRouterClient.chat_completion</name>
+      <kind>resource-method</kind>
+      <signature>def chat_completion(self, context, messages: list[dict[str, str]], temperature: float = 0.7, max_tokens: int | None = None, **kwargs: Any) -> Any</signature>
+      <path>dagster_project/resources/openrouter_client.py</path>
+      <notes>UPDATED: Add context parameter for logging. Return OpenAI response object instead of dict. Internal implementation changes from httpx to OpenAI client.</notes>
+    </interface>
+    <interface>
+      <name>OpenRouterClient.get_completion_text</name>
+      <kind>resource-method</kind>
+      <signature>def get_completion_text(self, response: Any) -> str</signature>
+      <path>dagster_project/resources/openrouter_client.py</path>
+      <notes>UPDATED: Accept OpenAI response object instead of dict. Extract text from response.choices[0].message.content</notes>
+    </interface>
+    <interface>
+      <name>OpenAI Client Configuration</name>
+      <kind>library-config</kind>
+      <signature>OpenAI(api_key=self.api_key, base_url="https://openrouter.ai/api/v1", max_retries=3, timeout=self.timeout)</signature>
+      <path>dagster_project/resources/openrouter_client.py</path>
+      <notes>Initialize OpenAI client in setup_for_execution with OpenRouter base URL and retry configuration</notes>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Testing framework: pytest 8.0.0+ with unittest.mock for mocking. All tests must pass after refactor (19 tests currently passing). Test structure: tests/ directory at project root with test_openrouter_client.py containing 5 tests for OpenRouter client. Mock external dependencies (OpenAI client) using unittest.mock.patch. Use pytest fixtures for setup/teardown (mock_context, load_env). Run tests via `pytest tests/` and quality checks via `make check` (includes format, lint, typecheck, and tests).
+    </standards>
+    <locations>
+      tests/
+      tests/test_openrouter_client.py
+    </locations>
+    <ideas>
+      <test ac="1">Update test_chat_completion_request_structure to mock openai.OpenAI instead of httpx.Client</test>
+      <test ac="1">Verify OpenAI client initialization with correct base_url and max_retries in mocked client</test>
+      <test ac="2">Test that OpenAI client is configured with base_url="https://openrouter.ai/api/v1"</test>
+      <test ac="3">Verify max_retries=3 is set in OpenAI client configuration</test>
+      <test ac="4">Test debug logging calls in chat_completion - verify context.log.debug called with request metadata</test>
+      <test ac="4">Test debug logging for response - verify context.log.debug called with token usage (completion_tokens, prompt_tokens, total_tokens)</test>
+      <test ac="5">Run full test suite (`pytest tests/`) and verify all 19 tests pass</test>
+      <test ac="5">Update all test mocks from httpx to OpenAI client - 5 tests in test_openrouter_client.py need updates</test>
+      <test ac="6">After httpx removal, run `make check` to verify no import errors or dependency issues</test>
+      <test>Test get_completion_text with OpenAI response object structure (response.choices[0].message.content)</test>
+      <test>Verify backward compatibility - ensure method signatures match existing usage patterns</test>
+    </ideas>
+  </tests>
+</story-context>
