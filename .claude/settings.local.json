@@ -23,7 +23,16 @@
       "WebFetch(domain:docs.pydantic.dev)",
       "WebFetch(domain:stackoverflow.com)",
       "WebFetch(domain:docs.astral.sh)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(find:*)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline -10)",
+      "Bash(mkdir:*)",
+      "Bash(test:*)",
+      "Bash(awk:*)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline -1)",
+      "SlashCommand(/bmad:bmm:workflows:tech-spec)",
+      "SlashCommand(/bmad:bmm:workflows:prd)",
+      "SlashCommand(/bmad:bmm:workflows:tech-spec-sm)"
     ],
     "deny": [],
     "ask": []
