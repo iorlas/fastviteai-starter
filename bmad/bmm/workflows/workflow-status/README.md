@@ -19,7 +19,7 @@ The workflow status system provides:
 workflow-status/
 ├── workflow.yaml              # Main configuration
 ├── instructions.md            # Status checker (99 lines)
-├── workflow-status-template.md # Clean key-value template
+├── workflow-status-template.yaml # Clean YAML status template
 ├── project-levels.yaml        # Source of truth for scale definitions
 └── paths/                     # Modular workflow definitions
     ├── greenfield-level-0.yaml through level-4.yaml
@@ -61,27 +61,44 @@ workflow-init/
 
 ## Status File Format
 
-Simple key-value pairs for instant parsing:
+Clean YAML format with all workflows listed up front:
 
-```markdown
-PROJECT_NAME: MyProject
-PROJECT_TYPE: software
-PROJECT_LEVEL: 2
-FIELD_TYPE: greenfield
-CURRENT_PHASE: 2-Planning
-CURRENT_WORKFLOW: prd
-TODO_STORY: story-1.2.md
-IN_PROGRESS_STORY: story-1.1.md
-NEXT_ACTION: Continue PRD
-NEXT_COMMAND: prd
-NEXT_AGENT: pm
+```yaml
+# generated: 2025-10-29
+# project: MyProject
+# project_type: software
+# project_level: 2
+# field_type: greenfield
+# workflow_path: greenfield-level-2.yaml
+
+workflow_status:
+  # Phase 1: Analysis
+  brainstorm-project: optional
+  research: optional
+  product-brief: recommended
+
+  # Phase 2: Planning
+  prd: docs/prd.md
+  validate-prd: optional
+  create-design: conditional
+
+  # Phase 3: Solutioning
+  create-architecture: required
+  validate-architecture: optional
+  solutioning-gate-check: required
 ```
 
-Any agent can instantly grep what they need:
+**Status Values:**
 
-- SM: `grep 'TODO_STORY:' status.md`
-- DEV: `grep 'IN_PROGRESS_STORY:' status.md`
-- Any: `grep 'NEXT_ACTION:' status.md`
+- `required` / `optional` / `recommended` / `conditional` - Not yet started
+- `{file-path}` - Completed (e.g., `docs/prd.md`)
+- `skipped` - Optional workflow that was skipped
+
+Any agent can instantly parse what they need:
+
+- Read YAML to see all workflows and their status
+- Check which workflows are completed vs pending
+- Auto-detect existing work by scanning for output files
 
 ## Project Levels
 
@@ -140,7 +157,7 @@ The init workflow intelligently detects:
 
 ```
 Agent: workflow-status
-Result: "TODO: story-1.2.md, Next: create-story"
+Result: "Current: Phase 2 - Planning, Next: prd (pm agent)"
 ```
 
 ### New Project Setup
@@ -208,12 +225,17 @@ Instead of complex if/else logic:
 
 Other workflows read the status to coordinate:
 
-- `create-story` reads TODO_STORY
-- `dev-story` reads IN_PROGRESS_STORY
 - Any workflow can check CURRENT_PHASE
+- Workflows can verify prerequisites are complete
 - All agents can ask "what should I do?"
 
-The status file is the single source of truth for project state and the hub that keeps all agents synchronized.
+**Phase 4 (Implementation):**
+
+- workflow-status only tracks sprint-planning completion
+- After sprint-planning, all story/epic tracking happens in sprint-status.yaml
+- Phase 4 workflows do NOT read/write workflow-status (except sprint-planning for prerequisite verification)
+
+The workflow-status.yaml file is the single source of truth for Phases 1-3, and sprint-status.yaml takes over for Phase 4 implementation tracking.
 
 ## Benefits
 

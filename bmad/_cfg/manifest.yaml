@@ -1,9 +1,10 @@
 installation:
-  version: 6.0.0-alpha.0
-  installDate: '2025-10-23T23:01:06.913Z'
-  lastUpdated: '2025-10-23T23:01:06.913Z'
+  version: 6.0.0-alpha.3
+  installDate: '2025-11-01T16:49:48.342Z'
+  lastUpdated: '2025-11-01T16:49:48.342Z'
 modules:
   - core
+  - bmb
   - bmm
   - cis
 ides:
