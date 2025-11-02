@@ -30,7 +30,7 @@ workflow_path: "brownfield-level-2.yaml"
 
 workflow_status:
   # Prerequisite: Documentation (conditional: if_undocumented)
-  document-project: required
+  document-project: docs/index.md
 
   # Phase 1: Analysis
   brainstorm-project: optional
@@ -38,7 +38,7 @@ workflow_status:
   product-brief: optional
 
   # Phase 2: Planning
-  prd: recommended
+  prd: docs/PRD.md
   validate-prd: optional
   tech-spec: required
   create-design: conditional

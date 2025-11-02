@@ -96,3 +96,4 @@ history/
 .dagster
 .env
 artifacts/
+mlruns/

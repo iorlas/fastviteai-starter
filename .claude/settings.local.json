@@ -55,7 +55,10 @@
       "Bash(echo:*)",
       "Bash(tree:*)",
       "Bash(cat:*)",
-      "WebFetch(domain:docs.dagster.io)"
+      "WebFetch(domain:docs.dagster.io)",
+      "Bash(uv sync)",
+      "Bash(timeout 5 uv run:*)",
+      "Bash(timeout 30 uv run python:*)"
     ],
     "deny": [],
     "ask": []
