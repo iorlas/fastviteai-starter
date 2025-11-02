@@ -33,7 +33,7 @@ def mock_rss_feed():
 
 
 @pytest.fixture
-def e2e_test_env(tmp_path):
+def e2e_test_env(tmp_path, monkeypatch):
     # Create input files
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -50,8 +50,12 @@ def e2e_test_env(tmp_path):
     )
 
     # Create artifact directories
-    (tmp_path / "artifacts" / "summaries").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "artifacts" / "extractions").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts" / "silver" / "summaries").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts" / "silver" / "extracted_content").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts" / "bronze" / "raw_html").mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return tmp_path
 
@@ -70,9 +74,7 @@ def test_rss_watcher_integration(e2e_test_env, mock_rss_feed):
 
         # Create context
         context = build_asset_context()
-        type(context).op_config = PropertyMock(
-            return_value={"source_filter": "monitoring", "project_root": str(e2e_test_env)}
-        )
+        type(context).op_config = PropertyMock(return_value={"source_filter": "monitoring"})
 
         # Run link ingestion
         links = bronze_raw_links(context)
@@ -102,9 +104,7 @@ def test_deduplication_skips_processed_links(e2e_test_env):
 
     # Create context
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "manual", "project_root": str(e2e_test_env)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "manual"})
 
     # Run link ingestion
     links = bronze_raw_links(context)
@@ -124,9 +124,7 @@ def test_error_handling_with_invalid_url(e2e_test_env):
 
     # Create context for link ingestion
     ingest_context = build_asset_context()
-    type(ingest_context).op_config = PropertyMock(
-        return_value={"source_filter": "manual", "project_root": str(e2e_test_env)}
-    )
+    type(ingest_context).op_config = PropertyMock(return_value={"source_filter": "manual"})
 
     # Get links
     links = bronze_raw_links(ingest_context)
@@ -185,9 +183,7 @@ def test_malformed_rss_feed_handling(e2e_test_env):
 
         # Create context
         context = build_asset_context()
-        type(context).op_config = PropertyMock(
-            return_value={"source_filter": "monitoring", "project_root": str(e2e_test_env)}
-        )
+        type(context).op_config = PropertyMock(return_value={"source_filter": "monitoring"})
 
         # Run link ingestion (should not crash)
         links = bronze_raw_links(context)
@@ -243,9 +239,7 @@ def test_full_pipeline_with_summarization(e2e_test_env):
 
         # Step 1: Link Ingestion
         ingest_context = build_asset_context()
-        type(ingest_context).op_config = PropertyMock(
-            return_value={"source_filter": "manual", "project_root": str(e2e_test_env)}
-        )
+        type(ingest_context).op_config = PropertyMock(return_value={"source_filter": "manual"})
         links = bronze_raw_links(ingest_context)
         assert len(links) >= 1
 

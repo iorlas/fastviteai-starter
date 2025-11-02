@@ -7,7 +7,7 @@ from dagster_project.assets.bronze_raw_links import bronze_raw_links
 
 
 @pytest.fixture
-def temp_env_with_files(tmp_path):
+def temp_env_with_files(tmp_path, monkeypatch):
     # Create input files with different links
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -24,7 +24,10 @@ def temp_env_with_files(tmp_path):
     )
 
     # Create artifact directories
-    (tmp_path / "artifacts" / "summaries").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts" / "silver" / "summaries").mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable to use temp path
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return tmp_path
 
@@ -33,9 +36,7 @@ def temp_env_with_files(tmp_path):
 def test_manual_pipeline_filters_manual_only(temp_env_with_files):
     # Create context with source_filter="manual"
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "manual", "project_root": str(temp_env_with_files)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "manual"})
 
     # Run bronze_raw_links with manual filter
     links = bronze_raw_links(context)
@@ -50,9 +51,7 @@ def test_manual_pipeline_filters_manual_only(temp_env_with_files):
 def test_monitoring_pipeline_filters_monitoring_only(temp_env_with_files):
     # Create context with source_filter="monitoring"
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "monitoring", "project_root": str(temp_env_with_files)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "monitoring"})
 
     # Run bronze_raw_links with monitoring filter
     links = bronze_raw_links(context)
@@ -89,7 +88,7 @@ def test_both_filter_processes_all_links(temp_env_with_files):
 def test_default_filter_is_both(temp_env_with_files):
     # Create context without source_filter (should default to "both")
     context = build_asset_context()
-    type(context).op_config = PropertyMock(return_value={"project_root": str(temp_env_with_files)})
+    type(context).op_config = PropertyMock(return_value={})
 
     # Run bronze_raw_links
     links = bronze_raw_links(context)

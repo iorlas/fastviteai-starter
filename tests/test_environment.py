@@ -1,19 +1,16 @@
 import os
-from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
 
 
 @pytest.fixture(scope="module")
-def load_env():
-    project_root = Path(__file__).parent.parent
+def load_env(project_root):
     env_path = project_root / ".env"
     load_dotenv(env_path)
 
 
-def test_env_file_exists():
-    project_root = Path(__file__).parent.parent
+def test_env_file_exists(project_root):
     env_file = project_root / ".env"
     assert env_file.exists(), ".env file should exist in project root"
 

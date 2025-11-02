@@ -10,7 +10,7 @@ from dagster_project.resources.io_managers import BronzeIOManager
 
 
 @pytest.fixture
-def bronze_test_env(tmp_path):
+def bronze_test_env(tmp_path, monkeypatch):
     # Create input files
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -25,8 +25,11 @@ def bronze_test_env(tmp_path):
     )
 
     # Create artifact directories
-    (tmp_path / "artifacts" / "summaries").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts" / "silver" / "summaries").mkdir(parents=True, exist_ok=True)
     (tmp_path / "artifacts" / "bronze" / "raw_links").mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return tmp_path
 
@@ -34,13 +37,11 @@ def bronze_test_env(tmp_path):
 @pytest.mark.integration
 def test_bronze_raw_links_storage_with_iomanager(bronze_test_env):
     # Create BronzeIOManager pointing to test directory
-    bronze_io_manager = BronzeIOManager(base_dir=str(bronze_test_env / "artifacts" / "bronze"))
+    bronze_io_manager = BronzeIOManager()
 
     # Create asset execution context
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "both", "project_root": str(bronze_test_env)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "both"})
 
     # Execute bronze_raw_links asset
     links = bronze_raw_links(context)
@@ -92,7 +93,7 @@ def test_bronze_raw_links_storage_with_iomanager(bronze_test_env):
 @pytest.mark.integration
 def test_bronze_raw_links_hash_determinism(bronze_test_env):
     # Create BronzeIOManager
-    bronze_io_manager = BronzeIOManager(base_dir=str(bronze_test_env / "artifacts" / "bronze"))
+    bronze_io_manager = BronzeIOManager()
 
     # Create same link list twice
     links = [
@@ -141,9 +142,7 @@ def test_bronze_raw_links_hash_determinism(bronze_test_env):
 def test_bronze_raw_links_manual_filter(bronze_test_env):
     # Test that manual filter only processes manual_links.txt
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "manual", "project_root": str(bronze_test_env)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "manual"})
 
     links = bronze_raw_links(context)
 
@@ -155,9 +154,7 @@ def test_bronze_raw_links_manual_filter(bronze_test_env):
 def test_bronze_raw_links_monitoring_filter(bronze_test_env):
     # Test that monitoring filter only processes monitoring_list.txt
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "monitoring", "project_root": str(bronze_test_env)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "monitoring"})
 
     links = bronze_raw_links(context)
 
@@ -180,9 +177,7 @@ def test_bronze_raw_links_deduplication(bronze_test_env):
 
     # Run bronze_raw_links
     context = build_asset_context()
-    type(context).op_config = PropertyMock(
-        return_value={"source_filter": "both", "project_root": str(bronze_test_env)}
-    )
+    type(context).op_config = PropertyMock(return_value={"source_filter": "both"})
 
     links = bronze_raw_links(context)
 

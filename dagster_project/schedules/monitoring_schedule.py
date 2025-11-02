@@ -1,13 +1,10 @@
 from dagster import ScheduleDefinition
 
-from dagster_project.jobs.monitoring_pipeline import monitoring_pipeline_job
+from dagster_project.jobs.partitioned_pipeline import discover_and_process_job
 
-# Schedule to run monitoring pipeline every 6 hours
-# Cron format: minute hour day month day_of_week
-# "0 */6 * * *" = at minute 0 of every 6th hour
 monitoring_schedule = ScheduleDefinition(
     name="monitoring_schedule",
     cron_schedule="0 */6 * * *",
-    job=monitoring_pipeline_job,
-    description="Run monitoring pipeline every 6 hours to process monitoring_list.txt",
+    job=discover_and_process_job,
+    description="Discover and process URLs every 6 hours (all sources: RSS, manual, monitoring)",
 )

@@ -11,11 +11,14 @@ from dagster_project.resources.io_managers import BronzeIOManager
 
 
 @pytest.fixture
-def bronze_html_test_env(tmp_path):
+def bronze_html_test_env(tmp_path, monkeypatch):
     """Create test environment with bronze directories."""
     bronze_dir = tmp_path / "artifacts" / "bronze"
     raw_html_dir = bronze_dir / "raw_html"
     raw_html_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return {
         "project_root": tmp_path,
@@ -36,7 +39,7 @@ def test_bronze_raw_html_download_and_storage(bronze_html_test_env, monkeypatch)
 
     with patch("httpx.get", return_value=mock_response):
         # Create BronzeIOManager
-        bronze_io_manager = BronzeIOManager(base_dir=str(bronze_html_test_env["bronze_dir"]))
+        bronze_io_manager = BronzeIOManager()
 
         # Create context
         context = build_asset_context()
@@ -110,9 +113,7 @@ def test_bronze_raw_html_cache_hit_behavior(bronze_html_test_env):
         mock_get.return_value = mock_response
 
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         results = bronze_raw_html(context, [test_url])
 
@@ -138,11 +139,9 @@ def test_bronze_raw_html_full_hash_filenames(bronze_html_test_env):
     mock_response.url = "https://example.com/hash-test"
 
     with patch("httpx.get", return_value=mock_response):
-        bronze_io_manager = BronzeIOManager(base_dir=str(bronze_html_test_env["bronze_dir"]))
+        bronze_io_manager = BronzeIOManager()
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         test_urls = ["https://example.com/hash-test"]
         results = bronze_raw_html(context, test_urls)
@@ -187,11 +186,9 @@ def test_bronze_raw_html_metadata_structure(bronze_html_test_env):
     mock_response.url = "https://example.com/metadata-test"
 
     with patch("httpx.get", return_value=mock_response):
-        bronze_io_manager = BronzeIOManager(base_dir=str(bronze_html_test_env["bronze_dir"]))
+        bronze_io_manager = BronzeIOManager()
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         test_urls = ["https://example.com/metadata-test"]
         results = bronze_raw_html(context, test_urls)
@@ -247,9 +244,7 @@ def test_bronze_raw_html_http_error_handling(bronze_html_test_env):
         ),
     ):
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         test_urls = ["https://example.com/error-test"]
         results = bronze_raw_html(context, test_urls)
@@ -270,9 +265,7 @@ def test_bronze_raw_html_timeout_handling(bronze_html_test_env):
     # Mock httpx.get to raise timeout
     with patch("httpx.get", side_effect=httpx.TimeoutException("Request timeout")):
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         test_urls = ["https://example.com/timeout-test"]
         results = bronze_raw_html(context, test_urls)
@@ -302,9 +295,7 @@ def test_bronze_raw_html_multiple_urls_with_errors(bronze_html_test_env):
 
     with patch("httpx.get", side_effect=mock_get_side_effect):
         context = build_asset_context()
-        type(context.op_execution_context).op_config = PropertyMock(
-            return_value={"project_root": str(bronze_html_test_env["project_root"])}
-        )
+        type(context.op_execution_context).op_config = PropertyMock(return_value={})
 
         test_urls = [
             "https://example.com/fail-test",

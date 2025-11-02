@@ -10,10 +10,13 @@ from dagster_project.resources.io_managers import SilverIOManager
 
 
 @pytest.fixture
-def silver_test_env(tmp_path):
+def silver_test_env(tmp_path, monkeypatch):
     silver_dir = tmp_path / "artifacts" / "silver"
     extracted_content_dir = silver_dir / "extracted_content"
     extracted_content_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return {
         "project_root": tmp_path,
@@ -62,7 +65,7 @@ def test_end_to_end_bronze_to_silver_html_flow(silver_test_env):
     assert "lineage" in results[0]
     assert results[0]["lineage"]["source_asset"] == "bronze_raw_html"
 
-    silver_io_manager = SilverIOManager(base_dir=str(silver_test_env["silver_dir"]))
+    silver_io_manager = SilverIOManager()
 
     output_context = OutputContext(
         name="silver_extracted_content",
@@ -276,7 +279,7 @@ def test_full_sha256_hash_filenames(silver_test_env):
     context = build_asset_context()
     results = silver_extracted_content(context, bronze_data)
 
-    silver_io_manager = SilverIOManager(base_dir=str(silver_test_env["silver_dir"]))
+    silver_io_manager = SilverIOManager()
 
     output_context = OutputContext(
         name="silver_extracted_content",

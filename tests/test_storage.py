@@ -1,13 +1,3 @@
-from pathlib import Path
-
-import pytest
-
-
-@pytest.fixture(scope="module")
-def project_root():
-    return Path(__file__).parent.parent
-
-
 def test_storage_directory_exists(project_root):
     storage_dir = project_root / "storage"
     assert storage_dir.exists(), "storage directory should exist"

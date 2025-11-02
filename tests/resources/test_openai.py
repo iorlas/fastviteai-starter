@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,8 +8,7 @@ from dagster_project.resources.openai import OpenAIClient
 
 
 @pytest.fixture(scope="module")
-def load_env():
-    project_root = Path(__file__).parent.parent
+def load_env(project_root):
     env_path = project_root / ".env"
     load_dotenv(env_path)
 

@@ -1,6 +1,3 @@
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import pytest
 from dagster import build_asset_context
 
@@ -16,7 +13,7 @@ def mock_context():
 
 
 @pytest.fixture
-def temp_project_root(tmp_path):
+def temp_project_root(tmp_path, monkeypatch):
     # Create manual_links.txt
     manual_file = tmp_path / "manual_links.txt"
     manual_file.write_text(
@@ -32,8 +29,11 @@ def temp_project_root(tmp_path):
     monitoring_file.write_text("https://example.com/monitoring1\nhttps://example.com/monitoring2\n")
 
     # Create summaries directory
-    summaries_dir = tmp_path / "artifacts" / "summaries"
+    summaries_dir = tmp_path / "artifacts" / "silver" / "summaries"
     summaries_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set PROJECT_ROOT environment variable
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
 
     return tmp_path
 
@@ -79,33 +79,15 @@ def test_read_links_from_nonexistent_file(tmp_path):
 
 @pytest.mark.integration
 def test_bronze_raw_links_with_temp_files(mock_context, temp_project_root):
-    # We need to mock the project_root path resolution
-    def mock_file_path():
-        return temp_project_root / "dagster_project" / "assets" / "bronze_raw_links.py"
+    # Test read_links_from_file with temp files (PROJECT_ROOT env var already set by fixture)
+    from dagster_project.assets.bronze_raw_links import read_links_from_file
 
-    with patch("dagster_project.assets.bronze_raw_links.Path") as mock_path:
-        mock_path.return_value.parent.parent.parent = temp_project_root
-        mock_path.__file__ = str(mock_file_path())
+    manual_links = read_links_from_file(temp_project_root / "manual_links.txt")
+    monitoring_links = read_links_from_file(temp_project_root / "monitoring_list.txt")
 
-        # Mock the actual Path constructor calls within the function
-        def path_side_effect(arg):
-            if arg == mock_path.__file__:
-                result = MagicMock()
-                result.parent.parent.parent = temp_project_root
-                return result
-            return Path(arg)
-
-        mock_path.side_effect = path_side_effect
-
-        # Create a simpler inline test
-        from dagster_project.assets.bronze_raw_links import read_links_from_file
-
-        manual_links = read_links_from_file(temp_project_root / "manual_links.txt")
-        monitoring_links = read_links_from_file(temp_project_root / "monitoring_list.txt")
-
-        # Should have 3 manual + 2 monitoring = 5 total
-        assert len(manual_links) == 3
-        assert len(monitoring_links) == 2
+    # Should have 3 manual + 2 monitoring = 5 total
+    assert len(manual_links) == 3
+    assert len(monitoring_links) == 2
 
 
 @pytest.mark.integration
