@@ -1,0 +1,225 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>5</storyId>
+    <title>Add Raw HTML Download to Bronze Layer</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-add-raw-html-download-to-bronze-layer.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to download and cache raw HTML as a bronze layer asset</iWant>
+    <soThat>content can be reprocessed without re-downloading from source URLs</soThat>
+    <tasks>
+- Task 1: Create bronze_raw_html asset (AC: 1, 2, 4)
+  - Create new file dagster_project/assets/bronze_raw_html.py
+  - Define asset function bronze_raw_html(context: AssetExecutionContext, bronze_raw_links: list) -> list
+  - Add asset decorator with io_manager_key, compute_kind, group_name, tags
+  - Add dependency on bronze_raw_links via function parameter
+  - Import httpx for HTTP downloads
+
+- Task 2: Implement HTML download logic with caching (AC: 2, 3, 6)
+  - For each URL compute full SHA256 hash
+  - Check if artifacts/bronze/raw_html/{hash}.html exists (cache hit)
+  - If cached: Skip download, log cache hit
+  - If not cached: Download HTML using httpx.get() with timeout
+  - Store raw HTML content, status code, headers, download timestamp
+  - Use structlog for logging
+
+- Task 3: Implement error handling (AC: 5)
+  - Wrap httpx requests in try/except blocks
+  - Catch HTTP errors (timeouts, 4xx, 5xx)
+  - Store error metadata with url, error message, status_code, timestamp
+  - Log errors using structlog
+  - Continue processing remaining URLs
+
+- Task 4: Verify BronzeIOManager handles HTML storage (AC: 3, 4, 6)
+  - Review dagster_project/resources/io_managers.py implementation
+  - Verify it handles raw HTML data structure
+  - Verify storage in artifacts/bronze/raw_html/ subdirectory
+  - Verify full SHA256 hash for filenames
+  - Enhance if needed
+
+- Task 5: Update asset exports (AC: 1)
+  - Add bronze_raw_html to dagster_project/assets/__init__.py
+  - Update __all__ to export new asset
+
+- Task 6: Create integration tests (AC: 7)
+  - Create tests/integration/test_bronze_html_download.py
+  - Test HTML download and storage
+  - Test cache hit behavior
+  - Test full SHA256 hash filenames (64 chars)
+  - Test metadata structure
+  - Test error handling
+  - Mark with @pytest.mark.integration
+
+- Task 7: Verify content extraction compatibility (AC: 8)
+  - Review dagster_project/ops/html_extractor.py
+  - Verify can read from bronze cache structure
+  - Document changes needed for Story 1.6
+
+- Task 8: Run all tests and quality checks (AC: 7)
+  - Run uv run pytest
+  - Run make check
+  - Verify no regressions
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: New asset bronze_raw_html created that depends on bronze_raw_links - Asset file exists with dependency declared
+AC2: Downloads raw HTML for each link using httpx - Integration test verifies HTTP download
+AC3: Stores raw HTML with metadata (url, download_timestamp, status_code, headers) - JSON structure verified in tests
+AC4: Uses BronzeIOManager for storage in artifacts/bronze/raw_html/ - Asset decorated with io_manager_key="bronze_io_manager"
+AC5: Handles HTTP errors gracefully (stores error metadata) - Test verifies error metadata storage for failed downloads
+AC6: Uses full SHA256 hash of URL for filename - Integration test verifies 64-char hash filenames
+AC7: Integration test verifies HTML download and storage - End-to-end test passes
+AC8: Existing content extraction can read from bronze cache - Verify html_extractor can load cached HTML (prep for Story 1.6)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>AC5: Raw HTML Caching</section>
+        <snippet>bronze_raw_html asset downloads HTML via HTTP and caches to bronze layer. Raw HTML stored with metadata: url, status_code, headers, download_timestamp, error (if failed). html_extractor op reads from bronze cache instead of direct HTTP requests.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification</title>
+        <section>Data Models - Bronze Raw HTML</section>
+        <snippet>JSON metadata includes: url, status_code, headers, html_content (full raw HTML), download_timestamp (ISO 8601), created_at (ISO 8601), error (if HTTP error occurred)</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification</title>
+        <section>Caching Strategy (File Existence Check)</section>
+        <snippet>bronze_raw_html checks if {hash}.html exists in bronze cache before downloading. If exists: Read from cache, skip download. If not exists: HTTP GET and save to cache. Simple file-existence check approach instead of partitioning.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.5: Add Raw HTML Download to Bronze Layer</section>
+        <snippet>New asset bronze_raw_html depends on bronze_raw_links, downloads raw HTML using httpx, stores with metadata in artifacts/bronze/raw_html/, handles HTTP errors gracefully, uses full SHA256 hash filenames, enables reprocessing from cache.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Medallion Architecture - Bronze Layer</section>
+        <snippet>Bronze layer stores raw, immutable data exactly as ingested. raw_html/ subdirectory caches downloaded HTML content. Enables reprocessing without re-downloading. No business logic applied in bronze layer.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-2-implement-bronze-layer-iomanager.md</path>
+        <title>Story 1.2: Implement Bronze Layer IOManager</title>
+        <section>Acceptance Criteria AC3</section>
+        <snippet>BronzeIOManager handles storage of raw HTML content with metadata. Implementation includes _handle_output_html() and _load_input_html() methods with full SHA256 hashing and created_at timestamps.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-4-migrate-link-ingestion-to-bronze-layer.md</path>
+        <title>Story 1.4: Migrate Link Ingestion to Bronze Layer</title>
+        <section>Learnings - Architectural Patterns</section>
+        <snippet>Asset naming: {layer}_{data_type} convention. IOManager integration via io_manager_key decorator. Assets return plain data; IOManager handles serialization. Full SHA256 hash (64 chars) for filenames. Use structlog for bronze layer logging.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager</symbol>
+        <lines>13-140</lines>
+        <reason>Bronze layer IOManager already implemented. Handles HTML storage via _handle_output_html() (lines 90-114) and _load_input_html() (lines 116-139). Expects dict with html_content field, generates full SHA256 hash, stores in raw_html_dir with created_at timestamp.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_links.py</path>
+        <kind>asset</kind>
+        <symbol>bronze_raw_links</symbol>
+        <lines>30-127</lines>
+        <reason>Upstream dependency for bronze_raw_html. Returns List[str] of unprocessed URLs. Demonstrates bronze layer asset pattern: io_manager_key, structlog logging, compute_kind, group_name, tags. Use as template for bronze_raw_html structure.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_links.py</path>
+        <kind>helper</kind>
+        <symbol>compute_url_hash</symbol>
+        <lines>12-13</lines>
+        <reason>Helper function for SHA256 hash generation (truncated [:16] for legacy compatibility). For this story, compute FULL SHA256 hash directly (64 chars) for filename generation.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/html_extractor.py</path>
+        <kind>op</kind>
+        <symbol>extract_html_content</symbol>
+        <lines>21-68</lines>
+        <reason>Current HTML extraction op that downloads HTML directly via httpx.get() (line 24). Story 1.6 will update this to read from bronze cache. Verify compatibility with bronze cache structure (AC8).</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/__init__.py</path>
+        <kind>module</kind>
+        <symbol>__all__</symbol>
+        <lines>1-9</lines>
+        <reason>Asset exports module. Must add bronze_raw_html to imports and __all__ list for Dagster asset discovery (Task 5).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="httpx" version="latest">HTTP client for downloading HTML content with timeout support</package>
+        <package name="dagster" version=">=1.12.0">Asset decorator, AssetExecutionContext, Field config schema</package>
+        <package name="structlog" version=">=23.0.0">Structured logging for bronze layer operations</package>
+        <package name="pathlib" version="stdlib">Path handling for file existence checks and directory operations</package>
+        <package name="hashlib" version="stdlib">SHA256 hash generation for filename uniqueness</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Asset must follow bronze layer naming convention: bronze_raw_html (pattern: {layer}_{data_type})
+- Asset decorator must include: io_manager_key="bronze_io_manager", compute_kind="python", group_name="bronze_layer", tags={"layer": "bronze", "source": "download"}
+- Asset must declare dependency via function parameter: bronze_raw_html(context: AssetExecutionContext, bronze_raw_links: list)
+- Asset returns plain data structure (list of dicts); BronzeIOManager handles serialization and file writing
+- Use full SHA256 hash (64 chars) for filenames, NOT truncated [:16] version
+- Use structlog for all logging (not context.log) to maintain bronze layer consistency
+- File-based caching strategy: Check if artifacts/bronze/raw_html/{hash}.html exists before downloading
+- Error handling must be resilient: HTTP failures stored as error metadata, don't fail entire batch
+- No direct file I/O in asset code - IOManager handles all persistence
+- HTTP downloads must include timeout parameter to prevent hanging
+- Store metadata in dict: url, html_content, status_code, headers, download_timestamp, error (if failed)
+- BronzeIOManager expects dict with "html_content" field for HTML type detection (see io_managers.py:22)
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>BronzeIOManager._handle_output_html</name>
+      <kind>method</kind>
+      <signature>_handle_output_html(self, context: OutputContext, html_data: dict) -> None</signature>
+      <path>dagster_project/resources/io_managers.py:90-114</path>
+      <description>Expects dict with keys: url (str), html_content (str), download_info (dict, optional). Generates SHA256 hash from URL, adds created_at timestamp, stores in artifacts/bronze/raw_html/{hash}.json</description>
+    </interface>
+    <interface>
+      <name>bronze_raw_links asset output</name>
+      <kind>asset dependency</kind>
+      <signature>bronze_raw_links(context: AssetExecutionContext) -> list</signature>
+      <path>dagster_project/assets/bronze_raw_links.py:40-127</path>
+      <description>Returns List[str] of unprocessed URLs. Use as input parameter for bronze_raw_html asset dependency</description>
+    </interface>
+    <interface>
+      <name>httpx.get</name>
+      <kind>external library</kind>
+      <signature>httpx.get(url: str, timeout: int, follow_redirects: bool) -> Response</signature>
+      <path>external: httpx library</path>
+      <description>HTTP client for downloading HTML. Use with timeout parameter (e.g., 30 seconds). Access response via response.text, response.status_code, response.headers</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Integration tests use pytest with @pytest.mark.integration marker. Tests use tmp_path fixture for isolated test environments. Dagster testing utilities: build_asset_context() for asset execution, PropertyMock for config injection, OutputContext for IOManager testing. Bronze layer tests follow pattern from test_bronze_layer_migration.py: setup test environment with input files and directories, execute asset, verify IOManager storage, validate file structure and metadata. All tests must verify full SHA256 hash length (64 chars) for filenames.</standards>
+    <locations>tests/integration/ for multi-component end-to-end tests. Create new file: tests/integration/test_bronze_html_download.py for this story's integration tests.</locations>
+    <ideas>
+      <test ac="AC2,AC7">Test HTML download and bronze storage - Create test URLs, execute bronze_raw_html asset, verify HTML content downloaded and stored via BronzeIOManager in artifacts/bronze/raw_html/</test>
+      <test ac="AC2,AC7">Test cache hit behavior - Run asset twice with same URLs, verify second run skips download (cache hit), check structlog output for cache hit messages</test>
+      <test ac="AC6">Test full SHA256 hash filenames - Verify all created files use 64-char hash (not truncated [:16]), check filename pattern matches {full_sha256}.json</test>
+      <test ac="AC3">Test metadata structure - Load saved JSON, verify contains url, html_content, status_code, headers, download_timestamp, created_at fields</test>
+      <test ac="AC5">Test HTTP error handling - Mock httpx.get() to raise HTTPError, verify asset continues processing remaining URLs, verify error metadata stored with error field populated</test>
+      <test ac="AC5">Test timeout handling - Mock httpx.get() with timeout exception, verify graceful error handling and error metadata storage</test>
+      <test ac="AC1">Test dependency on bronze_raw_links - Verify asset receives List[str] from bronze_raw_links upstream dependency</test>
+    </ideas>
+  </tests>
+</story-context>

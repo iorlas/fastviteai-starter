@@ -1,0 +1,262 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>12</storyId>
+    <title>Update Documentation for Medallion Architecture</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-12-update-documentation-for-medallion-architecture.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>updated documentation explaining the medallion architecture</iWant>
+    <soThat>the new layer structure and IOManagers are well-documented for future development</soThat>
+    <tasks>
+- Task 1: Update architecture.md medallion section (AC: 1, 2, 4)
+- Task 2: Document IOManager implementation patterns (AC: 3)
+- Task 3: Document file naming and metadata standards (AC: 5, 6)
+- Task 4: Document testing organization (AC: 7)
+- Task 5: Document reprocessing workflows (AC: 8)
+- Task 6: Update existing architecture sections (AC: 2)
+- Task 7: Verify documentation completeness (AC: 1-8)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: docs/architecture.md updated with medallion architecture section - Section present with bronze and silver layer descriptions
+AC2: Bronze and silver layer responsibilities clearly documented - Each layer's purpose, characteristics, and data flow documented
+AC3: IOManager usage patterns documented - BronzeIOManager and SilverIOManager implementation and usage examples
+AC4: Data flow diagrams updated to show bronze → silver progression - Visual or textual representation of layer progression
+AC5: File naming conventions (full hash) documented - SHA256 full hash naming pattern explained
+AC6: Metadata requirements (timestamps, lineage) documented - Required metadata fields for bronze and silver artifacts
+AC7: Testing structure (mirrored organization) documented - Test directory structure and naming conventions explained
+AC8: Reprocessing workflow documented (using bronze cache) - Instructions for reprocessing silver from bronze without re-download
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>AC12: Documentation Updates</section>
+        <snippet>Authoritative acceptance criteria for medallion architecture documentation including bronze/silver layer responsibilities, IOManager usage patterns, data flow diagrams, file naming conventions (full hash), metadata requirements (timestamps, lineage), testing structure (mirrored organization), and reprocessing workflow.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Complete bronze and silver layer data models with JSON schemas, filename conventions (full SHA256 hash), directory structure, and metadata requirements including created_at, updated_at, and lineage fields.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>APIs and Interfaces</section>
+        <snippet>BronzeIOManager and SilverIOManager interface specifications including handle_output and load_input methods, asset signatures, and caching strategy documentation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Workflows and Sequencing</section>
+        <snippet>Asset dependency flow (bronze_raw_links → bronze_raw_html → silver_extracted_content → silver_summaries), file-based caching behavior, and reprocessing workflow instructions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Test Strategy Summary</section>
+        <snippet>Test organization requirements including mirrored directory structure (tests/ops/, tests/assets/, tests/resources/), integration test coverage, and IOManager testing patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - DeepRock</title>
+        <section>Medallion Architecture (existing, lines 272-398)</section>
+        <snippet>Current medallion architecture documentation covering pattern overview, bronze/silver layer descriptions, data flow, file naming (full SHA256), metadata requirements, and migration strategy. Needs enhancement with IOManager usage patterns, testing structure, and reprocessing workflows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>ailabbrains - Epic Breakdown</title>
+        <section>Story 1.12</section>
+        <snippet>Story definition with acceptance criteria for documentation updates: architecture section, layer responsibilities, IOManager patterns, data flow diagrams, file naming, metadata, testing structure, and reprocessing workflow.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>ailabbrains Product Requirements Document</title>
+        <section>Functional Requirements</section>
+        <snippet>FR001-FR011 covering medallion architecture layers, IOManagers, data management, timestamps, lineage, testing infrastructure, and markdown output requirements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Testing and Quality</section>
+        <snippet>Existing testing standards, quality checks (make check), and development workflow documentation to ensure consistency.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager</symbol>
+        <lines>46-140</lines>
+        <reason>Bronze layer IOManager implementation - needs documentation for handle_output/load_input methods, raw data persistence patterns, and SHA256 hashing</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>SilverIOManager</symbol>
+        <lines>142-364</lines>
+        <reason>Silver layer IOManager implementation - needs documentation for content-type awareness (HTML/YouTube/summaries), dual-format output (JSON+markdown), lineage metadata, and timestamps</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/definitions.py</path>
+        <kind>definitions</kind>
+        <symbol>Definitions</symbol>
+        <lines></lines>
+        <reason>Shows IOManager registration pattern with resources dict - example needed in documentation</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_links.py</path>
+        <kind>asset</kind>
+        <symbol>bronze_raw_links</symbol>
+        <lines></lines>
+        <reason>Example of bronze layer asset using io_manager_key decorator pattern</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_html.py</path>
+        <kind>asset</kind>
+        <symbol>bronze_raw_html</symbol>
+        <lines></lines>
+        <reason>Example of HTML caching in bronze layer - demonstrates reprocessing capability without re-download</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_extracted_content.py</path>
+        <kind>asset</kind>
+        <symbol>silver_extracted_content</symbol>
+        <lines></lines>
+        <reason>Example of silver layer asset reading from bronze cache</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_summaries.py</path>
+        <kind>asset</kind>
+        <symbol>silver_summaries</symbol>
+        <lines></lines>
+        <reason>Example of dual-format output (JSON+markdown) via SilverIOManager for summaries</reason>
+      </artifact>
+      <artifact>
+        <path>tests/resources/test_bronze_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_bronze_io_manager</symbol>
+        <lines></lines>
+        <reason>Reference test patterns for IOManagers: fixtures, Dagster utilities, hash validation, timestamp testing</reason>
+      </artifact>
+      <artifact>
+        <path>tests/resources/test_silver_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_silver_io_manager</symbol>
+        <lines></lines>
+        <reason>Reference test patterns for dual-format output, content-type handling, lineage metadata validation, error handling</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package>dagster</package>
+        <version>&gt;=1.12.0</version>
+        <purpose>Data orchestration framework with IOManager and asset-based DAG</purpose>
+      </python>
+      <python>
+        <package>pydantic</package>
+        <version>&gt;=2.12.2</version>
+        <purpose>Data validation and schemas for bronze/silver data models</purpose>
+      </python>
+      <python>
+        <package>structlog</package>
+        <version>&gt;=23.0.0</version>
+        <purpose>Structured logging (no print statements per CLAUDE.md)</purpose>
+      </python>
+      <python>
+        <package>pytest</package>
+        <version>&gt;=8.4.2</version>
+        <purpose>Testing framework for integration tests</purpose>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Documentation must be written in GitHub-flavored markdown with code blocks using syntax highlighting (```python, ```json, ```bash)</constraint>
+    <constraint>Update existing docs/architecture.md (lines 272-398) - do not duplicate content from tech-spec-epic-1.md</constraint>
+    <constraint>Use project-relative paths only (e.g., dagster_project/resources/io_managers.py not absolute paths)</constraint>
+    <constraint>Include directory tree visualizations for layer structure (artifacts/bronze/, artifacts/silver/)</constraint>
+    <constraint>Provide step-by-step instructions for reprocessing workflow (delete silver → rematerialize from bronze)</constraint>
+    <constraint>Document testing structure mirroring code organization (tests/ops/, tests/assets/, tests/resources/)</constraint>
+    <constraint>Keep tone technical and concise per existing architecture.md style</constraint>
+    <constraint>Cross-reference other docs with relative links ([text](../file.md))</constraint>
+    <constraint>No doc-strings in code examples per CLAUDE.md constitution</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>BronzeIOManager.handle_output</name>
+      <kind>method</kind>
+      <signature>def handle_output(self, context: OutputContext, obj: Any) -> None</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+      <description>Serialize and store bronze layer data with full SHA256 hash filenames and created_at timestamps</description>
+    </interface>
+    <interface>
+      <name>BronzeIOManager.load_input</name>
+      <kind>method</kind>
+      <signature>def load_input(self, context: InputContext) -> Any</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+      <description>Deserialize and load bronze layer data from file storage</description>
+    </interface>
+    <interface>
+      <name>SilverIOManager.handle_output</name>
+      <kind>method</kind>
+      <signature>def handle_output(self, context: OutputContext, obj: Any) -> None</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+      <description>Serialize and store silver layer data with content-type awareness, dual-format output, lineage metadata, and timestamps</description>
+    </interface>
+    <interface>
+      <name>SilverIOManager.load_input</name>
+      <kind>method</kind>
+      <signature>def load_input(self, context: InputContext) -> Any</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+      <description>Deserialize and load silver layer data with metadata preservation</description>
+    </interface>
+    <interface>
+      <name>Asset Decoration Pattern</name>
+      <kind>decorator</kind>
+      <signature>@asset(io_manager_key="bronze_io_manager") or @asset(io_manager_key="silver_io_manager")</signature>
+      <path>dagster_project/assets/</path>
+      <description>Pattern for configuring assets to use specific IOManagers for layer-appropriate persistence</description>
+    </interface>
+    <interface>
+      <name>IOManager Registration</name>
+      <kind>configuration</kind>
+      <signature>Definitions(resources={"bronze_io_manager": BronzeIOManager(...), "silver_io_manager": SilverIOManager(...)})</signature>
+      <path>dagster_project/definitions.py</path>
+      <description>Pattern for registering IOManagers as Dagster resources</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Testing follows integration-first strategy per CLAUDE.md constitution. Tests mirror production code organization (tests/ops/, tests/assets/, tests/resources/, tests/jobs/). All tests use @pytest.mark.integration markers. IOManager tests use pytest fixtures (io_manager with tmp_path) for isolated execution and Dagster test utilities (OutputContext, InputContext, AssetKey). No doc-strings per project standards. Run `make check` after all changes for format, lint, typecheck, and test validation.
+    </standards>
+    <locations>
+      <location>tests/resources/test_bronze_io_manager_unit.py - Bronze IOManager integration tests</location>
+      <location>tests/resources/test_silver_io_manager_unit.py - Silver IOManager integration tests</location>
+      <location>tests/integration/ - End-to-end pipeline integration tests</location>
+      <location>tests/assets/ - Asset-specific tests</location>
+      <location>tests/ops/ - Operation-specific tests</location>
+      <location>tests/jobs/ - Job execution tests</location>
+    </locations>
+    <ideas>
+      <idea ac="AC1-AC2">Verify architecture.md medallion section completeness by checking all required subsections present (bronze layer, silver layer, data flow diagrams, layer characteristics)</idea>
+      <idea ac="AC3">Verify IOManager usage pattern documentation includes code examples for registration in definitions.py and asset decoration with io_manager_key</idea>
+      <idea ac="AC5">Verify file naming convention documentation includes example SHA256 hash (64 characters) and comparison with previous [:16] truncation</idea>
+      <idea ac="AC6">Verify metadata documentation includes JSON schema examples for bronze (created_at) and silver (created_at, updated_at, lineage) artifacts</idea>
+      <idea ac="AC7">Verify testing structure documentation includes directory tree showing mirrored organization and pytest marker usage examples</idea>
+      <idea ac="AC8">Verify reprocessing workflow documentation includes step-by-step bash commands and explanation of bronze cache benefits</idea>
+    </ideas>
+  </tests>
+</story-context>

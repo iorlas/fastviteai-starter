@@ -1,4 +1,4 @@
-# generated: 2025-11-01
+# generated: 2025-11-02
 # project: ailabbrains
 # project_key: ailabbrains
 # tracking_system: file-system
@@ -37,8 +37,16 @@ story_location: {project-root}/docs/stories
 
 development_status:
   epic-1: contexted
-  story-link-pipeline-1: done
-  story-link-pipeline-1.1: done
-  story-link-pipeline-2: done  # Approved 2025-11-02: All quality checks passing, production-ready
-  story-link-pipeline-3: done  # Approved 2025-11-02: All 6 ACs implemented, 19 tasks verified, comprehensive tests passing
+  1-1-define-bronze-and-silver-layer-structure: done
+  1-2-implement-bronze-layer-iomanager: done
+  1-3-implement-silver-layer-iomanager: done
+  1-4-migrate-link-ingestion-to-bronze-layer: done
+  1-5-add-raw-html-download-to-bronze-layer: done
+  1-6-migrate-content-extraction-to-silver-layer: done
+  1-7-migrate-summarization-to-silver-layer: done
+  1-8-generate-markdown-summary-files: done
+  1-9-restructure-tests-to-mirror-code-organization: done
+  1-10-add-tests-for-bronze-iomanager: done
+  1-11-add-tests-for-silver-iomanager: done
+  1-12-update-documentation-for-medallion-architecture: done
   epic-1-retrospective: optional

@@ -22,6 +22,7 @@ def mock_context():
     return context
 
 
+@pytest.mark.integration
 def test_openai_client_initialization(load_env):
     client = OpenAIClient()
     assert client is not None
@@ -30,6 +31,7 @@ def test_openai_client_initialization(load_env):
     assert hasattr(client, "base_url")
 
 
+@pytest.mark.integration
 def test_openai_client_config(load_env):
     client = OpenAIClient()
     assert client.base_url == "https://openrouter.ai/api/v1"
@@ -37,6 +39,7 @@ def test_openai_client_config(load_env):
     assert client.timeout == 30.0
 
 
+@pytest.mark.integration
 def test_openai_client_validation_with_api_key(load_env, mock_context):
     # Set a test API key
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
@@ -46,6 +49,7 @@ def test_openai_client_validation_with_api_key(load_env, mock_context):
         mock_context.log.info.assert_called_once()
 
 
+@pytest.mark.integration
 def test_openai_client_initialization_parameters(load_env):
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         with patch("dagster_project.resources.openai.OpenAI") as mock_openai:
@@ -61,6 +65,7 @@ def test_openai_client_initialization_parameters(load_env):
             )
 
 
+@pytest.mark.integration
 def test_openai_client_validation_without_api_key(mock_context):
     with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
         client = OpenAIClient()
@@ -68,6 +73,7 @@ def test_openai_client_validation_without_api_key(mock_context):
             client.setup_for_execution(mock_context)
 
 
+@pytest.mark.integration
 def test_chat_completion_request_structure(load_env, mock_context):
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         resource = OpenAIClient()
@@ -105,6 +111,7 @@ def test_chat_completion_request_structure(load_env, mock_context):
             assert response == mock_response
 
 
+@pytest.mark.integration
 def test_get_completion_text(load_env):
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
         client = OpenAIClient()

@@ -1,0 +1,193 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>7</storyId>
+    <title>Migrate Summarization to Silver Layer</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-7-migrate-summarization-to-silver-layer.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>migrate summarization to output silver layer assets</iWant>
+    <soThat>summaries are properly layered with full metadata and lineage tracking</soThat>
+    <tasks>
+- Task 1: Create silver_summaries asset (AC: 1, 2, 3)
+- Task 2: Implement silver_summaries logic (AC: 4, 6)
+- Task 3: Verify SilverIOManager handles summaries (AC: 3, 5)
+- Task 4: Update legacy asset references (AC: 1, 8)
+- Task 5: Create integration tests (AC: 7, 8)
+- Task 6: Run all tests and quality checks (AC: 7, 8)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: summarization asset renamed to silver_summaries - Asset file exists with new name
+AC2: Asset depends on silver_extracted_content instead of content_extraction - Function signature declares dependency parameter
+AC3: Asset configured to use SilverIOManager - Asset decorated with io_manager_key="silver_io_manager"
+AC4: Summaries include full metadata with timestamps and lineage - JSON structure verified in tests
+AC5: Summaries stored in artifacts/silver/summaries/ with full hash filenames - Files saved with 64-char SHA256 hash
+AC6: Success and failure summary formats preserved - Both success and error paths tested
+AC7: Integration test verifies end-to-end pipeline bronze → silver content → silver summaries - Pipeline test passes
+AC8: Manual and monitoring pipelines work with new asset structure - Job tests pass
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Data Models and Contracts - Silver Summary (lines 138-156)</section>
+        <snippet>Defines silver summary data model with url, status (success/failed), summary text, model, tokens_used, latency_ms, error fields, and lineage tracking. Specifies full SHA256 hash filenames and silver layer directory structure at artifacts/silver/summaries/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>APIs and Interfaces - Asset Signatures (lines 282-288)</section>
+        <snippet>Defines silver_summaries asset signature: depends on silver_extracted_content (List[dict]) and openai_client, uses silver_io_manager, generates LLM summaries with JSON output.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Workflows and Sequencing - Asset Dependency Flow (lines 304-320)</section>
+        <snippet>Shows complete pipeline flow: bronze_raw_links → bronze_raw_html → silver_extracted_content → silver_summaries. silver_summaries outputs both JSON and markdown files per URL.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - DeepRock</title>
+        <section>Medallion Architecture (lines 271-398)</section>
+        <snippet>Medallion pattern separates data by maturity: bronze (raw, immutable) and silver (processed, application-ready). Silver layer applies business logic, validates quality, enriches metadata. All silver artifacts require created_at, updated_at, and lineage metadata.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>ailabbrains - Epic Breakdown</title>
+        <section>Story 1.7: Migrate Summarization to Silver Layer (lines 157-174)</section>
+        <snippet>Story requirements: rename summarization to silver_summaries, depend on silver_extracted_content, use SilverIOManager, include full metadata with lineage, preserve success/failure formats, integration tests verify end-to-end pipeline.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-6-migrate-content-extraction-to-silver-layer.md</path>
+        <title>Story 1.6: Migrate Content Extraction to Silver Layer</title>
+        <section>Completion Notes and Architecture Context</section>
+        <snippet>silver_extracted_content asset depends on bronze_raw_html and outputs List[dict] with url, type, title, content, metadata, and lineage. Returns extracted content for SilverIOManager to persist. Integration tests verify end-to-end flow and metadata structure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-3-implement-silver-layer-iomanager.md</path>
+        <title>Story 1.3: Implement Silver Layer IOManager</title>
+        <section>Implementation details</section>
+        <snippet>SilverIOManager handles persistence of processed data to silver layer, adding created_at, updated_at timestamps and lineage metadata. Supports content-type awareness for different data types including summaries.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Testing and Quality Standards</section>
+        <snippet>Integration tests required for multi-component flows, marked with @pytest.mark.integration, located in tests/integration/. All tests must pass before story completion (make check).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/assets/summarization.py</path>
+        <kind>asset</kind>
+        <symbol>summarization_asset</symbol>
+        <lines>49-198</lines>
+        <reason>Legacy asset to be migrated. Shows current pattern: depends on content_extraction, uses OpenAI resource, creates summaries with success/failure handling, saves to artifacts/summaries/. This should be refactored to depend on silver_extracted_content and output to silver layer with proper lineage metadata.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/summarization.py</path>
+        <kind>function</kind>
+        <symbol>create_summarization_prompt</symbol>
+        <lines>10-34</lines>
+        <reason>Prompt creation logic - should be preserved when migrating to silver_summaries. Generates system and user messages for OpenAI API calls.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_extracted_content.py</path>
+        <kind>asset</kind>
+        <symbol>silver_extracted_content</symbol>
+        <lines>32-188</lines>
+        <reason>Upstream dependency - returns List[dict] with url, type, title, content, metadata, lineage. silver_summaries will iterate over this output to generate summaries for each extracted content item.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>SilverIOManager._handle_output_summary</symbol>
+        <lines>227-267</lines>
+        <reason>Persistence logic for summaries - expects dict with url, status (success/failed), summary, model, tokens_used, latency_ms, error fields. Adds created_at and updated_at timestamps. Saves to artifacts/silver/summaries/ with full SHA256 hash filename.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/__init__.py</path>
+        <kind>module_exports</kind>
+        <symbol>__all__</symbol>
+        <lines>1-13</lines>
+        <reason>Asset exports for Dagster discovery - needs to be updated to export silver_summaries instead of (or in addition to) summarization_asset.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0" usage="Asset orchestration framework, AssetExecutionContext, RetryPolicy, Backoff, Field, asset decorator" />
+        <package name="openai" version=">=1.0.0" usage="OpenAI Python SDK for LLM API calls (via OpenRouter)" />
+        <package name="structlog" version=">=23.0.0" usage="Structured logging for silver layer assets" />
+        <package name="pydantic" version=">=2.12.2" usage="Data validation and schemas (if needed for data models)" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use structlog for all logging (not print or context.log) - established pattern in silver layer</constraint>
+    <constraint>Full SHA256 hash (64 chars) for all filenames - NO truncation [:16]</constraint>
+    <constraint>Asset naming convention: silver_summaries (layer_datatype pattern)</constraint>
+    <constraint>Asset decorator: @asset(io_manager_key="silver_io_manager", compute_kind="python", group_name="silver_layer", tags={"layer": "silver", "source": "summarization"})</constraint>
+    <constraint>Return plain data structures (List[dict]) - IOManager handles persistence with metadata enrichment</constraint>
+    <constraint>All silver artifacts must include lineage metadata: {"source_asset": "silver_extracted_content", "source_hash": str, "transformation_timestamp": str (ISO 8601)}</constraint>
+    <constraint>Preserve existing prompt creation logic from summarization.py (create_summarization_prompt function)</constraint>
+    <constraint>Track performance metrics: tokens_used and latency_ms for all OpenAI API calls</constraint>
+    <constraint>Handle both success and failure paths - store failed summaries with error metadata (don't skip)</constraint>
+    <constraint>Use RetryPolicy for OpenAI API calls to handle transient failures</constraint>
+    <constraint>No docstrings (per CLAUDE.md project constitution)</constraint>
+    <constraint>Integration tests only - mark with @pytest.mark.integration, located in tests/integration/</constraint>
+    <constraint>Make check must pass (ruff format, ruff check, pytest) before story completion</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>silver_extracted_content output format</name>
+      <kind>asset_output</kind>
+      <signature>List[dict] with {"url": str, "type": "html"|"youtube", "title": str, "content": str, "metadata": dict, "lineage": dict}</signature>
+      <path>dagster_project/assets/silver_extracted_content.py</path>
+    </interface>
+    <interface>
+      <name>SilverIOManager expected input for summaries</name>
+      <kind>io_manager_input</kind>
+      <signature>dict with {"url": str, "status": "success"|"failed", "summary": str|null, "model": str, "tokens_used": int|null, "latency_ms": int|null, "error": str|null, "error_type": str|null, "lineage": {"source_asset": str, "source_hash": str, "transformation_timestamp": str}}</signature>
+      <path>dagster_project/resources/io_managers.py:227-267</path>
+    </interface>
+    <interface>
+      <name>OpenAI resource interface</name>
+      <kind>resource</kind>
+      <signature>openai.chat_completion(context, messages: list[dict], temperature: float, max_tokens: int) -> response with .usage.total_tokens, .model attributes</signature>
+      <path>dagster_project/resources/ (OpenAI resource)</path>
+    </interface>
+    <interface>
+      <name>create_summarization_prompt</name>
+      <kind>function</kind>
+      <signature>create_summarization_prompt(content: dict) -> list[dict[str, str]] (system + user messages)</signature>
+      <path>dagster_project/assets/summarization.py:10-34</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Integration tests required for all multi-component flows. Mark tests with @pytest.mark.integration and place in tests/integration/ directory. Use PropertyMock on context.op_execution_context.op_config for test configuration injection (established pattern from Story 1.5/1.6). Mock OpenAI API calls for deterministic testing. All tests must pass before story completion - verify with "make check" (runs ruff format, ruff check, pytest). No unit tests required unless complex logic warrants isolation (integration tests preferred per project standards).</standards>
+    <locations>
+      <location>tests/integration/test_silver_summarization.py</location>
+      <location>tests/integration/test_silver_content_extraction.py (existing - verify no regressions)</location>
+    </locations>
+    <ideas>
+      <test ac="AC7" idea="End-to-end pipeline test: Create bronze cache → materialize silver_extracted_content → materialize silver_summaries → verify summaries saved to artifacts/silver/summaries/ with correct metadata structure (url, status, summary, model, tokens, latency, lineage, timestamps)" />
+      <test ac="AC4" idea="Metadata structure validation: Mock OpenAI response → verify summary includes all required fields (url, status, summary, model, tokens_used, latency_ms, lineage with source_asset/source_hash/transformation_timestamp)" />
+      <test ac="AC6" idea="Success path test: Mock successful OpenAI API call → verify summary generation, performance tracking (tokens, latency), and correct data structure" />
+      <test ac="AC6" idea="Failure path test: Mock OpenAI API exception → verify error handling, error metadata storage (error, error_type), no pipeline halt" />
+      <test ac="AC5" idea="Full SHA256 hash filenames: Verify all saved files in artifacts/silver/summaries/ use 64-char SHA256 hash (not truncated [:16])" />
+      <test ac="AC8" idea="Manual pipeline integration: Test manual_pipeline job references silver_summaries correctly and produces expected outputs" />
+      <test ac="AC8" idea="Monitoring pipeline integration: Test monitoring_pipeline job references silver_summaries correctly" />
+      <test ac="AC2" idea="Dependency verification: Test silver_summaries receives List[dict] from silver_extracted_content with expected structure" />
+    </ideas>
+  </tests>
+</story-context>

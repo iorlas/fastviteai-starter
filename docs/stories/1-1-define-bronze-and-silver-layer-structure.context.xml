@@ -1,0 +1,206 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.1</storyId>
+    <title>Define Bronze and Silver Layer Structure</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-1-define-bronze-and-silver-layer-structure.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to define the bronze and silver layer directory structure and naming conventions</iWant>
+    <soThat>we have a clear foundation for organizing assets by data maturity level</soThat>
+    <tasks>
+      - Task 1: Create Bronze Layer Directory Structure (AC: 1)
+        - Create artifacts/bronze/ directory
+        - Create artifacts/bronze/raw_links/ subdirectory
+        - Create artifacts/bronze/raw_html/ subdirectory
+        - Verify directories exist with correct permissions
+      - Task 2: Create Silver Layer Directory Structure (AC: 2)
+        - Create artifacts/silver/ directory
+        - Create artifacts/silver/extracted_content/ subdirectory
+        - Create artifacts/silver/summaries/ subdirectory
+        - Verify directories exist with correct permissions
+      - Task 3: Document Medallion Architecture in Architecture Doc (AC: 3)
+        - Add "Medallion Architecture" section to docs/architecture.md
+        - Document bronze layer responsibilities (raw, immutable data)
+        - Document silver layer responsibilities (processed, application-ready data)
+        - Document data flow: bronze → silver
+        - Document full SHA256 hash usage (replacing [:16] truncation)
+        - Document timestamp requirements (created_at, updated_at)
+      - Task 4: Update Development Guide with New Structure (AC: 3)
+        - Update project structure diagram in docs/development-guide.md
+        - Add medallion layer directories to structure
+        - Note coexistence with current flat structure during migration
+      - Task 5: Document Asset Naming Convention (AC: 4)
+        - Create naming convention section in docs/architecture.md
+        - Document pattern: {layer}_{data_type} (e.g., bronze_raw_links)
+        - Provide examples for all planned assets
+        - Document file naming within directories (full SHA256 hash)
+      - Task 6: Integration Test for Directory Structure (AC: 1, 2)
+        - Create test file: tests/integration/test_medallion_structure.py
+        - Test verifies bronze directories exist
+        - Test verifies silver directories exist
+        - Test verifies directory permissions are correct
+        - Mark with @pytest.mark.integration
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Bronze layer directory created at artifacts/bronze/ with subdirectories for raw_links/ and raw_html/</criterion>
+    <criterion id="AC2">Silver layer directory created at artifacts/silver/ with subdirectories for extracted_content/ and summaries/</criterion>
+    <criterion id="AC3">Layer structure documented in development guide or architecture docs</criterion>
+    <criterion id="AC4">Asset naming convention established (e.g., bronze_raw_links, silver_extracted_content)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Medallion Architecture Migration</title>
+        <section>Directory Structure</section>
+        <snippet>Defines bronze layer (artifacts/bronze/raw_links/, artifacts/bronze/raw_html/) for raw data and silver layer (artifacts/silver/extracted_content/, artifacts/silver/summaries/) for processed data. Full SHA256 hashes replace truncated [:16] hashes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Medallion Architecture Migration</title>
+        <section>Asset Naming Convention</section>
+        <snippet>Asset naming follows pattern: {layer}_{data_type} (e.g., bronze_raw_links, silver_extracted_content). File naming uses full SHA256(url).{extension} format.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Medallion Architecture Migration</title>
+        <section>Acceptance Criteria AC002-AC003</section>
+        <snippet>AC002: All artifacts include created_at (ISO 8601). AC003: Silver artifacts include updated_at and lineage metadata (source_asset, source_hash, transformation_timestamp).</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown - Story 1.1</title>
+        <section>Story 1.1: Define Bronze and Silver Layer Structure</section>
+        <snippet>Bronze layer: artifacts/bronze/ with raw_links/ and raw_html/. Silver layer: artifacts/silver/ with extracted_content/ and summaries/. Document structure in development guide or architecture docs.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR001: Bronze Layer for Raw Data</section>
+        <snippet>Bronze layer stores raw, immutable data (links and HTML) enabling reprocessing without re-downloading. Uses full SHA256 hashes for collision-free filenames.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR002: Silver Layer for Processed Data</section>
+        <snippet>Silver layer stores processed, application-ready data (extracted content and summaries) with full metadata including timestamps and lineage tracking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Storage - File-based Artifacts</section>
+        <snippet>Current storage uses artifacts/html/, artifacts/videos/, artifacts/summaries/ with SHA256[:16] hash filenames. Medallion migration will introduce layered structure with full hashes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/data-models.md</path>
+        <title>Data Models and Storage</title>
+        <section>Directory Structure</section>
+        <snippet>Current structure: artifacts/{html,videos,summaries}/{hash}.json using SHA256(url)[:16]. File naming convention and deduplication logic via file existence checks.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Project Structure</section>
+        <snippet>Project structure includes artifacts/ directory for pipeline outputs. Tests located in tests/ with integration/ subdirectory. Pytest configuration in pyproject.toml.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>tests/integration/test_pipeline_integration.py</path>
+        <kind>integration test</kind>
+        <symbol>e2e_test_env fixture</symbol>
+        <lines>34-50</lines>
+        <reason>Example of integration test pattern using pytest fixtures and tmp_path for directory creation testing</reason>
+      </file>
+      <file>
+        <path>tests/integration/test_jobs.py</path>
+        <kind>integration test</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Existing integration test structure to follow for test_medallion_structure.py</reason>
+      </file>
+    </code>
+    <dependencies>
+      <python>
+        <package name="pytest" version=">=8.4.2" context="testing framework" />
+        <package name="pytest-asyncio" version=">=1.2.0" context="async test support" />
+        <package name="pytest-mock" version=">=3.15.1" context="mocking utilities" />
+        <package name="dagster" version=">=1.12.0" context="data orchestration platform" />
+        <package name="dagster-webserver" version=">=1.12.0" context="Dagster UI" />
+        <package name="pydantic" version=">=2.12.2" context="data validation (V2 only)" />
+        <package name="structlog" version=">=23.0.0" context="structured logging" />
+      </python>
+      <tooling>
+        <tool name="uv" context="Python package manager" />
+        <tool name="ruff" version=">=0.14.0" context="Python linter and formatter" />
+        <tool name="make" context="Build automation (Makefile)" />
+      </tooling>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Directory creation only - no code migration in this story</constraint>
+    <constraint>Existing artifacts/html/, artifacts/videos/, artifacts/summaries/ remain unchanged</constraint>
+    <constraint>Migration to new structure happens in Stories 1.4-1.7</constraint>
+    <constraint>Documentation must be updated in docs/architecture.md and docs/development-guide.md</constraint>
+    <constraint>Integration test required, unit tests optional per tech spec</constraint>
+    <constraint>Full SHA256 hashes (64 chars) replace current truncated [:16] hashes</constraint>
+    <constraint>All artifacts must include created_at timestamp (ISO 8601)</constraint>
+    <constraint>Silver artifacts must include updated_at and lineage metadata</constraint>
+    <constraint>Use pytest.mark.integration marker for integration tests</constraint>
+    <constraint>Follow existing test patterns (fixtures, tmp_path)</constraint>
+  </constraints>
+  <interfaces>
+    <!-- No external interfaces required for directory structure creation -->
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: pytest (>=8.4.2) with markers for unit, integration, and contract tests.
+      Test organization: tests/ directory with integration/ subdirectory. Integration tests use @pytest.mark.integration marker.
+      Test patterns: Use pytest fixtures (tmp_path for temporary directories), factory-boy for test data generation.
+      Quality gates: make check runs format, lint, typecheck, and tests. Integration tests required for this story per tech spec.
+      Configuration: pyproject.toml [tool.pytest.ini_options] defines test paths, markers, and options (-v --strict-markers).
+    </standards>
+    <locations>
+      tests/integration/ - Integration tests (required for this story)
+      tests/ - Unit tests (optional for this story)
+      tests/fixtures/ - Test fixtures and data
+    </locations>
+    <ideas>
+      <idea ac="AC1" ac="AC2">
+        Test: test_medallion_directory_structure_exists
+        Approach: Verify artifacts/bronze/{raw_links,raw_html}/ and artifacts/silver/{extracted_content,summaries}/ exist
+        Pattern: Use pathlib.Path.exists() assertions, similar to e2e_test_env fixture pattern
+      </idea>
+      <idea ac="AC1" ac="AC2">
+        Test: test_directory_permissions
+        Approach: Verify created directories have correct read/write permissions
+        Pattern: Use Path.stat().st_mode to check permissions
+      </idea>
+      <idea ac="AC1" ac="AC2">
+        Test: test_directory_structure_isolation
+        Approach: Verify new directories don't interfere with existing artifacts/{html,videos,summaries}/
+        Pattern: Check old structure still exists alongside new structure
+      </idea>
+      <idea ac="AC3">
+        Test: test_documentation_updated
+        Approach: Verify docs/architecture.md and docs/development-guide.md contain medallion architecture sections
+        Pattern: Read files and assert presence of specific sections/keywords
+      </idea>
+      <idea ac="AC4">
+        Test: test_naming_convention_documented
+        Approach: Verify docs/architecture.md contains asset naming examples (bronze_raw_links, silver_extracted_content)
+        Pattern: Parse documentation and verify examples present
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

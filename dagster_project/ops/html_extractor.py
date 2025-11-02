@@ -18,6 +18,49 @@ class HTMLExtractionError(Exception):
     pass
 
 
+def extract_html_from_cached(html_content: str, url: str) -> HTMLContent:
+    try:
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # Remove unwanted elements
+        for element in soup(["script", "style", "iframe", "nav", "footer", "aside"]):
+            element.decompose()
+
+        # Remove common ad/tracking elements
+        for class_name in ["advertisement", "ad-container", "social-share", "comments"]:
+            for element in soup.find_all(class_=lambda x: x and class_name in x.lower()):
+                element.decompose()
+
+        # Extract title
+        title = _extract_title(soup)
+
+        # Extract main content
+        content = _extract_content(soup)
+
+        # Extract metadata
+        author = _extract_author(soup)
+        publish_date = _extract_publish_date(soup)
+
+        # Build metadata dict
+        extracted_at = datetime.now(UTC).isoformat()
+        metadata = {
+            "content_length": len(content),
+            "extracted_at": extracted_at,
+        }
+
+        return HTMLContent(
+            url=url,
+            title=title,
+            content=content,
+            author=author,
+            publish_date=publish_date,
+            metadata=metadata,
+        )
+
+    except Exception as e:
+        raise HTMLExtractionError(f"Error extracting content from {url}: {e}") from e
+
+
 def extract_html_content(url: str, timeout: int = 30) -> HTMLContent:
     try:
         # Fetch HTML content

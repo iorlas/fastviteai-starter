@@ -11,4 +11,4 @@ This is a doctrine, non-negotiatable rules
 - run `make check` - after every significant change for sure - check and fix it. Need to ignore a rule - ask me about it first
 - use context7 at planning and analysis to prepare for stuff. Use it also when you are in trouble
 - Use structlog instead of print. Don't be too verbal, we care a lot about code volume
-
+- Use ideomatic approaches only. If you need to diverge - ask.

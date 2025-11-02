@@ -1,0 +1,247 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>9</storyId>
+    <title>Restructure Tests to Mirror Code Organization</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-9-restructure-tests-to-mirror-code-organization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to reorganize tests to mirror the dagster_project structure</iWant>
+    <soThat>tests are easy to discover and maintain alongside their corresponding code</soThat>
+    <tasks>
+- Task 1: Create mirrored test directory structure (AC: 1)
+  - Create tests/assets/ directory
+  - Create tests/ops/ directory
+  - Create tests/resources/ directory
+  - Create tests/jobs/ directory
+  - Verify tests/integration/ already exists
+
+- Task 2: Move test files to appropriate directories (AC: 2)
+  - Move test_link_ingestion.py → tests/assets/
+  - Move test_html_extractor.py → tests/ops/
+  - Move test_youtube_extractor.py → tests/ops/
+  - Move test_openai.py → tests/resources/
+  - Move test_jobs.py → tests/jobs/
+  - Verify test_pipeline_integration.py already in tests/integration/
+
+- Task 3: Update test imports and references (AC: 3)
+  - Update imports in moved test files to reference bronze/silver asset names
+  - Update asset references: link_ingestion → bronze_raw_links
+  - Update asset references: content_extraction → silver_extracted_content
+  - Update asset references: summaries → silver_summaries
+  - Update IOManager references where applicable
+
+- Task 4: Verify test markers are preserved (AC: 6)
+  - Check all tests retain @pytest.mark.unit or @pytest.mark.integration decorators
+  - Verify @pytest.mark.contract markers for API tests
+  - Add any missing markers based on test type
+
+- Task 5: Run pytest discovery and execution (AC: 4, 5)
+  - Run uv run pytest --collect-only to verify discovery
+  - Run uv run pytest to execute all tests
+  - Verify all tests pass in new structure
+  - Debug and fix any import or reference errors
+
+- Task 6: Run quality checks (AC: 4)
+  - Run make check - verify format, lint, typecheck pass
+  - Verify no regressions introduced
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: Test directories created: tests/assets/, tests/ops/, tests/resources/, tests/jobs/ - Directory structure verified
+AC2: Existing tests moved to appropriate directories - Files in correct locations
+AC3: Tests updated to reference new asset and IOManager names - Import statements and references verified
+AC4: All tests pass with new structure - pytest run succeeds
+AC5: pytest discovery works correctly with new structure - All tests discovered and executable
+AC6: Test markers (unit, integration) preserved - Markers verified in test files
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>AC10: Test Restructuring</section>
+        <snippet>Test directories created: tests/assets/, tests/ops/, tests/resources/, tests/jobs/. Existing tests moved to appropriate mirrored directories. All tests updated to reference new asset names and IOManager usage.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Project Architecture</title>
+        <section>Testing Strategy</section>
+        <snippet>Test structure with integration/ and unit test files at root. Framework: pytest with asyncio support. Test markers: unit (fast, isolated), integration (multi-component), contract (external API verification).</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.9</section>
+        <snippet>Restructure tests to mirror dagster_project structure. Move test files to appropriate directories matching code organization. Tests updated to reference new asset and IOManager names.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Project Constitution</title>
+        <section>Python Testing Rules</section>
+        <snippet>Integration tests only with folder structure mirroring code. Avoid creating __init__.py files unless beneficial. Run make check after significant changes.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>tests/test_link_ingestion.py</path>
+        <kind>test</kind>
+        <symbol>test_link_ingestion</symbol>
+        <lines>1-30</lines>
+        <reason>Tests bronze_raw_links asset. Must move to tests/assets/ and update asset references.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_html_extractor.py</path>
+        <kind>test</kind>
+        <symbol>test_html_extractor</symbol>
+        <lines>1-30</lines>
+        <reason>Tests html_extractor op. Must move to tests/ops/.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_youtube_extractor.py</path>
+        <kind>test</kind>
+        <symbol>test_youtube_extractor</symbol>
+        <lines>all</lines>
+        <reason>Tests youtube_extractor op. Must move to tests/ops/.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_openai.py</path>
+        <kind>test</kind>
+        <symbol>test_openai</symbol>
+        <lines>all</lines>
+        <reason>Tests OpenAI resource. Must move to tests/resources/.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_jobs.py</path>
+        <kind>test</kind>
+        <symbol>test_jobs</symbol>
+        <lines>all</lines>
+        <reason>Tests job execution. Must move to tests/jobs/.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_bronze_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_bronze_io_manager_unit</symbol>
+        <lines>all</lines>
+        <reason>Unit tests for BronzeIOManager. Must move to tests/resources/.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_silver_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_silver_io_manager_unit</symbol>
+        <lines>all</lines>
+        <reason>Unit tests for SilverIOManager. Must move to tests/resources/.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_links.py</path>
+        <kind>asset</kind>
+        <symbol>bronze_raw_links</symbol>
+        <lines>all</lines>
+        <reason>New asset name (previously link_ingestion). Tests must reference this.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_extracted_content.py</path>
+        <kind>asset</kind>
+        <symbol>silver_extracted_content</symbol>
+        <lines>all</lines>
+        <reason>New asset name (previously content_extraction). Tests must reference this.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_summaries.py</path>
+        <kind>asset</kind>
+        <symbol>silver_summaries</symbol>
+        <lines>all</lines>
+        <reason>New asset name (previously summaries). Tests must reference this.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager, SilverIOManager</symbol>
+        <lines>all</lines>
+        <reason>IOManager implementations that tests interact with.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="pytest" version=">=8.4.2">Testing framework</package>
+        <package name="pytest-asyncio" version=">=1.2.0">Async test support</package>
+        <package name="pytest-mock" version=">=3.15.1">Mocking utilities</package>
+        <package name="dagster" version=">=1.12.0">Data orchestration framework</package>
+        <package name="pydantic" version=">=2.12.2">Data validation</package>
+        <package name="structlog" version=">=23.0.0">Structured logging</package>
+        <package name="ruff" version=">=0.14.0">Linting and formatting</package>
+      </python>
+      <frameworks>
+        <framework>pytest - Test discovery and execution</framework>
+        <framework>dagster - Asset and IOManager testing utilities</framework>
+        <framework>ruff - Code quality checks via make check</framework>
+      </frameworks>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Test directories MUST mirror dagster_project structure: assets/, ops/, resources/, jobs/</constraint>
+    <constraint>NO __init__.py files in test directories unless beneficial (per CLAUDE.md)</constraint>
+    <constraint>Tests use absolute imports from dagster_project (not relative imports)</constraint>
+    <constraint>pytest discovery requires test_*.py naming pattern</constraint>
+    <constraint>All tests must preserve markers: @pytest.mark.unit, @pytest.mark.integration, @pytest.mark.contract</constraint>
+    <constraint>Must run make check after restructuring to verify format, lint, typecheck pass</constraint>
+    <constraint>Integration tests only (per CLAUDE.md) - folder structure mirrors code for discoverability</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>pytest.mark decorators</name>
+      <kind>test markers</kind>
+      <signature>@pytest.mark.unit, @pytest.mark.integration, @pytest.mark.contract</signature>
+      <path>pyproject.toml</path>
+    </interface>
+    <interface>
+      <name>pytest fixtures</name>
+      <kind>test utilities</kind>
+      <signature>@pytest.fixture for mock_context, temp_project_root, sample_html</signature>
+      <path>tests/*.py</path>
+    </interface>
+    <interface>
+      <name>dagster test utilities</name>
+      <kind>framework helpers</kind>
+      <signature>build_asset_context() from dagster</signature>
+      <path>dagster_project</path>
+    </interface>
+    <interface>
+      <name>pytest configuration</name>
+      <kind>test discovery</kind>
+      <signature>testpaths=["tests"], python_files=["test_*.py"], addopts="-v --strict-markers"</signature>
+      <path>pyproject.toml</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Project uses pytest framework with strict marker enforcement. Tests are integration-focused (per CLAUDE.md) with structure mirroring code organization. Test files use test_*.py naming pattern. Markers include @pytest.mark.unit for fast isolated tests, @pytest.mark.integration for multi-component tests, and @pytest.mark.contract for external API verification. Configuration in pyproject.toml sets testpaths=["tests"], strict markers, and verbose output. No __init__.py files in test directories unless beneficial. Tests use absolute imports from dagster_project. Quality checks via make check (format, lint, typecheck) must pass after changes.
+    </standards>
+    <locations>
+      <location>tests/assets/ - Tests for dagster_project/assets/</location>
+      <location>tests/ops/ - Tests for dagster_project/ops/</location>
+      <location>tests/resources/ - Tests for dagster_project/resources/</location>
+      <location>tests/jobs/ - Tests for dagster_project/jobs/</location>
+      <location>tests/integration/ - End-to-end pipeline tests</location>
+      <location>tests/ (root) - Utility tests (storage, environment)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC1">Verify directory structure: ls -la tests/ to confirm tests/assets/, tests/ops/, tests/resources/, tests/jobs/ exist</idea>
+      <idea ac="AC2">Verify file moves: Check each target directory contains expected test files after move operations</idea>
+      <idea ac="AC3">Verify import updates: grep for old asset names (link_ingestion, content_extraction, summaries) in moved test files - should find zero matches</idea>
+      <idea ac="AC3">Verify new asset references: grep for bronze_raw_links, silver_extracted_content, silver_summaries in moved test files</idea>
+      <idea ac="AC4,AC5">Run pytest --collect-only to verify discovery finds all tests in new structure</idea>
+      <idea ac="AC4">Run uv run pytest to execute all tests and verify they pass</idea>
+      <idea ac="AC6">Verify test markers preserved: grep -r "@pytest.mark" tests/ to confirm all markers still present</idea>
+      <idea ac="AC4">Run make check to verify format, lint, typecheck pass with new structure</idea>
+    </ideas>
+  </tests>
+</story-context>

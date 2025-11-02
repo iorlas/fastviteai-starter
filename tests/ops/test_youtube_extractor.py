@@ -25,6 +25,7 @@ def mock_youtube_info():
     }
 
 
+@pytest.mark.integration
 def test_extract_youtube_content_success(mock_youtube_info):
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()
@@ -43,6 +44,7 @@ def test_extract_youtube_content_success(mock_youtube_info):
     assert result.duration == 300
 
 
+@pytest.mark.integration
 def test_extract_youtube_content_fallback_to_description(mock_youtube_info):
     # Remove transcript-related fields
     mock_youtube_info.pop("automatic_captions", None)
@@ -61,6 +63,7 @@ def test_extract_youtube_content_fallback_to_description(mock_youtube_info):
     assert result.transcript == "Test video description with useful information."
 
 
+@pytest.mark.integration
 def test_extract_youtube_content_private_video():
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()
@@ -76,6 +79,7 @@ def test_extract_youtube_content_private_video():
         assert "private" in str(exc_info.value).lower()
 
 
+@pytest.mark.integration
 def test_extract_youtube_content_metadata(mock_youtube_info):
     with patch("dagster_project.ops.youtube_extractor.yt_dlp.YoutubeDL") as mock_ydl_class:
         mock_ydl = MagicMock()

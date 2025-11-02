@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 from dagster import build_asset_context
 
-from dagster_project.assets.content_extraction import content_extraction_asset
-from dagster_project.assets.link_ingestion import link_ingestion_asset
+from dagster_project.assets.bronze_raw_html import bronze_raw_html
+from dagster_project.assets.bronze_raw_links import bronze_raw_links
+from dagster_project.assets.silver_extracted_content import silver_extracted_content
 from dagster_project.ops.watchers import RSSWatcher
 
 
@@ -74,7 +75,7 @@ def test_rss_watcher_integration(e2e_test_env, mock_rss_feed):
         )
 
         # Run link ingestion
-        links = link_ingestion_asset(context)
+        links = bronze_raw_links(context)
 
         # Should have 3 links: 2 from RSS feed + 1 direct link
         assert len(links) == 3
@@ -82,18 +83,17 @@ def test_rss_watcher_integration(e2e_test_env, mock_rss_feed):
         # Verify RSS feed was parsed
         mock_parse.assert_called_once_with("https://example.com/feed.xml")
 
-        # Verify discovered links are in results
-        discovered_urls = {link.url for link in links}
-        assert "https://example.com/test-article-1" in discovered_urls
-        assert "https://example.com/test-article-2" in discovered_urls
-        assert "https://example.com/direct-link" in discovered_urls
+        # Verify discovered links are in results (bronze_raw_links returns list of strings)
+        assert "https://example.com/test-article-1" in links
+        assert "https://example.com/test-article-2" in links
+        assert "https://example.com/direct-link" in links
 
 
 @pytest.mark.integration
 def test_deduplication_skips_processed_links(e2e_test_env):
     # Create a mock summary file to simulate already-processed link
     summaries_dir = e2e_test_env / "artifacts" / "summaries"
-    from dagster_project.assets.link_ingestion import compute_url_hash
+    from dagster_project.assets.bronze_raw_links import compute_url_hash
 
     processed_url = "https://example.com/manual-article"
     url_hash = compute_url_hash(processed_url)
@@ -107,11 +107,11 @@ def test_deduplication_skips_processed_links(e2e_test_env):
     )
 
     # Run link ingestion
-    links = link_ingestion_asset(context)
+    links = bronze_raw_links(context)
 
     # Should only have 1 link (YouTube video), manual article already processed
     assert len(links) == 1
-    assert "youtube.com" in links[0].url
+    assert "youtube.com" in links[0]
 
 
 @pytest.mark.integration
@@ -129,15 +129,22 @@ def test_error_handling_with_invalid_url(e2e_test_env):
     )
 
     # Get links
-    links = link_ingestion_asset(ingest_context)
+    links = bronze_raw_links(ingest_context)
     assert len(links) == 1
+
+    # Download HTML
+    html_context = build_asset_context()
+    type(html_context.op_execution_context).op_config = PropertyMock(
+        return_value={"project_root": str(e2e_test_env)}
+    )
+    html_data = bronze_raw_html(html_context, links)
 
     # Create context for content extraction
     extract_context = build_asset_context()
     type(extract_context).op_config = PropertyMock(return_value={"project_root": str(e2e_test_env)})
 
     # Run content extraction (should handle error gracefully)
-    extractions = content_extraction_asset(extract_context, links)
+    extractions = silver_extracted_content(extract_context, html_data)
 
     # Should have 1 extraction result (with error)
     assert len(extractions) == 1
@@ -183,11 +190,11 @@ def test_malformed_rss_feed_handling(e2e_test_env):
         )
 
         # Run link ingestion (should not crash)
-        links = link_ingestion_asset(context)
+        links = bronze_raw_links(context)
 
         # Should only have the valid direct link
         assert len(links) == 1
-        assert "valid-link" in links[0].url
+        assert "valid-link" in links[0]
 
 
 @pytest.mark.integration
@@ -239,15 +246,22 @@ def test_full_pipeline_with_summarization(e2e_test_env):
         type(ingest_context).op_config = PropertyMock(
             return_value={"source_filter": "manual", "project_root": str(e2e_test_env)}
         )
-        links = link_ingestion_asset(ingest_context)
+        links = bronze_raw_links(ingest_context)
         assert len(links) >= 1
 
-        # Step 2: Content Extraction
+        # Step 2: HTML Download
+        html_context = build_asset_context()
+        type(html_context.op_execution_context).op_config = PropertyMock(
+            return_value={"project_root": str(e2e_test_env)}
+        )
+        html_data = bronze_raw_html(html_context, links[:1])  # Test first link only
+
+        # Step 3: Content Extraction
         extract_context = build_asset_context()
         type(extract_context).op_config = PropertyMock(
             return_value={"project_root": str(e2e_test_env)}
         )
-        extractions = content_extraction_asset(extract_context, links[:1])  # Test first link only
+        extractions = silver_extracted_content(extract_context, html_data)
         assert len(extractions) == 1
         assert extractions[0].extraction_success is True
 

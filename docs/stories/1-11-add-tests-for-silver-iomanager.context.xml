@@ -1,0 +1,219 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>11</storyId>
+    <title>Add Tests for Silver IOManager</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-11-add-tests-for-silver-iomanager.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>comprehensive tests for the Silver IOManager</iWant>
+    <soThat>processed data persistence is verified and reliable</soThat>
+    <tasks>
+- Task 1: Create test file structure (AC: 1)
+  - Create tests/resources/test_silver_io_manager_unit.py
+  - Set up basic test structure with fixtures (silver_io_manager with tmp_path)
+  - Import necessary Dagster test utilities (OutputContext, InputContext, AssetKey)
+  - Add pytest integration markers
+
+- Task 2: Add extracted content tests (AC: 2, 4, 5, 6)
+  - Test HTML content storage with full metadata
+  - Test video (YouTube) content storage with full metadata
+  - Verify full SHA256 hash generation (64 characters)
+  - Verify created_at and updated_at timestamps (ISO 8601 format)
+  - Verify lineage metadata structure (source_asset, source_hash, transformation_timestamp)
+  - Test content round-trip (save → load → verify)
+
+- Task 3: Add summary tests for success case (AC: 3, 4, 5, 6)
+  - Test successful summary storage in JSON format
+  - Test successful summary storage in markdown format (.md file)
+  - Verify markdown content structure (title, URL, summary, metadata footer)
+  - Verify full SHA256 hash used for both JSON and markdown files
+  - Verify timestamps and lineage metadata
+
+- Task 4: Add summary tests for failure case (AC: 3, 4, 5, 6)
+  - Test failed summary storage in JSON format
+  - Test failed summary storage in markdown format with error details
+  - Verify markdown error format (title, URL, error, error_type)
+  - Verify full hash and timestamps for failed summaries
+
+- Task 5: Add error handling tests (AC: 7)
+  - Test invalid content type (not "html" or "youtube")
+  - Test missing required fields (url, type, status)
+  - Test unknown asset_key in load_input
+  - Test TypeError when list contains non-dict items
+  - Test corrupted JSON during deserialization
+
+- Task 6: Add load_input tests (AC: 2, 3)
+  - Test loading extracted content from silver layer
+  - Test loading summaries from silver layer
+  - Test handling missing upstream output context
+  - Test graceful handling of corrupted JSON files
+
+- Task 7: Run full test suite and verify (AC: 8)
+  - Run uv run pytest tests/resources/test_silver_io_manager_unit.py -v
+  - Verify all tests pass
+  - Ensure test markers (@pytest.mark.integration) are correctly applied
+
+- Task 8: Run quality checks (AC: 8)
+  - Run make check to verify format, lint, typecheck
+  - Fix any ruff violations in test file
+  - Ensure tests follow project conventions (no doc-strings per CLAUDE.md)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: Unit test file created: tests/resources/test_silver_io_manager_unit.py
+AC2: Tests verify extracted content storage for HTML and video types
+AC3: Tests verify summary storage in JSON and markdown formats
+AC4: Tests verify full SHA256 hash filename generation (64-character length)
+AC5: Tests verify timestamp creation and updates (ISO 8601 format)
+AC6: Tests verify data lineage metadata preservation
+AC7: Tests verify error handling for invalid data
+AC8: All tests pass (pytest run succeeds for all SilverIOManager tests)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1</title>
+        <section>AC11: IOManager Testing</section>
+        <snippet>Unit test file tests/resources/test_silver_io_manager.py created with comprehensive tests. Tests verify serialization, deserialization, hash generation, timestamp creation, error handling.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1</title>
+        <section>AC2: Silver Layer Implementation</section>
+        <snippet>SilverIOManager handles extracted content and summary storage with content-type awareness. All silver artifacts include created_at and updated_at timestamp fields and lineage metadata.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Silver Layer: Processed, Application-Ready Data</section>
+        <snippet>Store cleaned, validated, and enriched data ready for consumption. Subdirectories: extracted_content/ and summaries/. Business logic applied, quality validated, application-ready format.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Project Constitution</title>
+        <section>Python Testing</section>
+        <snippet>Integration tests only. No doc-strings. Tests path has relation to module/file we test. Run make check after changes. Use structlog instead of print.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Prerequisites and Setup</section>
+        <snippet>Python 3.12+, uv package manager. Run uv sync for dependencies. Use pytest for testing via uv run pytest.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>class</kind>
+        <symbol>SilverIOManager</symbol>
+        <lines>142-364</lines>
+        <reason>Production class under test. Handles extracted content (HTML/YouTube) and summaries (JSON+markdown). Critical methods: handle_output, load_input, _handle_output_extracted_content, _handle_output_summary, _generate_markdown_summary.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/resources/test_bronze_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_bronze_io_manager_unit</symbol>
+        <lines>1-100</lines>
+        <reason>Reference test patterns for IOManager testing. Shows fixture setup (bronze_io_manager with tmp_path), OutputContext/InputContext usage, round-trip testing, metadata validation patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>class</kind>
+        <symbol>BronzeIOManager</symbol>
+        <lines>1-140</lines>
+        <reason>Sibling IOManager class. Shows parallel structure for link lists and HTML storage. Reference for similar testing patterns.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package>pytest</package>
+        <package>dagster</package>
+        <package>structlog</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Integration tests only - no unit tests (per CLAUDE.md constitution)</constraint>
+    <constraint>No doc-strings in test functions (per CLAUDE.md)</constraint>
+    <constraint>Test file must mirror production structure: tests/resources/ mirrors dagster_project/resources/</constraint>
+    <constraint>Use @pytest.mark.integration decorator on all test functions</constraint>
+    <constraint>Use structlog, not print statements for any logging</constraint>
+    <constraint>Full SHA256 hash verification: assert len(hash) == 64</constraint>
+    <constraint>ISO 8601 timestamp validation: use datetime.fromisoformat() to verify format</constraint>
+    <constraint>All tests must pass before story completion</constraint>
+    <constraint>Run make check after implementation to verify format, lint, and typecheck</constraint>
+    <constraint>No __init__.py files in test directories</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>SilverIOManager.handle_output</name>
+      <kind>method</kind>
+      <signature>def handle_output(self, context: OutputContext, obj: Any) -> None</signature>
+      <path>dagster_project/resources/io_managers.py:148-170</path>
+    </interface>
+    <interface>
+      <name>SilverIOManager.load_input</name>
+      <kind>method</kind>
+      <signature>def load_input(self, context: InputContext) -> Any</signature>
+      <path>dagster_project/resources/io_managers.py:172-182</path>
+    </interface>
+    <interface>
+      <name>OutputContext (Dagster)</name>
+      <kind>test utility</kind>
+      <signature>from dagster import OutputContext</signature>
+      <path>tests/resources/test_bronze_io_manager_unit.py:24</path>
+    </interface>
+    <interface>
+      <name>InputContext (Dagster)</name>
+      <kind>test utility</kind>
+      <signature>from dagster import InputContext</signature>
+      <path>tests/resources/test_bronze_io_manager_unit.py:148</path>
+    </interface>
+    <interface>
+      <name>AssetKey (Dagster)</name>
+      <kind>test utility</kind>
+      <signature>from dagster import AssetKey</signature>
+      <path>tests/resources/test_bronze_io_manager_unit.py:148</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Tests use pytest framework with @pytest.mark.integration markers. Test files mirror production structure (tests/resources/ for dagster_project/resources/). Use tmp_path fixture for isolated file operations. Dagster test utilities required: OutputContext for testing handle_output(), InputContext for testing load_input(), AssetKey for asset identification. No doc-strings in tests. All tests must pass via 'uv run pytest'. Run 'make check' after changes for format/lint/typecheck verification.
+    </standards>
+    <locations>
+      <location>tests/resources/test_silver_io_manager_unit.py (new file to create)</location>
+      <location>tests/resources/ (mirrors dagster_project/resources/)</location>
+    </locations>
+    <ideas>
+      <test ac="AC1">Test that SilverIOManager is subclass of IOManager (basic class validation)</test>
+      <test ac="AC2">Test extracted content storage for HTML type with full metadata preservation</test>
+      <test ac="AC2">Test extracted content storage for YouTube type with full metadata preservation</test>
+      <test ac="AC2">Test round-trip: save HTML content → load → verify all fields match</test>
+      <test ac="AC3">Test successful summary storage creates both JSON and markdown files</test>
+      <test ac="AC3">Test failed summary storage creates both JSON and markdown with error details</test>
+      <test ac="AC3">Test markdown content structure for success case (title, URL, summary, metadata footer)</test>
+      <test ac="AC3">Test markdown content structure for failure case (title, URL, error, error_type)</test>
+      <test ac="AC4">Test SHA256 hash generation produces 64-character string (assert len(hash) == 64)</test>
+      <test ac="AC4">Test consistent hash for same URL across multiple saves</test>
+      <test ac="AC5">Test created_at timestamp is ISO 8601 format (datetime.fromisoformat)</test>
+      <test ac="AC5">Test updated_at timestamp is ISO 8601 format (datetime.fromisoformat)</test>
+      <test ac="AC6">Test lineage metadata structure includes source_asset, source_hash, transformation_timestamp</test>
+      <test ac="AC6">Test lineage metadata preservation across save/load cycle</test>
+      <test ac="AC7">Test TypeError raised for invalid content type (not html/youtube)</test>
+      <test ac="AC7">Test TypeError raised for list containing non-dict items</test>
+      <test ac="AC7">Test KeyError handling for missing required fields (url, type, status)</test>
+      <test ac="AC7">Test JSONDecodeError handling for corrupted JSON files</test>
+      <test ac="AC7">Test unknown asset_key in load_input raises TypeError</test>
+    </ideas>
+  </tests>
+</story-context>

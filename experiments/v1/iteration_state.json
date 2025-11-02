@@ -1,0 +1,15 @@
+{
+  "target_example": "example_002",
+  "target_coverage": 100.0,
+  "temperature": 0,
+  "max_tokens": 1200,
+  "models_to_test": [
+    "google/gemini-2.5-flash",
+    "openai/gpt-4o",
+    "minimax/minimax-m2:free",
+    "z-ai/glm-4.6:exacto",
+    "mistralai/mistral-medium-3.1",
+    "z-ai/glm-4.6"
+  ],
+  "iterations": []
+}

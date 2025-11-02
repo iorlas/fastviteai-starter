@@ -1,0 +1,252 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>8</storyId>
+    <title>Generate Markdown Summary Files</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-8-generate-markdown-summary-files.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user</asA>
+    <iWant>summaries to be generated as markdown files in addition to JSON</iWant>
+    <soThat>I can easily read and review summaries without parsing JSON</soThat>
+    <tasks>
+- **Task 1: Verify existing markdown generation in SilverIOManager** (AC: 1, 2, 3, 4, 5)
+  - Review `dagster_project/resources/io_managers.py` lines 278-331
+  - Verify `_handle_output_summary` saves both .json and .md files
+  - Verify `_generate_markdown_summary` creates proper format
+  - Confirm both success and failure paths generate markdown
+  - Check that title field is populated correctly (may need enhancement)
+
+- **Task 2: Enhance markdown format if needed** (AC: 2, 7)
+  - Extract title from summary metadata if available
+  - Review markdown template for readability
+  - Ensure metadata footer is well-formatted
+  - Add any missing fields (author, published_date, etc.) if relevant
+
+- **Task 3: Create integration tests for markdown generation** (AC: 6)
+  - Add test to `tests/integration/test_silver_summarization.py` or create new test file
+  - Test 1: Verify both JSON and markdown files created for successful summary
+  - Test 2: Verify markdown file created for failed summary
+  - Test 3: Verify markdown content structure (title, URL, summary, footer)
+  - Test 4: Verify same hash used for both .json and .md filenames
+  - Test 5: Verify markdown is human-readable (basic format checks)
+  - Mark all tests with `@pytest.mark.integration`
+
+- **Task 4: Manual verification and sample review** (AC: 7)
+  - Run silver_summaries asset on sample data
+  - Manually inspect generated markdown files
+  - Verify formatting, readability, and completeness
+  - Document sample output in completion notes
+
+- **Task 5: Run all tests and quality checks** (AC: 6)
+  - Run `uv run pytest` - verify all tests pass
+  - Run `make check` - verify format, lint, typecheck pass
+  - Verify no regressions in existing tests
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+| AC # | Criterion | Verification |
+|------|-----------|--------------|
+| AC1 | `SilverIOManager` saves summaries as both `.json` and `.md` files | Both file types exist in artifacts/silver/summaries/ |
+| AC2 | Markdown format includes title, URL, summary content, and metadata footer | Markdown structure verified in tests |
+| AC3 | Markdown files stored alongside JSON in `artifacts/silver/summaries/` | Directory structure verified |
+| AC4 | Filename uses same full hash as JSON (e.g., `{hash}.md` and `{hash}.json`) | Filenames match with 64-char SHA256 hash |
+| AC5 | Failed summaries also get markdown format showing error details | Error markdown format verified |
+| AC6 | Integration test verifies both JSON and markdown files are created | Test passes |
+| AC7 | Sample markdown output is human-readable and well-formatted | Manual review confirms readability |
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Acceptance Criteria - AC9 (lines 572-576)</section>
+        <snippet>AC9: Markdown Summary Output - SilverIOManager saves summaries as both .json and .md files. Markdown format includes: title, URL, summary content, metadata footer. Same full hash used for both files. Failed summaries also get markdown format showing error details.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Data Models and Contracts - Silver Summary (lines 138-156)</section>
+        <snippet>Silver Summary includes url, status (success/failed), summary (3-5 bullet points if success), model, tokens_used, latency_ms, error, error_type, lineage (source_asset, source_hash, transformation_timestamp), created_at, and updated_at in ISO 8601 format.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Test Strategy Summary (lines 662-747)</section>
+        <snippet>Test Levels: Integration Tests (Required) cover full pipeline flow, cache behavior, reprocessing scenario, job execution. Framework: pytest with Dagster test utilities. Location: tests/integration/. Markers: @pytest.mark.integration. Edge Cases to Test: HTTP download failures, empty link lists, duplicate URLs, malformed URLs, large HTML files, special characters, failed summarization.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - DeepRock</title>
+        <section>Medallion Architecture - Layers (lines 272-302)</section>
+        <snippet>Silver Layer stores cleaned, validated, and enriched data ready for consumption in artifacts/silver/ with subdirectories: extracted_content/ (cleaned content) and summaries/ (LLM-generated summaries in JSON + markdown). Silver characteristics: business logic applied, quality validated, enriched with metadata, application-ready format.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - DeepRock</title>
+        <section>Medallion Architecture - File Naming Convention (lines 331-349)</section>
+        <snippet>File Naming Within Directories uses format {full_sha256_hash}.{extension} - example 64-char hash. Note replaces current truncated SHA256[:16] approach (64 chars vs 16 chars). Rationale: eliminates hash collision risk entirely.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-3-implement-silver-layer-iomanager.md</path>
+        <title>Story 1.3: Implement Silver Layer IOManager</title>
+        <section>Dev Notes - Silver Layer Data Models (lines 160-254)</section>
+        <snippet>Markdown Summary Format (Success) includes {title}, {url}, Status: Success, Model: {model}, Summary section with {summary}, footer with Generated timestamp, Tokens count, and Latency. Failure format includes error details and error_type instead of summary.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-7-migrate-summarization-to-silver-layer.md</path>
+        <title>Story 1.7: Migrate Summarization to Silver Layer</title>
+        <section>Dev Agent Record</section>
+        <snippet>Summary metadata dict structure: {"url": str, "status": str, "summary": str, "model": str, "tokens_used": int, "latency_ms": int, "lineage": dict}. Title field not currently included in summary data from silver_summaries - defaults to URL in markdown.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide - DeepRock</title>
+        <section>Quality Checks</section>
+        <snippet>Quality Checks: make check runs format, lint, typecheck, test. Testing: uv run pytest runs all tests, uv run pytest -m integration runs integration tests only.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>io_manager</kind>
+        <symbol>SilverIOManager</symbol>
+        <lines>142-337</lines>
+        <reason>Core IOManager handling markdown and JSON dual-format output for summaries. Contains _handle_output_summary (278-290) and _generate_markdown_summary (292-337) methods.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>method</kind>
+        <symbol>_handle_output_summary</symbol>
+        <lines>278-290</lines>
+        <reason>Method that saves both .json and .md files for summaries using same SHA256 hash. Already implements AC1, AC3, AC4.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>method</kind>
+        <symbol>_generate_markdown_summary</symbol>
+        <lines>292-337</lines>
+        <reason>Generates formatted markdown content for both success and failure scenarios. Implements AC2, AC5 format requirements. Title extraction at line 298 may need enhancement.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/silver_summaries.py</path>
+        <kind>asset</kind>
+        <symbol>silver_summaries</symbol>
+        <lines>39-166</lines>
+        <reason>Asset that generates summary data passed to SilverIOManager. Returns List[dict] with summary metadata but currently does not include title field (defaults to URL).</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_silver_io_manager.py</path>
+        <kind>test</kind>
+        <symbol>test_integration_summary_dual_format_storage</symbol>
+        <lines>127-191</lines>
+        <reason>Existing integration test verifying dual-format storage. Validates JSON and markdown file creation, hash matching, and content structure. Can be enhanced for AC6, AC7.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_silver_io_manager.py</path>
+        <kind>test</kind>
+        <symbol>test_integration_extracted_content_html_storage</symbol>
+        <lines>9-69</lines>
+        <reason>Reference test showing full SHA256 hash validation pattern (line 57: assert len(expected_file.stem) == 64).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0">Core orchestration framework for asset definitions and IOManager pattern</package>
+        <package name="pytest" version=">=8.4.2">Testing framework</package>
+        <package name="structlog" version=">=23.0.0">Structured logging (used in io_managers.py:283-290)</package>
+        <package name="openai" version=">=1.0.0">LLM client used by silver_summaries asset</package>
+        <package name="pydantic" version=">=2.12.2">Data validation (V2 only per CLAUDE.md)</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Integration tests only - no unit tests per CLAUDE.md constitution</constraint>
+    <constraint>Use structlog instead of print statements per CLAUDE.md</constraint>
+    <constraint>Mark all tests with @pytest.mark.integration decorator (pyproject.toml:77)</constraint>
+    <constraint>Full SHA256 hash (64 chars) required for all filenames - NO truncation</constraint>
+    <constraint>Both success and failure paths must generate markdown files (AC5)</constraint>
+    <constraint>Markdown files must be stored in artifacts/silver/summaries/ alongside JSON (AC3)</constraint>
+    <constraint>Same hash must be used for both .json and .md filenames (AC4)</constraint>
+    <constraint>Run make check after changes - validates format, lint, typecheck per CLAUDE.md</constraint>
+    <constraint>Pydantic V2 only - use most recent version per CLAUDE.md</constraint>
+    <constraint>Test paths must have relation to module/file being tested per CLAUDE.md</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>SilverIOManager.handle_output</name>
+      <kind>method</kind>
+      <signature>def handle_output(self, context: OutputContext, obj: Any) -> None</signature>
+      <path>dagster_project/resources/io_managers.py:148</path>
+      <description>Main output handler that routes to content or summary handlers based on data structure</description>
+    </interface>
+    <interface>
+      <name>SilverIOManager._handle_output_summary</name>
+      <kind>private method</kind>
+      <signature>def _handle_output_summary(self, summary_data: dict) -> None</signature>
+      <path>dagster_project/resources/io_managers.py:278</path>
+      <description>Handles summary output by saving both JSON and markdown files with same hash</description>
+    </interface>
+    <interface>
+      <name>SilverIOManager._generate_markdown_summary</name>
+      <kind>private method</kind>
+      <signature>def _generate_markdown_summary(self, metadata: dict) -> str</signature>
+      <path>dagster_project/resources/io_managers.py:292</path>
+      <description>Generates markdown content from summary metadata. Returns formatted markdown string.</description>
+    </interface>
+    <interface>
+      <name>summary_data dict structure</name>
+      <kind>data contract</kind>
+      <signature>{"url": str, "status": str, "summary": str|None, "model": str|None, "tokens_used": int|None, "latency_ms": int|None, "error": str, "error_type": str, "lineage": dict}</signature>
+      <path>dagster_project/assets/silver_summaries.py:92-104, 126-140</path>
+      <description>Summary data structure returned by silver_summaries asset. Note: title field NOT currently included (defaults to URL in markdown generation)</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Integration tests only per CLAUDE.md constitution. Use pytest framework with @pytest.mark.integration decorator. Tests located in tests/integration/ mirroring source structure. Use tmp_path fixture for isolation. Verify both success and error paths. Validate metadata completeness. Run tests with 'uv run pytest' (all) or 'uv run pytest -m integration' (integration only). Quality checks via 'make check' runs format, lint, typecheck, and test suite.
+    </standards>
+    <locations>
+      <location>tests/integration/test_silver_io_manager.py - Existing tests for SilverIOManager dual-format storage</location>
+      <location>tests/integration/test_silver_summarization.py - Tests for silver_summaries asset (can add markdown-specific tests here)</location>
+      <location>tests/integration/ - General integration test location per tech spec</location>
+    </locations>
+    <ideas>
+      <test id="AC6-1" acs="AC1,AC3,AC4,AC6">
+        <name>test_markdown_and_json_files_created_for_success</name>
+        <description>Verify both .json and .md files are created in artifacts/silver/summaries/ for successful summary with matching 64-char SHA256 hash filenames</description>
+      </test>
+      <test id="AC6-2" acs="AC5,AC6">
+        <name>test_markdown_file_created_for_failed_summary</name>
+        <description>Verify .md file is created for failed summary with error details in markdown format</description>
+      </test>
+      <test id="AC6-3" acs="AC2,AC6,AC7">
+        <name>test_markdown_content_structure_success</name>
+        <description>Verify success markdown includes title (or URL fallback), URL, status, model, summary content, and metadata footer (timestamp, tokens, latency)</description>
+      </test>
+      <test id="AC6-4" acs="AC2,AC5,AC6">
+        <name>test_markdown_content_structure_failure</name>
+        <description>Verify failure markdown includes title, URL, status, error message, error_type, and timestamp</description>
+      </test>
+      <test id="AC6-5" acs="AC4,AC6">
+        <name>test_hash_length_and_matching</name>
+        <description>Verify hash is exactly 64 characters (full SHA256) and .json and .md files use identical hash</description>
+      </test>
+      <test id="AC7-1" acs="AC7">
+        <name>test_markdown_readability_basic_checks</name>
+        <description>Verify markdown has proper heading structure, line breaks, formatting markers (**, ---), and is parseable as markdown</description>
+      </test>
+      <test id="enhancement" acs="AC2">
+        <name>test_title_extraction_from_content</name>
+        <description>If title enhancement implemented: verify markdown uses actual content title instead of URL when title field is available in summary metadata</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

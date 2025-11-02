@@ -1,0 +1,273 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.2</storyId>
+    <title>Implement Bronze Layer IOManager</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-2-implement-bronze-layer-iomanager.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to implement a Bronze IOManager for raw data persistence</iWant>
+    <soThat>raw links and HTML content are properly serialized and stored following Dagster patterns</soThat>
+    <tasks>
+      - Task 1: Create BronzeIOManager class structure (AC: 1)
+        - Create/update dagster_project/resources/io_managers.py file
+        - Define BronzeIOManager class inheriting from Dagster IOManager base
+        - Add class docstring with purpose and usage
+        - Import required Dagster types (IOManager, OutputContext, InputContext)
+      - Task 2: Implement JSON serialization for raw link lists (AC: 2, 5)
+        - Implement _handle_output_link_list() method for link list serialization
+        - Add full SHA256 hash generation for link list identifier
+        - Include created_at timestamp (ISO 8601) in link list metadata
+        - Write JSON to artifacts/bronze/raw_links/{hash}.json
+        - Implement _load_input_link_list() method for deserialization
+        - Handle file-not-found errors gracefully
+      - Task 3: Implement HTML content storage (AC: 3, 4, 5)
+        - Implement _handle_output_html() method for HTML content storage
+        - Generate full SHA256 hash from URL
+        - Create metadata dict with url, created_at, content_length, download_info
+        - Write HTML content and metadata to artifacts/bronze/raw_html/{hash}.json
+        - Implement _load_input_html() method to retrieve HTML and metadata
+        - Handle missing files and corrupted JSON gracefully
+      - Task 4: Implement IOManager handle_output and load_input dispatch (AC: 2, 3)
+        - Implement handle_output() method with content type detection
+        - Dispatch to appropriate handler based on output type (link list vs HTML)
+        - Implement load_input() method with content type detection
+        - Dispatch to appropriate loader based on expected input type
+        - Add logging using structlog for all I/O operations
+      - Task 5: Unit tests for BronzeIOManager (AC: 6)
+        - Create test file: tests/test_bronze_io_manager.py
+        - Test link list serialization/deserialization round-trip
+        - Test HTML content storage with metadata
+        - Test SHA256 hash generation consistency
+        - Test created_at timestamp presence and format (ISO 8601)
+        - Test error handling for missing files
+        - Test metadata preservation across save/load cycle
+        - Use pytest fixtures for temp directories (tmp_path)
+      - Task 6: Integration test for file storage (AC: 7)
+        - Create test file: tests/integration/test_bronze_io_manager.py
+        - Test end-to-end link list storage and retrieval from bronze directory
+        - Test end-to-end HTML storage and retrieval from bronze directory
+        - Verify files created in correct bronze subdirectories
+        - Verify full SHA256 hash used in filenames
+        - Verify metadata completeness and correctness
+        - Mark with @pytest.mark.integration
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">BronzeIOManager class created in dagster_project/resources/io_managers.py</criterion>
+    <criterion id="AC2">Handles serialization/deserialization of raw link lists (JSON format)</criterion>
+    <criterion id="AC3">Handles storage of raw HTML content with metadata</criterion>
+    <criterion id="AC4">Uses full SHA256 hash for filename generation</criterion>
+    <criterion id="AC5">Includes created_at timestamp in all artifacts</criterion>
+    <criterion id="AC6">Unit tests verify serialization/deserialization behavior</criterion>
+    <criterion id="AC7">Integration test verifies file storage and retrieval</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Medallion Architecture Migration</title>
+        <section>Story 1.2: Implement Bronze Layer IOManager</section>
+        <snippet>BronzeIOManager class implements Dagster IOManager interface for bronze layer persistence. Handles JSON serialization of link lists and HTML content with full SHA256 hashes and created_at timestamps.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown - Story 1.2</title>
+        <section>Story 1.2: Implement Bronze Layer IOManager</section>
+        <snippet>BronzeIOManager created in dagster_project/resources/io_managers.py. Handles serialization/deserialization of raw link lists and HTML content. Uses full SHA256 hash, includes created_at timestamp. Unit and integration tests required.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR001: Bronze Layer for Raw Data</section>
+        <snippet>Bronze layer stores raw, immutable data enabling reprocessing without re-downloading. IOManager pattern ensures consistent data persistence with proper metadata and hashing conventions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Medallion Architecture - Bronze Layer</section>
+        <snippet>Bronze layer stores raw, immutable data at artifacts/bronze/. File naming uses full SHA256 hash (64 chars). All artifacts include created_at timestamp (ISO 8601). Raw links stored in raw_links/, raw HTML in raw_html/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>File Naming Convention</section>
+        <snippet>Asset naming pattern: {layer}_{data_type}. File naming within directories: {full_sha256_hash}.{extension}. Hash input: URL for content-based artifacts, link list for raw_links. Full 64-character SHA256 hash eliminates collision risk.</snippet>
+      </doc>
+      <doc>
+        <path>docs/data-models.md</path>
+        <title>Data Models and Storage</title>
+        <section>Directory Structure</section>
+        <snippet>Current artifacts use SHA256[:16] truncated hashes. Medallion migration introduces full SHA256 hashes. Bronze directories: artifacts/bronze/raw_links/, artifacts/bronze/raw_html/. File existence checks for deduplication.</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Testing</section>
+        <snippet>Testing framework: pytest (>=8.4.2) with markers for unit, integration, and contract tests. Test organization: tests/ directory with integration/ subdirectory. Use pytest fixtures (tmp_path), factory-boy for test data. Quality gates: make check runs format, lint, typecheck, tests.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-1-define-bronze-and-silver-layer-structure.md</path>
+        <title>Story 1.1 - Define Bronze and Silver Layer Structure</title>
+        <section>Dev Agent Record</section>
+        <snippet>Bronze directories created: artifacts/bronze/raw_links/, artifacts/bronze/raw_html/. Integration test pattern established at tests/integration/test_medallion_structure.py. Full SHA256 hashing convention documented. All artifacts require created_at timestamp (ISO 8601).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>dagster_project/resources/openai.py</path>
+        <kind>resource</kind>
+        <symbol>OpenAIClient</symbol>
+        <lines>14-48</lines>
+        <reason>Example of Dagster ConfigurableResource pattern for resources. BronzeIOManager should follow similar pattern using ConfigurableResource or IOManager base class.</reason>
+      </file>
+      <file>
+        <path>tests/integration/test_medallion_structure.py</path>
+        <kind>integration test</kind>
+        <symbol>test_bronze_layer_structure, test_silver_layer_structure</symbol>
+        <lines>6-30</lines>
+        <reason>Integration test pattern using @pytest.mark.integration, pathlib.Path, and directory existence assertions. Use as template for test_bronze_io_manager.py integration tests.</reason>
+      </file>
+      <file>
+        <path>dagster_project/resources/__init__.py</path>
+        <kind>module init</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Resources module initialization. New io_managers.py should be importable from this module or used directly in definitions.py.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0" context="Data orchestration - IOManager, OutputContext, InputContext, ConfigurableResource" />
+        <package name="dagster-webserver" version=">=1.12.0" context="Dagster UI" />
+        <package name="pydantic" version=">=2.12.2" context="Data validation (V2 only)" />
+        <package name="structlog" version=">=23.0.0" context="Structured logging for I/O operations" />
+        <package name="pytest" version=">=8.4.2" context="Testing framework" />
+        <package name="pytest-asyncio" version=">=1.2.0" context="Async test support" />
+        <package name="pytest-mock" version=">=3.15.1" context="Mocking utilities" />
+        <package name="factory-boy" version=">=3.3.3" context="Test data generation" />
+      </python>
+      <tooling>
+        <tool name="uv" context="Python package manager" />
+        <tool name="ruff" version=">=0.14.0" context="Python linter and formatter" />
+        <tool name="make" context="Build automation (Makefile)" />
+      </tooling>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>IOManager must inherit from dagster.IOManager base class</constraint>
+    <constraint>All bronze artifacts MUST use full SHA256 hash (64 chars) for filenames, not truncated [:16]</constraint>
+    <constraint>All bronze artifacts MUST include created_at timestamp in ISO 8601 format</constraint>
+    <constraint>File storage paths: artifacts/bronze/raw_links/ for link lists, artifacts/bronze/raw_html/ for HTML</constraint>
+    <constraint>Asset naming convention: bronze_raw_links, bronze_raw_html (layer_datatype pattern)</constraint>
+    <constraint>No docstrings per project constitution (CLAUDE.md)</constraint>
+    <constraint>Use Pydantic V2 only (no V1 compatibility)</constraint>
+    <constraint>Use structlog for logging, not print statements</constraint>
+    <constraint>Integration tests must use @pytest.mark.integration marker</constraint>
+    <constraint>Unit tests in tests/, integration tests in tests/integration/</constraint>
+    <constraint>Use pytest fixtures (tmp_path) for temporary directory testing</constraint>
+    <constraint>Follow idiomatic Python approaches only</constraint>
+    <constraint>Code must pass make check (format, lint, typecheck, tests)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Dagster IOManager Interface</name>
+      <kind>class interface</kind>
+      <signature>
+class BronzeIOManager(IOManager):
+    def handle_output(self, context: OutputContext, obj: Any) -> None:
+        # Serialize and save obj to bronze layer
+        pass
+
+    def load_input(self, context: InputContext) -> Any:
+        # Load and deserialize from bronze layer
+        return obj
+      </signature>
+      <path>https://docs.dagster.io/concepts/io-management/io-managers</path>
+    </interface>
+    <interface>
+      <name>Bronze Layer File Structure</name>
+      <kind>file system interface</kind>
+      <signature>
+artifacts/bronze/raw_links/{full_sha256_hash}.json
+artifacts/bronze/raw_html/{full_sha256_hash}.json
+
+Metadata structure:
+{
+  "url": "https://...",
+  "created_at": "2025-11-02T12:00:00Z",  # ISO 8601
+  "content_length": 12345,
+  "content": "..." or [links...]
+}
+      </signature>
+      <path>docs/architecture.md#Medallion-Architecture</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing framework: pytest (>=8.4.2) with markers for unit, integration, and contract tests.
+      Test organization: tests/ directory for unit tests, tests/integration/ for integration tests.
+      Test patterns: Use pytest fixtures (tmp_path for temporary directories), factory-boy for test data generation.
+      Quality gates: make check runs format, lint, typecheck, and tests. All tests must pass before story completion.
+      Configuration: pyproject.toml [tool.pytest.ini_options] defines test paths, markers, and options (-v --strict-markers).
+      Integration tests marked with @pytest.mark.integration. Follow patterns from tests/integration/test_medallion_structure.py.
+    </standards>
+    <locations>
+      tests/ - Unit tests for BronzeIOManager
+      tests/integration/ - Integration tests for file storage/retrieval
+      tests/fixtures/ - Test fixtures and data (if needed)
+    </locations>
+    <ideas>
+      <idea ac="AC1">
+        Test: test_bronze_io_manager_class_exists
+        Approach: Import BronzeIOManager from dagster_project.resources.io_managers and verify it's a class inheriting from IOManager
+        Pattern: Simple import and type check
+      </idea>
+      <idea ac="AC2" ac="AC6">
+        Test: test_link_list_serialization_round_trip
+        Approach: Create mock link list, serialize with BronzeIOManager, deserialize, verify equality
+        Pattern: Use tmp_path fixture, test save/load cycle
+      </idea>
+      <idea ac="AC3" ac="AC6">
+        Test: test_html_content_storage_with_metadata
+        Approach: Create mock HTML content with metadata, save, load, verify content and metadata preserved
+        Pattern: Use tmp_path fixture, assert metadata completeness
+      </idea>
+      <idea ac="AC4" ac="AC6">
+        Test: test_sha256_hash_generation_consistency
+        Approach: Generate hash for same input multiple times, verify deterministic output (64 chars)
+        Pattern: Hash same URL/content multiple times, assert equality and length
+      </idea>
+      <idea ac="AC5" ac="AC6">
+        Test: test_created_at_timestamp_format
+        Approach: Save artifact, load, verify created_at field exists and is valid ISO 8601 format
+        Pattern: Use datetime.fromisoformat() to parse and verify timestamp
+      </idea>
+      <idea ac="AC6">
+        Test: test_error_handling_missing_files
+        Approach: Attempt to load non-existent file, verify graceful error handling (returns None or raises clear exception)
+        Pattern: Mock missing file scenario, assert exception type and message
+      </idea>
+      <idea ac="AC7">
+        Test: test_integration_link_list_bronze_storage
+        Approach: End-to-end test storing link list to actual bronze directory, verify file created with correct name and content
+        Pattern: Use real bronze directory, @pytest.mark.integration, verify file existence and content
+      </idea>
+      <idea ac="AC7">
+        Test: test_integration_html_bronze_storage
+        Approach: End-to-end test storing HTML to actual bronze directory, verify file created with full SHA256 hash filename
+        Pattern: Use real bronze directory, @pytest.mark.integration, verify filename format and metadata
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

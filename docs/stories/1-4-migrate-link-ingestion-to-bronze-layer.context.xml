@@ -1,0 +1,220 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>4</storyId>
+    <title>Migrate Link Ingestion to Bronze Layer</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-4-migrate-link-ingestion-to-bronze-layer.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>migrate the link_ingestion asset to use the Bronze IOManager</iWant>
+    <soThat>raw links from manual_links.txt and monitoring_list.txt are stored as bronze layer assets</soThat>
+    <tasks>
+- Task 1: Rename and refactor link_ingestion asset
+  - Rename dagster_project/assets/link_ingestion.py to dagster_project/assets/bronze_raw_links.py
+  - Rename asset function from link_ingestion to bronze_raw_links
+  - Add io_manager_key parameter: @asset(io_manager_key="bronze_io_manager")
+  - Update asset imports in dagster_project/definitions.py
+  - Update job references to use new asset name
+- Task 2: Update asset output format for bronze layer
+  - Modify return type to output link list (BronzeIOManager handles serialization)
+  - Ensure metadata structure includes: links, source, discovered_at, watcher_type
+  - Preserve existing watcher integration (RSSWatcher)
+  - Update structlog logging to reference bronze layer
+- Task 3: Verify deduplication logic compatibility
+  - Review existing deduplication against artifacts/summaries/
+  - Ensure logic works with bronze layer structure
+  - Preserve existing compute_url_hash() function
+  - Test deduplication with both manual and monitoring sources
+- Task 4: Update job definitions
+  - Update dagster_project/jobs/manual_pipeline.py to reference bronze_raw_links
+  - Update dagster_project/jobs/monitoring_pipeline.py to reference bronze_raw_links
+  - Verify job asset selection filters work correctly
+  - Test that jobs execute with renamed asset
+- Task 5: Register BronzeIOManager in definitions
+  - Open dagster_project/definitions.py
+  - Import BronzeIOManager from resources.io_managers
+  - Add to resources dict: "bronze_io_manager": BronzeIOManager()
+  - Verify resource is available to assets
+- Task 6: Update existing tests
+  - Update tests/test_link_ingestion.py to reference bronze_raw_links
+  - Update function imports and test assertions
+  - Update tests/integration/test_jobs.py to use new asset name
+  - Ensure all existing tests pass with renamed asset
+- Task 7: Create integration test for bronze layer storage
+  - Add new test in tests/integration/test_bronze_layer_migration.py
+  - Test: bronze_raw_links asset execution stores files in bronze/raw_links/
+  - Verify: Files created with full SHA256 hash (64 chars)
+  - Verify: JSON structure includes links, created_at, link_count
+  - Mark with @pytest.mark.integration
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: link_ingestion asset renamed to bronze_raw_links - Asset file renamed and asset function renamed
+AC2: Asset configured to use BronzeIOManager - Asset decorated with io_manager_key="bronze_io_manager"
+AC3: Asset outputs list of links with metadata (source, discovered_at, watcher_type) - Output format verified in tests
+AC4: Raw links stored in artifacts/bronze/raw_links/ with full hash filenames - Integration test verifies file creation with 64-char hash
+AC5: Existing deduplication logic preserved - Tests verify duplicates are filtered
+AC6: Integration test verifies link ingestion and bronze storage - Integration test passes end-to-end
+AC7: Manual and monitoring pipelines work with new asset - Job tests verify both pipelines execute successfully
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Services and Modules - bronze_raw_links</section>
+        <snippet>bronze_raw_links asset ingests links from manual_links.txt, monitoring_list.txt, and RSSWatcher. Returns List[str] (URLs). Uses BronzeIOManager for storage. Asset name follows {layer}_{data_type} convention. File renamed from link_ingestion.py to bronze_raw_links.py.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - Medallion Architecture</title>
+        <section>Medallion Architecture - Bronze Layer</section>
+        <snippet>Bronze layer stores raw, immutable data. bronze_raw_links is first bronze asset, stores link lists in artifacts/bronze/raw_links/ with full SHA256 hashing. Asset uses BronzeIOManager for automatic persistence.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.4: Migrate Link Ingestion to Bronze Layer</section>
+        <snippet>Acceptance criteria: Rename link_ingestion to bronze_raw_links, configure BronzeIOManager, preserve deduplication, verify manual and monitoring pipelines. Prerequisites: Story 1.3.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-2-implement-bronze-layer-iomanager.md</path>
+        <title>Story 1.2: Implement Bronze Layer IOManager</title>
+        <section>Implementation - BronzeIOManager Link List Format</section>
+        <snippet>BronzeIOManager._handle_output_link_list() accepts Python list of URLs. Creates JSON with structure: {"links": [...], "created_at": "...", "link_count": N}. Filename: SHA256 of concatenated sorted URLs (64 chars). Location: artifacts/bronze/raw_links/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-3-implement-silver-layer-iomanager.md</path>
+        <title>Story 1.3: Implement Silver Layer IOManager</title>
+        <section>Dev Notes - IOManager Usage Pattern</section>
+        <snippet>Assets use @asset(io_manager_key="...") decorator parameter. Asset return value passed to IOManager.handle_output() automatically by Dagster. No manual file writing in asset - IOManager handles all persistence.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/assets/link_ingestion.py</path>
+        <kind>asset</kind>
+        <symbol>link_ingestion</symbol>
+        <lines>1-end</lines>
+        <reason>Current asset implementation to be renamed to bronze_raw_links. Preserve business logic (file reading, watcher integration, deduplication), remove manual file writing, add io_manager_key decorator parameter, return plain list.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager</symbol>
+        <lines>13-140</lines>
+        <reason>BronzeIOManager implementation for reference. _handle_output_link_list() method (lines 41-63) shows expected input format (list) and output format (JSON with links, created_at, link_count). bronze_raw_links asset will use this IOManager.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/definitions.py</path>
+        <kind>config</kind>
+        <symbol>Definitions</symbol>
+        <lines>1-end</lines>
+        <reason>Dagster definitions where assets, jobs, and resources are registered. Need to: (1) Import bronze_raw_links instead of link_ingestion, (2) Add BronzeIOManager to resources dict, (3) Update job asset references.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/jobs/manual_pipeline.py</path>
+        <kind>job</kind>
+        <symbol>manual_pipeline</symbol>
+        <lines>1-end</lines>
+        <reason>Job definition for manual link processing. References link_ingestion asset - needs update to bronze_raw_links. Check asset selection filters and tags.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/jobs/monitoring_pipeline.py</path>
+        <kind>job</kind>
+        <symbol>monitoring_pipeline</symbol>
+        <lines>1-end</lines>
+        <reason>Job definition for automated monitoring. References link_ingestion asset - needs update to bronze_raw_links. Check asset selection filters and tags.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_link_ingestion.py</path>
+        <kind>test</kind>
+        <symbol>test_*</symbol>
+        <lines>1-end</lines>
+        <reason>Existing unit tests for link_ingestion. Need to update: function imports (bronze_raw_links), test function names, assertions. Preserve test logic for compute_url_hash(), file reading, watcher integration, deduplication.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_jobs.py</path>
+        <kind>test</kind>
+        <symbol>test_manual_pipeline_*, test_monitoring_pipeline_*</symbol>
+        <lines>1-end</lines>
+        <reason>Integration tests for job execution. Reference link_ingestion asset - need update to bronze_raw_links. Verify both pipelines still execute successfully with renamed asset.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0">Data orchestration framework - @asset decorator with io_manager_key parameter, AssetExecutionContext, Definitions, jobs</package>
+        <package name="structlog" version=">=23.0.0">Structured logging for asset operations</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- MUST rename dagster_project/assets/link_ingestion.py to bronze_raw_links.py
+- MUST rename asset function from link_ingestion to bronze_raw_links
+- MUST add io_manager_key="bronze_io_manager" to @asset decorator
+- MUST register BronzeIOManager in dagster_project/definitions.py resources dict
+- MUST preserve existing business logic: file reading, watcher integration, deduplication
+- MUST remove any manual file writing code (IOManager handles persistence)
+- MUST return plain Python list of URLs (BronzeIOManager expects list input)
+- MUST update all job references (manual_pipeline, monitoring_pipeline)
+- MUST update all test references and ensure existing tests pass
+- MUST create new integration test for bronze layer storage verification
+- Files stored in artifacts/bronze/raw_links/ with full SHA256 hash (64 chars)
+- JSON output includes: links, created_at, link_count (BronzeIOManager adds metadata)
+- NO manual JSON serialization in asset code (handled by IOManager)
+- Integration tests MUST be marked with @pytest.mark.integration
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>bronze_raw_links asset</name>
+      <kind>Dagster asset</kind>
+      <signature>@asset(io_manager_key="bronze_io_manager") def bronze_raw_links(context: AssetExecutionContext) -> list</signature>
+      <path>dagster_project/assets/bronze_raw_links.py</path>
+    </interface>
+    <interface>
+      <name>BronzeIOManager</name>
+      <kind>Dagster IOManager resource</kind>
+      <signature>class BronzeIOManager(IOManager): def handle_output(context: OutputContext, obj: Any) -> None</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+    </interface>
+    <interface>
+      <name>Dagster Definitions</name>
+      <kind>Dagster configuration</kind>
+      <signature>Definitions(assets=[...], jobs=[...], resources={...})</signature>
+      <path>dagster_project/definitions.py</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Testing follows pytest framework with unit and integration test separation. Unit tests verify asset business logic (file reading, watcher integration, deduplication) in isolation. Integration tests verify bronze layer storage (files created in artifacts/bronze/raw_links/ with 64-char hash), job execution (manual_pipeline and monitoring_pipeline work with renamed asset). All tests must pass before story completion. Integration tests marked with @pytest.mark.integration. Follow BronzeIOManager test patterns from Story 1.2.</standards>
+    <locations>
+- Unit tests: tests/test_link_ingestion.py (update existing - rename references)
+- Integration tests: tests/integration/test_jobs.py (update existing - rename asset references)
+- Integration tests: tests/integration/test_bronze_layer_migration.py (new file - verify bronze storage)
+- Reference: tests/integration/test_bronze_io_manager.py (existing bronze layer test patterns)
+    </locations>
+    <ideas>
+      <test ac="AC1">Test bronze_raw_links asset function exists and is importable from dagster_project.assets.bronze_raw_links</test>
+      <test ac="AC2">Test @asset decorator includes io_manager_key="bronze_io_manager" parameter</test>
+      <test ac="AC3">Test asset return value is plain Python list of URL strings</test>
+      <test ac="AC3">Test asset output includes links from both manual and monitoring sources</test>
+      <test ac="AC4">Integration test: Execute bronze_raw_links asset, verify files created in artifacts/bronze/raw_links/</test>
+      <test ac="AC4">Integration test: Verify file naming uses full SHA256 hash (length == 64 chars)</test>
+      <test ac="AC4">Integration test: Verify JSON structure includes links, created_at, link_count</test>
+      <test ac="AC5">Test deduplication logic filters out URLs that already have summaries</test>
+      <test ac="AC5">Test compute_url_hash() function still works correctly</test>
+      <test ac="AC6">Integration test: End-to-end bronze_raw_links execution with BronzeIOManager</test>
+      <test ac="AC6">Integration test: Verify bronze layer storage after asset materialization</test>
+      <test ac="AC7">Integration test: manual_pipeline executes successfully with bronze_raw_links</test>
+      <test ac="AC7">Integration test: monitoring_pipeline executes successfully with bronze_raw_links</test>
+      <test ac="AC7">Integration test: Job filtering works correctly (manual vs monitoring sources)</test>
+    </ideas>
+  </tests>
+</story-context>

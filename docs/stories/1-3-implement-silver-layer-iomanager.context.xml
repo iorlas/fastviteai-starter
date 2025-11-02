@@ -1,0 +1,203 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>3</storyId>
+    <title>Implement Silver Layer IOManager</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-3-implement-silver-layer-iomanager.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>implement a Silver IOManager for processed data persistence</iWant>
+    <soThat>extracted content and summaries are properly managed with content-type awareness</soThat>
+    <tasks>
+- Task 1: Create SilverIOManager class structure
+  - Add SilverIOManager class to dagster_project/resources/io_managers.py
+  - Define class inheriting from Dagster IOManager base
+  - Import required types (IOManager, OutputContext, InputContext)
+  - Initialize silver layer directories (extracted_content/, summaries/)
+- Task 2: Implement extracted content storage
+  - Implement _handle_output_extracted_content() method
+  - Support both HTML and video content types
+  - Generate full SHA256 hash from URL for filename
+  - Include created_at and updated_at timestamps (ISO 8601)
+  - Add lineage metadata: source_asset, source_hash, transformation_timestamp
+  - Write to artifacts/silver/extracted_content/{hash}.json
+  - Implement _load_input_extracted_content() for deserialization
+  - Handle file-not-found errors gracefully
+- Task 3: Implement summary storage with dual-format output
+  - Implement _handle_output_summary() method
+  - Generate full SHA256 hash from URL for filename
+  - Include created_at and updated_at timestamps
+  - Add lineage metadata (source_asset, source_hash, transformation_timestamp)
+  - Write JSON format to artifacts/silver/summaries/{hash}.json
+  - Generate markdown format and write to artifacts/silver/summaries/{hash}.md
+  - Markdown includes: title, URL, summary content, metadata footer
+  - Handle both success and failure summaries in markdown
+  - Implement _load_input_summary() for deserialization
+  - Handle missing files and corrupted JSON gracefully
+- Task 4: Implement IOManager handle_output and load_input dispatch
+  - Implement handle_output() method with content type detection
+  - Dispatch to appropriate handler (extracted content vs summary)
+  - Implement load_input() method with content type detection
+  - Dispatch to appropriate loader based on asset type
+  - Add structlog logging for all I/O operations
+- Task 5: Unit tests for SilverIOManager
+  - Create test file: tests/test_silver_io_manager_unit.py
+  - Test extracted content storage for HTML type
+  - Test extracted content storage for video type
+  - Test summary storage in both JSON and markdown formats
+  - Test SHA256 hash generation consistency
+  - Test created_at and updated_at timestamp presence (ISO 8601)
+  - Test lineage metadata structure and completeness
+  - Test error handling for missing files
+  - Test metadata preservation across save/load cycle
+  - Use pytest fixtures for temp directories (tmp_path)
+- Task 6: Integration test for file storage
+  - Create test file: tests/integration/test_silver_io_manager.py
+  - Test end-to-end extracted content storage (HTML type)
+  - Test end-to-end extracted content storage (video type)
+  - Test end-to-end summary storage with dual-format output
+  - Verify files created in correct silver subdirectories
+  - Verify full SHA256 hash used in filenames
+  - Verify both .json and .md files exist for summaries
+  - Verify metadata completeness (timestamps, lineage)
+  - Mark with @pytest.mark.integration
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: SilverIOManager class created in dagster_project/resources/io_managers.py - Class exists and is importable
+AC2: Handles storage of extracted content (HTML and video types) - Unit tests verify both content types
+AC3: Handles storage of summaries in both JSON and markdown formats - Unit tests verify dual-format output
+AC4: Uses full SHA256 hash for filename generation - File naming verified in tests
+AC5: Includes created_at and updated_at timestamps in all artifacts - Metadata includes ISO 8601 timestamps
+AC6: Supports data lineage metadata (source asset references, transformation timestamps) - Unit tests verify lineage structure
+AC7: Unit tests verify content-type handling and metadata preservation - Unit tests pass for all content types
+AC8: Integration test verifies file storage and retrieval for both content types - Integration test passes end-to-end
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Data Models and Contracts - Silver Layer Data Models</section>
+        <snippet>Defines SilverIOManager interface with handle_output/load_input methods. Silver layer data models for extracted content (HTML/video types) and summaries (JSON + markdown). Full SHA256 hashing, created_at/updated_at timestamps, lineage metadata structure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - Medallion Architecture</title>
+        <section>Medallion Architecture - Silver Layer</section>
+        <snippet>Silver layer stores processed, application-ready data with business logic applied. Includes extracted_content/ and summaries/ subdirectories. Data flow: bronze → silver transformation with lineage tracking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.3: Implement Silver Layer IOManager</section>
+        <snippet>Acceptance criteria: SilverIOManager handles extracted content (HTML/video), summaries (JSON+MD), full SHA256 hash, created_at/updated_at timestamps, lineage metadata. Prerequisite: Story 1.2.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-2-implement-bronze-layer-iomanager.md</path>
+        <title>Story 1.2: Implement Bronze Layer IOManager</title>
+        <section>Dev Agent Record - Completion Notes</section>
+        <snippet>BronzeIOManager implementation patterns: composition with separate handlers, full SHA256 hashing, ISO 8601 timestamps, structlog logging, graceful error handling. Testing: unit tests with tmp_path, integration tests with @pytest.mark.integration.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-1-define-bronze-and-silver-layer-structure.md</path>
+        <title>Story 1.1: Define Bronze and Silver Layer Structure</title>
+        <section>Dev Notes - Directory Structure</section>
+        <snippet>Silver directories created: artifacts/silver/extracted_content/, artifacts/silver/summaries/. Asset naming convention: {layer}_{data_type}. Full SHA256 hashing for all filenames (64 chars).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager</symbol>
+        <lines>13-140</lines>
+        <reason>Reference implementation for IOManager pattern. SilverIOManager should follow same structure: class inheriting from IOManager, separate handler methods for different types, handle_output/load_input dispatch, full SHA256 hashing, ISO 8601 timestamps, structlog logging.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/test_bronze_io_manager_unit.py</path>
+        <kind>test</kind>
+        <symbol>test_*</symbol>
+        <lines>1-140</lines>
+        <reason>Reference test patterns for SilverIOManager unit tests. Use tmp_path fixture, test round-trip serialization, verify hash length, test timestamps, test error handling, test metadata preservation.</reason>
+      </artifact>
+      <artifact>
+        <path>tests/integration/test_bronze_io_manager.py</path>
+        <kind>test</kind>
+        <symbol>test_integration_*</symbol>
+        <lines>1-112</lines>
+        <reason>Reference integration test patterns. Mark with @pytest.mark.integration, test actual file creation in real directories, verify directory structure, verify file naming with full SHA256 hash.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0">Data orchestration framework - IOManager base class, OutputContext, InputContext</package>
+        <package name="structlog" version=">=23.0.0">Structured logging for all I/O operations</package>
+        <package name="pydantic" version=">=2.12.2">Data validation (if complex schemas needed)</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- MUST extend existing dagster_project/resources/io_managers.py file (add SilverIOManager class alongside BronzeIOManager)
+- MUST use full SHA256 hash (64 chars) for all filenames - NO truncation to [:16]
+- MUST include created_at AND updated_at timestamps in ISO 8601 format (datetime.now(UTC).isoformat())
+- MUST include lineage metadata object with: source_asset, source_hash, transformation_timestamp
+- MUST generate both .json AND .md files for summaries (same hash basename)
+- MUST use structlog for all logging - NO print statements
+- MUST handle both content types: extracted content (HTML/video) and summaries (success/failure)
+- MUST use pathlib.Path for file operations
+- MUST use context managers (with statement) for file I/O
+- MUST pass make check (format, lint, typecheck, test)
+- NO docstrings (per CLAUDE.md constitution)
+- Integration tests MUST be marked with @pytest.mark.integration
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>SilverIOManager</name>
+      <kind>Dagster IOManager class</kind>
+      <signature>class SilverIOManager(IOManager): def handle_output(context: OutputContext, obj: Any) -> None; def load_input(context: InputContext) -> Any</signature>
+      <path>dagster_project/resources/io_managers.py</path>
+    </interface>
+    <interface>
+      <name>IOManager base class</name>
+      <kind>Dagster framework interface</kind>
+      <signature>from dagster import IOManager, OutputContext, InputContext</signature>
+      <path>dagster library</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Testing follows pytest framework with unit and integration test separation. Unit tests use tmp_path fixture for isolation and test serialization/deserialization logic. Integration tests use @pytest.mark.integration marker and verify actual file creation in real directories (artifacts/silver/). All tests must pass before story completion. Code must pass make check (format, lint, typecheck, test). Test naming convention: test_{functionality}_description. Follow BronzeIOManager test patterns from Story 1.2.</standards>
+    <locations>
+- Unit tests: tests/test_silver_io_manager_unit.py (new file)
+- Integration tests: tests/integration/test_silver_io_manager.py (new file)
+- Reference: tests/test_bronze_io_manager_unit.py (existing patterns)
+- Reference: tests/integration/test_bronze_io_manager.py (existing patterns)
+    </locations>
+    <ideas>
+      <test ac="AC1">Test SilverIOManager class exists and is importable from dagster_project.resources.io_managers</test>
+      <test ac="AC2">Test extracted content storage for HTML type with metadata (url, type, title, content, metadata dict, lineage, timestamps)</test>
+      <test ac="AC2">Test extracted content storage for video type with same metadata structure</test>
+      <test ac="AC3">Test summary storage creates both .json and .md files with same hash basename</test>
+      <test ac="AC3">Test markdown format for success summaries includes title, URL, summary content, metadata footer</test>
+      <test ac="AC3">Test markdown format for failure summaries includes error details</test>
+      <test ac="AC4">Test SHA256 hash generation: verify filename length == 64 chars (full hash, not truncated)</test>
+      <test ac="AC5">Test created_at timestamp exists and is ISO 8601 format in all artifacts</test>
+      <test ac="AC5">Test updated_at timestamp exists and is ISO 8601 format in all silver artifacts</test>
+      <test ac="AC6">Test lineage metadata object includes source_asset, source_hash, transformation_timestamp</test>
+      <test ac="AC6">Test lineage timestamps are ISO 8601 format</test>
+      <test ac="AC7">Test round-trip serialization: save and load extracted content preserves all metadata</test>
+      <test ac="AC7">Test error handling: missing files return empty dict/None gracefully (no exceptions)</test>
+      <test ac="AC8">Integration test: end-to-end storage of extracted content in artifacts/silver/extracted_content/</test>
+      <test ac="AC8">Integration test: end-to-end storage of summaries in artifacts/silver/summaries/ with both .json and .md files</test>
+      <test ac="AC8">Integration test: verify silver directories exist and files have correct structure</test>
+    </ideas>
+  </tests>
+</story-context>

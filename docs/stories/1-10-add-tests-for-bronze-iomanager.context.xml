@@ -1,0 +1,149 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>10</storyId>
+    <title>Add Tests for Bronze IOManager</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-10-add-tests-for-bronze-iomanager.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>comprehensive tests for the Bronze IOManager</iWant>
+    <soThat>raw data persistence is verified and reliable</soThat>
+    <tasks>
+      - Task 1: Verify existing test file and coverage (AC: 1, 7)
+        - Locate test_bronze_io_manager_unit.py in tests/resources/
+        - Run pytest on existing tests to verify current state
+        - Identify coverage gaps against acceptance criteria
+        - Document which ACs are already covered
+      - Task 2: Add missing error handling tests (AC: 6)
+        - Add test for invalid data type (e.g., passing dict instead of list for links)
+        - Add test for malformed HTML data (missing required url field)
+        - Add test for invalid JSON during deserialization
+        - Add test for TypeError when unknown object type passed to handle_output
+      - Task 3: Enhance existing tests if needed (AC: 2, 3, 4, 5)
+        - Review test_link_list_serialization_round_trip for completeness
+        - Review test_html_content_storage_with_metadata for all metadata fields
+        - Verify test_sha256_hash_generation_consistency validates full 64-char hash
+        - Verify test_created_at_timestamp_format validates ISO 8601 format
+      - Task 4: Add load_input tests (AC: 2, 3)
+        - Add test for loading link list from bronze layer
+        - Add test for loading HTML content from bronze layer
+        - Add test for handling corrupted JSON files gracefully
+        - Add test for handling missing upstream output context
+      - Task 5: Run full test suite and verify (AC: 7)
+        - Run `uv run pytest tests/resources/test_bronze_io_manager_unit.py -v`
+        - Verify all tests pass
+        - Check test coverage with pytest-cov if available
+        - Ensure test markers (@pytest.mark.integration) are correctly applied
+      - Task 6: Run quality checks (AC: 7)
+        - Run `make check` to verify format, lint, typecheck
+        - Fix any ruff violations in test file
+        - Ensure tests follow project conventions (no doc-strings per CLAUDE.md)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC1: Unit test file created: `tests/resources/test_bronze_io_manager.py` (or test_bronze_io_manager_unit.py) - File exists at expected path
+    AC2: Tests verify link list serialization/deserialization - Link list round-trip tests pass
+    AC3: Tests verify raw HTML storage with metadata - HTML storage tests pass
+    AC4: Tests verify full SHA256 hash filename generation - Hash generation tests verify 64-character length
+    AC5: Tests verify timestamp creation - Timestamp format tests pass with ISO 8601 validation
+    AC6: Tests verify error handling for invalid data - Error handling tests cover type errors and missing fields
+    AC7: All tests pass - pytest run succeeds for all BronzeIOManager tests
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification" section="AC11: IOManager Testing">
+        Unit test files required for BronzeIOManager and SilverIOManager with comprehensive tests verifying serialization, deserialization, hash generation, timestamp creation, and error handling.
+      </doc>
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification" section="AC1: Bronze Layer Implementation">
+        BronzeIOManager handles serialization/deserialization of link lists and raw HTML. All bronze artifacts use full SHA256 hash filenames and include created_at timestamp field.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Medallion Architecture - Bronze Layer">
+        Bronze Layer stores raw, immutable data exactly as ingested. Location: artifacts/bronze/ with subdirectories raw_links/ and raw_html/. Characteristics: immutable (write-once), full fidelity preservation, enables reprocessing without re-downloading.
+      </doc>
+      <doc path="CLAUDE.md" title="Project Constitution" section="Python Testing">
+        Integration tests only, ensuring folder structure mirrors code organization. Test path has relation to module/file being tested. No doc-strings per project standards. Run make check after significant changes.
+      </doc>
+      <doc path="docs/development-guide.md" title="Development Guide" section="Running Tests">
+        Use pytest via uv run pytest. Dagster development server provides asset and job execution context.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager" lines="13-140" reason="Production BronzeIOManager implementation - the class being tested. Handles serialization/deserialization of link lists and raw HTML with SHA256 hashing and timestamp injection." />
+      <artifact path="tests/resources/test_bronze_io_manager_unit.py" kind="test" symbol="All existing tests" lines="1-210" reason="Existing test file with 7 tests covering happy paths. Needs enhancement with error handling tests for AC6 and load_input tests for AC2/AC3." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager.handle_output" lines="19-27" reason="Main entry point for saving data. Routes to link list or HTML handlers based on object type. Raises TypeError for unknown types - needs test coverage." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager.load_input" lines="29-39" reason="Main entry point for loading data. Routes based on asset_key. Raises TypeError for unknown asset types - needs test coverage." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager._handle_output_link_list" lines="41-63" reason="Saves link lists with SHA256 hash, created_at timestamp, and link_count. Already covered by test_link_list_serialization_round_trip." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager._handle_output_html" lines="90-114" reason="Saves HTML with SHA256 hash, created_at timestamp, content_length, and download_info. Already covered by test_html_content_storage_with_metadata." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager._load_input_link_list" lines="65-88" reason="Loads link lists from bronze layer. Handles JSONDecodeError and FileNotFoundError - needs test coverage for these error cases." />
+      <artifact path="dagster_project/resources/io_managers.py" kind="resource" symbol="BronzeIOManager._load_input_html" lines="116-139" reason="Loads HTML from bronze layer. Handles JSONDecodeError and FileNotFoundError - needs test coverage for these error cases." />
+    </code>
+    <dependencies>
+      <python>
+        <package name="pytest" usage="Test framework" />
+        <package name="dagster" usage="Provides IOManager, OutputContext, InputContext, AssetKey test utilities" />
+        <package name="structlog" usage="Logging (used in production code)" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Test file must be located at tests/resources/test_bronze_io_manager_unit.py (mirrors dagster_project/resources/io_managers.py)
+    - All tests must use @pytest.mark.integration decorator
+    - No doc-strings allowed (per CLAUDE.md constitution)
+    - No __init__.py files in test directories
+    - Use tmp_path fixture for isolated file operations
+    - Use Dagster test utilities: OutputContext, InputContext, AssetKey
+    - Tests must verify full 64-character SHA256 hashes (not truncated)
+    - Timestamps must be validated as ISO 8601 format
+    - Error handling tests required for: TypeError (invalid types), JSONDecodeError (corrupted files), missing required fields
+    - Run 'make check' after changes to verify ruff compliance
+    - Follow idiomatic Python approaches only
+  </constraints>
+  <interfaces>
+    <interface name="BronzeIOManager.handle_output" kind="method" signature="def handle_output(self, context: OutputContext, obj: Any) -&gt; None" path="dagster_project/resources/io_managers.py:19">
+      Routes output based on type: list → link_list, dict with html_content → html. Raises TypeError for unknown types.
+    </interface>
+    <interface name="BronzeIOManager.load_input" kind="method" signature="def load_input(self, context: InputContext) -&gt; Any" path="dagster_project/resources/io_managers.py:29">
+      Routes input based on asset_key: 'raw_links' → link_list, 'raw_html' → html. Raises TypeError for unknown asset types.
+    </interface>
+    <interface name="BronzeIOManager._handle_output_link_list" kind="method" signature="def _handle_output_link_list(self, context: OutputContext, link_list: list) -&gt; None" path="dagster_project/resources/io_managers.py:41">
+      Saves link list with metadata: {links, created_at, link_count}. Uses SHA256 hash of sorted concatenated links as filename.
+    </interface>
+    <interface name="BronzeIOManager._handle_output_html" kind="method" signature="def _handle_output_html(self, context: OutputContext, html_data: dict) -&gt; None" path="dagster_project/resources/io_managers.py:90">
+      Saves HTML with metadata: {url, content, created_at, content_length, download_info}. Uses SHA256 hash of URL as filename.
+    </interface>
+    <interface name="BronzeIOManager._load_input_link_list" kind="method" signature="def _load_input_link_list(self, context: InputContext) -&gt; list" path="dagster_project/resources/io_managers.py:65">
+      Loads latest link list from bronze layer. Returns empty list on errors. Catches JSONDecodeError and FileNotFoundError.
+    </interface>
+    <interface name="BronzeIOManager._load_input_html" kind="method" signature="def _load_input_html(self, context: InputContext) -&gt; dict" path="dagster_project/resources/io_managers.py:116">
+      Loads latest HTML content from bronze layer. Returns empty dict on errors. Catches JSONDecodeError and FileNotFoundError.
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: pytest with integration markers (@pytest.mark.integration). Test structure mirrors production code organization (tests/resources/ mirrors dagster_project/resources/). Use tmp_path fixtures for isolated file operations. Dagster provides test utilities: OutputContext, InputContext, AssetKey for testing IOManager implementations. No doc-strings in tests per project constitution. Run 'make check' after changes to verify ruff compliance (format, lint, typecheck). Test markers configured in pyproject.toml: contract, integration, unit.
+    </standards>
+    <locations>
+      tests/resources/test_bronze_io_manager_unit.py - Unit tests for BronzeIOManager
+      tests/integration/test_bronze_io_manager.py - Integration tests (if exists)
+      tests/integration/test_pipeline_integration.py - End-to-end pipeline tests
+    </locations>
+    <ideas>
+      <test-idea ac="AC6" description="Test handle_output with invalid type (neither list nor dict with html_content) - expects TypeError" />
+      <test-idea ac="AC6" description="Test handle_output with dict missing 'url' field - expects KeyError or appropriate error" />
+      <test-idea ac="AC6" description="Test load_input with unknown asset_key - expects TypeError" />
+      <test-idea ac="AC2, AC3" description="Test load_input for link list with corrupted JSON file - expects empty list return" />
+      <test-idea ac="AC2, AC3" description="Test load_input for HTML content with corrupted JSON file - expects empty dict return" />
+      <test-idea ac="AC2, AC3" description="Test load_input with no upstream context - expects empty return value" />
+      <test-idea ac="AC6" description="Test handle_output with string instead of list for link_list - expects TypeError" />
+      <test-idea ac="AC4, AC5" description="Enhance existing hash and timestamp tests to verify exact 64-character length and ISO 8601 format validation (may already be covered)" />
+    </ideas>
+  </tests>
+</story-context>

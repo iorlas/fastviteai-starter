@@ -1,0 +1,230 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>6</storyId>
+    <title>Migrate Content Extraction to Silver Layer</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-6-migrate-content-extraction-to-silver-layer.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>migrate content extraction to use raw HTML from bronze and output to silver layer</iWant>
+    <soThat>extracted content is properly layered and can be reprocessed from cached HTML</soThat>
+    <tasks>
+- Task 1: Create silver_extracted_content asset (AC: 1, 2, 3)
+- Task 2: Update html_extractor to read from bronze cache (AC: 4)
+- Task 3: Implement silver asset logic (AC: 2, 6)
+- Task 4: Verify SilverIOManager handles extracted content (AC: 3, 6, 7)
+- Task 5: Handle YouTube extraction (AC: 5)
+- Task 6: Update legacy asset references (AC: 1)
+- Task 7: Create integration tests (AC: 8, 9)
+- Task 8: Run all tests and quality checks (AC: 8, 9)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC1: content_extraction asset renamed to silver_extracted_content - Asset file exists with new name
+AC2: Asset depends on bronze_raw_html instead of fetching URLs directly - Function signature declares dependency parameter
+AC3: Asset configured to use SilverIOManager - Asset decorated with io_manager_key="silver_io_manager"
+AC4: HTML extractor op reads from bronze cache - html_extractor.py reads from cached JSON files
+AC5: YouTube extractor continues to use yt-dlp (no HTML caching for videos) - youtube_extractor.py unchanged, uses yt-dlp directly
+AC6: Extracted content includes full metadata with timestamps and lineage - JSON structure verified in tests
+AC7: Content stored in artifacts/silver/extracted_content/ with full hash filenames - Files saved with 64-char SHA256 hash
+AC8: Integration test verifies end-to-end flow from bronze HTML to silver content - End-to-end test passes
+AC9: Reprocessing test confirms can regenerate silver from bronze without re-download - Test deletes silver, re-runs from bronze, verifies no HTTP download
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Data Models and Contracts (lines 89-156)</section>
+        <snippet>Defines silver extracted content data model with url, type, title, content, metadata (author, published_date, word_count, extraction_method), and lineage tracking. Specifies full SHA256 hash filenames and silver layer directory structure at artifacts/silver/extracted_content/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>APIs and Interfaces - Asset Signatures (lines 253-289)</section>
+        <snippet>Defines silver_extracted_content asset signature: depends on bronze_raw_html (List[dict]), uses silver_io_manager, reads cached HTML from bronze layer, can be re-materialized without re-downloading HTML.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Medallion Architecture Migration</title>
+        <section>Workflows and Sequencing - Asset Dependency Flow (lines 304-343)</section>
+        <snippet>Shows bronze_raw_html → silver_extracted_content flow with file-based caching. silver_extracted_content reads from bronze cache (checks for cached files), enabling reprocessing: delete silver artifacts → re-run from bronze → no re-download.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation - DeepRock</title>
+        <section>Medallion Architecture (lines 271-398)</section>
+        <snippet>Medallion pattern separates data by maturity: bronze (raw, immutable) and silver (processed, application-ready). Silver layer applies business logic, validates quality, enriches metadata. File naming: {full_sha256_hash}.{extension}. All silver artifacts require created_at, updated_at, and lineage metadata.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>ailabbrains - Epic Breakdown</title>
+        <section>Story 1.6: Migrate Content Extraction to Silver Layer (lines 136-154)</section>
+        <snippet>Story requirements: rename content_extraction to silver_extracted_content, depend on bronze_raw_html, use SilverIOManager, html_extractor reads from bronze cache, YouTube extractor continues yt-dlp, include full metadata with lineage, integration tests verify end-to-end flow and reprocessing.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-5-add-raw-html-download-to-bronze-layer.md</path>
+        <title>Story 1.5: Add Raw HTML Download to Bronze Layer</title>
+        <section>Completion Notes and Architecture Context (lines 243-283)</section>
+        <snippet>bronze_raw_html asset downloads and caches HTML in artifacts/bronze/raw_html/ with file-existence caching strategy. Returns List[dict] with url, html_content, download_info (status_code, headers, timestamp), error metadata for failures. Enables reprocessing workflows without re-download.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-3-implement-silver-layer-iomanager.md</path>
+        <title>Story 1.3: Implement Silver Layer IOManager</title>
+        <section>Implementation details</section>
+        <snippet>SilverIOManager handles persistence of processed data to silver layer, adding created_at, updated_at timestamps and lineage metadata (source_asset, source_hash, transformation_timestamp). Supports content-type awareness for different data types (extracted content, summaries).</snippet>
+      </doc>
+      <doc>
+        <path>docs/development-guide.md</path>
+        <title>Development Guide</title>
+        <section>Testing and Quality Standards</section>
+        <snippet>Integration tests required for multi-component flows, marked with @pytest.mark.integration, located in tests/integration/. Use PropertyMock for test configuration injection. All tests must pass before story completion (make check).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>dagster_project/ops/html_extractor.py</path>
+        <kind>operation</kind>
+        <symbol>extract_html_content(url: str, timeout: int = 30) -> HTMLContent</symbol>
+        <lines>21-68</lines>
+        <reason>HTML extraction logic that needs to be refactored - currently downloads via httpx.get(), should be modified to accept cached HTML from bronze layer instead of URL. BeautifulSoup parsing logic (lines 27-63) should be preserved.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/html_extractor.py</path>
+        <kind>data_model</kind>
+        <symbol>HTMLContent (NamedTuple)</symbol>
+        <lines>8-14</lines>
+        <reason>Return type for HTML extraction - url, title, content, author, publish_date, metadata. This structure should be adapted for silver layer with lineage metadata added.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/youtube_extractor.py</path>
+        <kind>operation</kind>
+        <symbol>extract_youtube_content(url: str) -> YouTubeContent</symbol>
+        <lines>22-84</lines>
+        <reason>YouTube extraction logic using yt-dlp - should remain unchanged (no caching for videos). Will be called by silver_extracted_content for YouTube URLs.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/ops/youtube_extractor.py</path>
+        <kind>data_model</kind>
+        <symbol>YouTubeContent (NamedTuple)</symbol>
+        <lines>8-15</lines>
+        <reason>Return type for YouTube extraction - url, title, transcript, description, channel, duration, metadata. This structure should be adapted for silver layer with lineage metadata.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/content_extraction.py</path>
+        <kind>asset</kind>
+        <symbol>content_extraction_asset</symbol>
+        <lines>57-168</lines>
+        <reason>Legacy asset to be migrated/replaced. Shows current pattern: depends on link_ingestion, dispatches to html_extractor or youtube_extractor, saves to artifacts/html/ or artifacts/videos/. This should be refactored to depend on bronze_raw_html and output to silver layer.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/bronze_raw_html.py</path>
+        <kind>asset</kind>
+        <symbol>bronze_raw_html</symbol>
+        <lines>12-169</lines>
+        <reason>Upstream dependency - returns List[dict] with url, html_content, download_info (status_code, headers, timestamp), error metadata for failures. silver_extracted_content will read from this asset's output instead of downloading HTML directly.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>SilverIOManager._handle_output_extracted_content</symbol>
+        <lines>170-198</lines>
+        <reason>Persistence logic for extracted content - expects dict with url, type, title, content, metadata, lineage. Adds created_at and updated_at timestamps. Saves to artifacts/silver/extracted_content/ with full SHA256 hash filename.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/resources/io_managers.py</path>
+        <kind>resource</kind>
+        <symbol>BronzeIOManager._handle_output_html</symbol>
+        <lines>90-114</lines>
+        <reason>Bronze HTML storage - saves HTML with "content" field in JSON. silver_extracted_content will read from these cached files to extract content without re-downloading.</reason>
+      </artifact>
+      <artifact>
+        <path>dagster_project/assets/__init__.py</path>
+        <kind>module_exports</kind>
+        <symbol>__all__</symbol>
+        <lines>1-11</lines>
+        <reason>Asset exports for Dagster discovery - needs to be updated to export silver_extracted_content instead of (or in addition to) content_extraction_asset.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="dagster" version=">=1.12.0" usage="Asset orchestration framework, AssetExecutionContext, Field, asset decorator" />
+        <package name="beautifulsoup4" version=">=4.14.2" usage="HTML parsing (html_extractor.py)" />
+        <package name="yt-dlp" version=">=2025.10.22" usage="YouTube metadata extraction (youtube_extractor.py)" />
+        <package name="structlog" version=">=23.0.0" usage="Structured logging for silver layer assets" />
+        <package name="pydantic" version=">=2.12.2" usage="Data validation and schemas (if needed for data models)" />
+        <package name="httpx" version="" usage="Will be REMOVED from html_extractor (no longer needed for direct downloads)" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use structlog for all logging (not print or context.log) - established pattern in bronze layer</constraint>
+    <constraint>Full SHA256 hash (64 chars) for all filenames - NO truncation [:16]</constraint>
+    <constraint>Asset naming convention: silver_extracted_content (layer_datatype pattern)</constraint>
+    <constraint>Asset decorator: @asset(io_manager_key="silver_io_manager", compute_kind="python", group_name="silver_layer", tags={"layer": "silver", "source": "extraction"})</constraint>
+    <constraint>Return plain data structures (List[dict]) - IOManager handles persistence with metadata enrichment</constraint>
+    <constraint>All silver artifacts must include lineage metadata: {"source_asset": "bronze_raw_html", "source_hash": str, "transformation_timestamp": str (ISO 8601)}</constraint>
+    <constraint>Preserve BeautifulSoup parsing logic from html_extractor.py - only remove HTTP download code</constraint>
+    <constraint>YouTube extractor continues to use yt-dlp directly - no caching for videos (only HTML is cached in bronze layer)</constraint>
+    <constraint>Handle error metadata from bronze layer - URLs with errors should be skipped or handled gracefully with error propagation</constraint>
+    <constraint>No docstrings (per CLAUDE.md project constitution)</constraint>
+    <constraint>Integration tests only - mark with @pytest.mark.integration, located in tests/integration/</constraint>
+    <constraint>Make check must pass (ruff format, ruff check, pytest) before story completion</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>bronze_raw_html output format</name>
+      <kind>asset_output</kind>
+      <signature>List[dict] with {"url": str, "html_content": str, "download_info": {"status_code": int, "headers": dict, "download_timestamp": str, "final_url": str}, "error": str | null}</signature>
+      <path>dagster_project/assets/bronze_raw_html.py</path>
+    </interface>
+    <interface>
+      <name>SilverIOManager expected input for extracted content</name>
+      <kind>io_manager_input</kind>
+      <signature>dict with {"url": str, "type": "html" | "youtube", "title": str, "content": str, "metadata": dict, "lineage": {"source_asset": str, "source_hash": str, "transformation_timestamp": str}}</signature>
+      <path>dagster_project/resources/io_managers.py:170-198</path>
+    </interface>
+    <interface>
+      <name>HTMLContent (to be adapted)</name>
+      <kind>namedtuple</kind>
+      <signature>NamedTuple(url: str, title: str, content: str, author: str | None, publish_date: str | None, metadata: dict)</signature>
+      <path>dagster_project/ops/html_extractor.py:8-14</path>
+    </interface>
+    <interface>
+      <name>YouTubeContent (to be adapted)</name>
+      <kind>namedtuple</kind>
+      <signature>NamedTuple(url: str, title: str, transcript: str, description: str, channel: str, duration: int | None, metadata: dict)</signature>
+      <path>dagster_project/ops/youtube_extractor.py:8-15</path>
+    </interface>
+    <interface>
+      <name>is_youtube_url helper</name>
+      <kind>utility_function</kind>
+      <signature>is_youtube_url(url: str) -> bool</signature>
+      <path>dagster_project/assets/content_extraction.py:30-32</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Integration tests required for all multi-component flows. Mark tests with @pytest.mark.integration and place in tests/integration/ directory. Use PropertyMock on context.op_execution_context.op_config for test configuration injection (established pattern from Story 1.5). All tests must pass before story completion - verify with "make check" (runs ruff format, ruff check, pytest). No unit tests required unless complex logic warrants isolation (integration tests preferred per project standards).</standards>
+    <locations>
+      <location>tests/integration/test_silver_content_extraction.py</location>
+      <location>tests/integration/test_bronze_html_download.py (existing - verify no regressions)</location>
+    </locations>
+    <ideas>
+      <test ac="AC8" idea="End-to-end bronze HTML to silver content flow: Create bronze cache with test HTML → materialize silver_extracted_content → verify extracted content saved to artifacts/silver/extracted_content/ with correct metadata structure (url, type, title, content, lineage, timestamps)" />
+      <test ac="AC9" idea="Reprocessing test: Create bronze cache → materialize silver_extracted_content → delete silver artifacts → re-materialize silver_extracted_content → verify httpx.get was NOT called (using mock), verify silver artifacts regenerated from bronze cache" />
+      <test ac="AC4" idea="HTML extractor reads from bronze cache: Mock bronze_raw_html output with cached HTML → verify html_extractor receives HTML content (not URL) → verify BeautifulSoup parsing works correctly" />
+      <test ac="AC6" idea="Metadata structure validation: Verify extracted content includes all required fields (url, type, title, content, metadata with author/published_date/word_count/extraction_method, lineage with source_asset/source_hash/transformation_timestamp)" />
+      <test ac="AC5" idea="YouTube extraction continues to work: Test YouTube URL → verify youtube_extractor called (not html_extractor) → verify yt-dlp used directly → verify output structure correct" />
+      <test ac="AC2,AC4" idea="Error handling from bronze layer: Create bronze cache with error metadata (failed HTTP download) → verify silver_extracted_content handles gracefully → verify error propagated or skipped appropriately" />
+      <test ac="AC7" idea="Full SHA256 hash filenames: Verify all saved files in artifacts/silver/extracted_content/ use 64-char SHA256 hash (not truncated [:16])" />
+    </ideas>
+  </tests>
+</story-context>

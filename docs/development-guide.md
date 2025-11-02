@@ -230,15 +230,29 @@ deeprock/
 │   ├── ops/                  # Reusable operations
 │   └── resources/            # External integrations
 ├── tests/                    # Test suite
+│   ├── integration/          # Integration tests
+│   └── fixtures/             # Test data
 ├── artifacts/                # Pipeline outputs
-│   ├── html/                 # Extracted HTML
-│   ├── videos/               # Video transcripts
-│   └── summaries/            # LLM summaries
+│   ├── bronze/               # [NEW] Bronze layer (raw, immutable)
+│   │   ├── raw_links/        # Link ingestion output
+│   │   └── raw_html/         # HTML download cache
+│   ├── silver/               # [NEW] Silver layer (processed, ready)
+│   │   ├── extracted_content/  # Cleaned content
+│   │   └── summaries/          # LLM summaries
+│   ├── html/                 # [LEGACY] Extracted HTML (to be deprecated)
+│   ├── videos/               # [LEGACY] Video transcripts (to be deprecated)
+│   └── summaries/            # [LEGACY] LLM summaries (to be deprecated)
 ├── docs/                     # Documentation
 ├── pyproject.toml            # Project configuration
 ├── Makefile                  # Development commands
 └── .env                      # Environment config
 ```
+
+**Note on Medallion Architecture:**
+- **Bronze layer** stores raw, immutable data as ingested from sources
+- **Silver layer** stores processed, application-ready data
+- **Legacy structure** (`html/`, `videos/`, `summaries/`) coexists during migration (Stories 1.4-1.7)
+- See [Architecture Documentation](/docs/architecture.md#medallion-architecture) for details
 
 ---
 
