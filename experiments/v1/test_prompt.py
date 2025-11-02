@@ -13,21 +13,23 @@ import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+os.environ["PROJECT_ROOT"] = str(project_root)
 
-from experiments.evaluator import InsightsEvaluator
-from experiments.schema import KnowledgeGraphSummary
-
-from dagster_project.assets.content_extraction import ExtractedContent
+from dagster_project.assets.content_extraction import ExtractedContent  # noqa: E402
+from experiments.evaluator import InsightsEvaluator  # noqa: E402
+from experiments.schema import KnowledgeGraphSummary  # noqa: E402
 
 load_dotenv()
 
 logger = structlog.get_logger()
 
-REPORTS_DIR = Path(__file__).parent / "reports"
+EXPERIMENTS_V1_DIR = project_root / "experiments" / "v1"
+REPORTS_DIR = EXPERIMENTS_V1_DIR / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
-HISTORY_FILE = Path(__file__).parent / "experiment_history.csv"
-PROMPTS_FILE = Path(__file__).parent / "prompts.yaml"
+HISTORY_FILE = EXPERIMENTS_V1_DIR / "experiment_history.csv"
+PROMPTS_FILE = EXPERIMENTS_V1_DIR / "prompts.yaml"
 
 
 def load_experiments() -> dict:
@@ -160,16 +162,12 @@ def show_leaderboard():
             experiments[key] = row
 
     # Sort by coverage
-    sorted_experiments = sorted(
-        experiments.items(), key=lambda x: float(x[1]["coverage_pct"]), reverse=True
-    )
+    sorted_experiments = sorted(experiments.items(), key=lambda x: float(x[1]["coverage_pct"]), reverse=True)
 
     print("\n" + "=" * 120)
     print("📊 EXPERIMENT LEADERBOARD")
     print("=" * 120)
-    print(
-        f"{'Rank':<6} {'Experiment':<35} {'Model':<30} {'Coverage':<12} {'Latency':<12} {'Tokens':<10}"
-    )
+    print(f"{'Rank':<6} {'Experiment':<35} {'Model':<30} {'Coverage':<12} {'Latency':<12} {'Tokens':<10}")
     print("-" * 120)
 
     for i, (exp_key, data) in enumerate(sorted_experiments, 1):
@@ -217,17 +215,13 @@ def load_example(example_path: Path) -> tuple[ExtractedContent, list[dict]]:
     return content, insights
 
 
-def create_prompt_messages(
-    system_prompt: str, user_template: str, content: ExtractedContent
-) -> list[dict[str, str]]:
+def create_prompt_messages(system_prompt: str, user_template: str, content: ExtractedContent) -> list[dict[str, str]]:
     """Create messages with template variable substitution"""
     content_type = "video transcript" if content.content_type == "youtube" else "article"
 
     system_message = {"role": "system", "content": system_prompt}
 
-    user_content = user_template.format(
-        content_type=content_type, title=content.title, content=content.text
-    )
+    user_content = user_template.format(content_type=content_type, title=content.title, content=content.text)
     user_message = {"role": "user", "content": user_content}
 
     return [system_message, user_message]
@@ -300,8 +294,7 @@ def save_report(
         "missing_insights": missing_insights,
         "partial_insights": partial_insights,
         "coverage_details": [
-            {"status": detail["status"], "insight": insights[detail["insight_id"] - 1]["insight"]}
-            for detail in coverage["details"]
+            {"status": detail["status"], "insight": insights[detail["insight_id"] - 1]["insight"]} for detail in coverage["details"]
         ],
         "system_prompt": system_prompt,
         "user_template": user_template,
@@ -421,7 +414,7 @@ def run_experiment(
     version = get_experiment_version(experiment_name, prompt_hash)
 
     # Load test content
-    example_path = Path(__file__).parent / "eval_dataset" / "example_002.json"
+    example_path = EXPERIMENTS_V1_DIR / "eval_dataset" / "example_002.json"
     if not example_path.exists():
         print(f"❌ Example file not found: {example_path}")
         sys.exit(1)
@@ -470,9 +463,7 @@ def run_experiment(
 
     print("🔍 Evaluating insights coverage...")
     evaluator = InsightsEvaluator(openai_client, model="openai/gpt-4o")
-    eval_result = evaluator.evaluate_summary(
-        summary=summary, source_content=content.text, content_file=example_path
-    )
+    eval_result = evaluator.evaluate_summary(summary=summary, source_content=content.text, content_file=example_path)
 
     coverage = eval_result["insights_coverage"]
 
@@ -579,9 +570,7 @@ def run_experiment(
                         "tokens_total": total_tokens,
                         "tokens_prompt": prompt_tokens,
                         "tokens_completion": completion_tokens,
-                        "compression_ratio": input_length / summary_length
-                        if summary_length > 0
-                        else 0,
+                        "compression_ratio": input_length / summary_length if summary_length > 0 else 0,
                     }
                 )
 

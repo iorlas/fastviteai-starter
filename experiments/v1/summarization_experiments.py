@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="mlflow")
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+os.environ["PROJECT_ROOT"] = str(project_root)
 
 from dagster_project.assets.content_extraction import ExtractedContent  # noqa: E402
 
@@ -57,9 +58,7 @@ def load_prompts_from_yaml(yaml_path: Path) -> list[dict[str, Any]]:
     return data.get("experiments", [])
 
 
-def load_content_files(
-    artifacts_dir: Path, limit: int | None = None
-) -> tuple[list[ExtractedContent], list[Path]]:
+def load_content_files(artifacts_dir: Path, limit: int | None = None) -> tuple[list[ExtractedContent], list[Path]]:
     """Load content files and return both content objects and file paths"""
     content_list = []
     file_paths = []
@@ -110,24 +109,18 @@ def load_content_files(
     return content_list, file_paths
 
 
-def create_prompt_messages(
-    config: ExperimentConfig, content: ExtractedContent
-) -> list[dict[str, str]]:
+def create_prompt_messages(config: ExperimentConfig, content: ExtractedContent) -> list[dict[str, str]]:
     content_type = "video transcript" if content.content_type == "youtube" else "article"
 
     system_message = {"role": "system", "content": config.system_message}
 
-    user_content = config.user_template.format(
-        content_type=content_type, title=content.title, content=content.text
-    )
+    user_content = config.user_template.format(content_type=content_type, title=content.title, content=content.text)
     user_message = {"role": "user", "content": user_content}
 
     return [system_message, user_message]
 
 
-def calculate_metrics(
-    summary: str, original_content: str, response: Any, latency_ms: float
-) -> SummaryMetrics:
+def calculate_metrics(summary: str, original_content: str, response: Any, latency_ms: float) -> SummaryMetrics:
     summary_words = len(summary.split())
     original_words = len(original_content.split())
 
@@ -257,9 +250,7 @@ def run_experiment(
                 successful_summaries += 1
 
             except Exception as e:
-                logger.error(
-                    "failed_to_generate_summary", url=content.url, title=content.title, error=str(e)
-                )
+                logger.error("failed_to_generate_summary", url=content.url, title=content.title, error=str(e))
                 failed_summaries += 1
                 continue
 
@@ -331,9 +322,7 @@ def run_experiment(
                 content_file = content_files[idx]
                 content = content_list[idx]
 
-                eval_result = evaluator.evaluate_summary(
-                    summary=item["summary"], source_content=content.text, content_file=content_file
-                )
+                eval_result = evaluator.evaluate_summary(summary=item["summary"], source_content=content.text, content_file=content_file)
 
                 coverage = eval_result["insights_coverage"]
                 all_insights_coverage.append(coverage)
@@ -364,17 +353,11 @@ def run_experiment(
 
             # Calculate average insights coverage (PRIMARY METRIC)
             avg_vital_coverage = (
-                sum(c["vital_coverage_pct"] for c in all_insights_coverage)
-                / len(all_insights_coverage)
-                if all_insights_coverage
-                else 0.0
+                sum(c["vital_coverage_pct"] for c in all_insights_coverage) / len(all_insights_coverage) if all_insights_coverage else 0.0
             )
 
             avg_all_coverage = (
-                sum(c["all_coverage_pct"] for c in all_insights_coverage)
-                / len(all_insights_coverage)
-                if all_insights_coverage
-                else 0.0
+                sum(c["all_coverage_pct"] for c in all_insights_coverage) / len(all_insights_coverage) if all_insights_coverage else 0.0
             )
 
             # Log primary evaluation metrics
@@ -395,9 +378,7 @@ def run_experiment(
             logger.info("running_quality_metrics")
 
             # Load insights for all content items
-            insights_list = [
-                evaluator.load_insights(content_files[i]) for i in range(len(all_summaries))
-            ]
+            insights_list = [evaluator.load_insights(content_files[i]) for i in range(len(all_summaries))]
 
             # Prepare data for MLflow evaluate
             eval_data = pd.DataFrame(
@@ -420,18 +401,17 @@ def run_experiment(
                 data=eval_data,
                 predictions="predictions",
                 extra_metrics=all_metrics,
-                evaluator_config={
-                    "col_mapping": {"inputs": "inputs", "predictions": "predictions"}
-                },
+                evaluator_config={"col_mapping": {"inputs": "inputs", "predictions": "predictions"}},
             )
 
             logger.info("quality_metrics_completed", metrics=eval_results.metrics)
 
 
 def main():
-    project_root = Path(__file__).parent.parent
-    eval_dataset_dir = project_root / "experiments" / "eval_dataset"
-    prompts_yaml = project_root / "experiments" / "prompts.yaml"
+    from dagster_project.utils.paths import PROJECT_ROOT
+
+    eval_dataset_dir = PROJECT_ROOT / "experiments" / "eval_dataset"
+    prompts_yaml = PROJECT_ROOT / "experiments" / "prompts.yaml"
 
     logger.info("loading_eval_dataset")
     content_list, content_files = load_content_files(eval_dataset_dir, limit=None)
@@ -461,9 +441,7 @@ def main():
         logger.error("no_experiments_defined")
         sys.exit(1)
 
-    logger.info(
-        "starting_experiments", experiment_count=len(experiments), content_count=len(content_list)
-    )
+    logger.info("starting_experiments", experiment_count=len(experiments), content_count=len(content_list))
 
     # Create batch timestamp to group all runs from this execution
     batch_timestamp = datetime.now().isoformat()

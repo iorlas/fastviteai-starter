@@ -95,7 +95,8 @@
       "Bash(do sed -i '' \"s/^def $func/@pytest.mark.integration\\ndef $func/\" test_silver_io_manager_unit.py)",
       "Bash(xargs:*)",
       "Bash(jq:*)",
-      "WebFetch(domain:lilianweng.github.io)"
+      "WebFetch(domain:lilianweng.github.io)",
+      "Bash(make typecheck:*)"
     ],
     "deny": [],
     "ask": []

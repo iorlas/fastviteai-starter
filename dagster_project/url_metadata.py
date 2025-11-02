@@ -78,9 +78,7 @@ class URLMetadataStore:
 
         # Convert defaultdict to dict for existing entries
         if not isinstance(self._metadata[url_hash]["sources"], defaultdict):
-            self._metadata[url_hash]["sources"] = defaultdict(
-                list, self._metadata[url_hash]["sources"]
-            )
+            self._metadata[url_hash]["sources"] = defaultdict(list, self._metadata[url_hash]["sources"])
 
         # Add this discovery
         discovery = {
@@ -102,11 +100,7 @@ class URLMetadataStore:
 
     def get_urls_by_source(self, source: str) -> list[str]:
         """Get all URL hashes discovered by a specific source."""
-        return [
-            url_hash
-            for url_hash, metadata in self._metadata.items()
-            if source in metadata["sources"]
-        ]
+        return [url_hash for url_hash, metadata in self._metadata.items() if source in metadata["sources"]]
 
     def get_unprocessed_urls(self, processed_dir: Path) -> list[str]:
         """Get URL hashes that don't have files in the processed directory."""

@@ -4,7 +4,49 @@ import structlog
 from openai import OpenAI
 from pydantic import BaseModel
 
+from dagster_project.core.summary_schema import KnowledgeGraphSummary
+
 logger = structlog.get_logger()
+
+DEFAULT_MODEL = "mistralai/mistral-medium-3.1"
+
+DEFAULT_SYSTEM_PROMPT = """Extract information from content into structured JSON \
+for programmatic processing.
+
+Focus on:
+- What's the ONE-SENTENCE answer to the article title?
+- What's UNIQUE or NOVEL here (vs typical articles on this topic)?
+- How do concepts CONNECT (visual relationships)?
+- What aids MEMORY (sticky phrases, metaphors)?
+
+CRITICAL: Capture ALL details, including:
+- Full context around quotes (who said it, when, why - not just the quote)
+- Exact numbers and team sizes (e.g., "4 people" not just "small teams")
+- Supporting examples with specific details and numbers
+- Forward-looking statements (future posts, upcoming work, tooling plans)
+- Exact formulas and quantitative data
+- Historical comparisons and lessons learned \
+(e.g., how SOA failed, what went wrong with predecessors)
+- Cautionary tales and warnings about pitfalls
+- Contrarian examples that illustrate principles"""
+
+DEFAULT_USER_PROMPT_TEMPLATE = """Extract structured information from this {content_type}:
+
+Title: {title}
+
+Content:
+{content}
+
+Provide comprehensive extraction covering:
+- Core answer (one sentence directly answering the title)
+- Unique insights (novel/contrarian views, standout data)
+- Classification (topics, content type, depth level)
+- Core insights (with memory aids, supporting facts, quantitative data, connections)
+- Knowledge graph ASCII (visual relationships with arrows and hierarchies)
+- Entities (people with full quote context, organizations, concepts, formulas with exact \
+numbers, examples with specific details)
+- Forward-looking statements (future posts, planned content)
+- Memory aids (key phrases with full context, visual metaphors, mnemonics)"""
 
 
 class SummaryRequest(BaseModel):
@@ -15,16 +57,30 @@ class SummaryRequest(BaseModel):
 
 
 class SummaryResult(BaseModel):
-    summary: str
+    structured_summary: KnowledgeGraphSummary
     model: str
     tokens_used: int
     latency_ms: int
 
 
 class SummaryGenerator:
-    def __init__(self, openai_client: OpenAI, model: str = "gpt-4o"):
+    def __init__(
+        self,
+        openai_client: OpenAI,
+        model: str = DEFAULT_MODEL,
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+        user_prompt_template: str = DEFAULT_USER_PROMPT_TEMPLATE,
+        response_schema: type[BaseModel] = KnowledgeGraphSummary,
+        temperature: float = 0,
+        max_tokens: int = 3000,
+    ):
         self.client = openai_client
         self.model = model
+        self.system_prompt = system_prompt
+        self.user_prompt_template = user_prompt_template
+        self.response_schema = response_schema
+        self.temperature = temperature
+        self.max_tokens = max_tokens
 
     def generate(self, request: SummaryRequest) -> SummaryResult:
         logger.info("summarize.started", url=request.url, title=request.title)
@@ -32,21 +88,18 @@ class SummaryGenerator:
         messages = self._create_prompt(request)
 
         start_time = time.time()
-        response = self.client.chat.completions.create(
+        response = self.client.beta.chat.completions.parse(
             model=self.model,
             messages=messages,
-            temperature=0.7,
-            max_tokens=1000,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            response_format=self.response_schema,
         )
         latency_ms = int((time.time() - start_time) * 1000)
 
-        summary_text = response.choices[0].message.content
+        structured_summary = response.choices[0].message.parsed
 
-        tokens_used = (
-            response.usage.total_tokens
-            if hasattr(response, "usage") and hasattr(response.usage, "total_tokens")
-            else 0
-        )
+        tokens_used = response.usage.total_tokens if hasattr(response, "usage") and hasattr(response.usage, "total_tokens") else 0
 
         model_used = response.model if hasattr(response, "model") else self.model
 
@@ -60,34 +113,21 @@ class SummaryGenerator:
         )
 
         return SummaryResult(
-            summary=summary_text,
+            structured_summary=structured_summary,
             model=model_used,
             tokens_used=tokens_used,
             latency_ms=latency_ms,
         )
 
     def _create_prompt(self, request: SummaryRequest) -> list[dict[str, str]]:
-        system_message = {
-            "role": "system",
-            "content": (
-                "You are a helpful assistant that creates concise, informative summaries "
-                "of articles and videos. Focus on key points, main ideas, and actionable insights."
-            ),
-        }
+        system_message = {"role": "system", "content": self.system_prompt}
 
-        content_type = "video transcript" if request.content_type == "youtube" else "article"
+        user_content = self.user_prompt_template.format(
+            content_type=("video transcript" if request.content_type == "youtube" else "article"),
+            title=request.title,
+            content=request.content,
+        )
 
-        user_message = {
-            "role": "user",
-            "content": (
-                f"Please summarize this {content_type}:\n\n"
-                f"Title: {request.title}\n\n"
-                f"Content:\n{request.content}\n\n"
-                f"Provide a clear, structured summary covering:\n"
-                f"1. Main topic and key points\n"
-                f"2. Important details and supporting information\n"
-                f"3. Key takeaways or conclusions"
-            ),
-        }
+        user_message = {"role": "user", "content": user_content}
 
         return [system_message, user_message]

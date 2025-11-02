@@ -1,14 +1,21 @@
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
 import structlog
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+os.environ["PROJECT_ROOT"] = str(project_root)
 
-from dagster_project.assets.content_extraction import ExtractedContent
-from dagster_project.ops.html_extractor import HTMLExtractionError, extract_html_content
+from dagster_project.assets.content_extraction import ExtractedContent  # noqa: E402
+
+from dagster_project.ops.html_extractor import (  # noqa: E402
+    HTMLExtractionError,
+    extract_html_content,
+)
 
 logger = structlog.get_logger()
 
@@ -89,7 +96,7 @@ def main():
 
     url = sys.argv[1]
 
-    eval_dataset_dir = Path(__file__).parent / "eval_dataset"
+    eval_dataset_dir = project_root / "experiments" / "v1" / "eval_dataset"
     eval_dataset_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = add_example_from_url(url, eval_dataset_dir)

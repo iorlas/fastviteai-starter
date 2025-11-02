@@ -1,0 +1,145 @@
+from unittest.mock import MagicMock
+
+import pytest
+from openai import OpenAI
+
+from dagster_project.core.summarizer import (
+    DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_USER_PROMPT_TEMPLATE,
+    SummaryGenerator,
+    SummaryRequest,
+)
+from dagster_project.core.summary_schema import (
+    Classification,
+    CoreInsight,
+    Entity,
+    KnowledgeGraphSummary,
+    MemoryAids,
+)
+
+
+@pytest.fixture
+def mock_openai_client():
+    client = MagicMock(spec=OpenAI)
+
+    mock_structured_output = KnowledgeGraphSummary(
+        core_answer="Microservices enable independent team scaling and rapid deployment.",
+        unique_insights=[
+            "Amazon's two-pizza rule limits teams to 6-8 members",
+            "Conway's Law drives microservice boundaries",
+        ],
+        classification=Classification(
+            primary_topic="#microservices",
+            related_topics=["#architecture", "#scaling"],
+            content_type="Tutorial",
+            depth="Intermediate",
+        ),
+        core_insights=[
+            CoreInsight(
+                insight="Small autonomous teams are more productive",
+                memory_aid="Two-pizza teams",
+                supporting_facts=["Teams of 6-8 members can move faster"],
+                quantitative_data="6-8 members per team",
+                why_it_matters="Reduces coordination overhead",
+                connections=["Related to Conway's Law"],
+            )
+        ],
+        knowledge_graph_ascii="Team Size -> Productivity\n  |-> Communication\n  |-> Autonomy",
+        people=[Entity(name="Werner Vogels", context="Amazon CTO, advocates microservices")],
+        organizations=[Entity(name="Amazon", context="Pioneer of microservices architecture")],
+        concepts=[Entity(name="Conway's Law", context="Team structure mirrors system design")],
+        formulas_data=[Entity(name="Two-pizza rule", context="6-8 members per team")],
+        examples_analogies=[Entity(name="Amazon example", context="Decomposed monolith into services")],
+        forward_looking=[],
+        memory_aids=MemoryAids(
+            key_phrase="Two pizzas should feed the whole team",
+            visual_metaphor="Small, autonomous pizza-sized teams",
+            mnemonic=None,
+        ),
+    )
+
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.parsed = mock_structured_output
+    mock_response.model = "gpt-4o"
+    mock_response.usage.total_tokens = 1500
+
+    client.beta.chat.completions.parse.return_value = mock_response
+
+    return client
+
+
+@pytest.mark.integration
+def test_summary_generator_structured_extraction(mock_openai_client):
+    generator = SummaryGenerator(
+        openai_client=mock_openai_client,
+        model="mistralai/mistral-medium-3.1",
+        system_prompt=DEFAULT_SYSTEM_PROMPT,
+        user_prompt_template=DEFAULT_USER_PROMPT_TEMPLATE,
+        response_schema=KnowledgeGraphSummary,
+        temperature=0,
+        max_tokens=3000,
+    )
+
+    request = SummaryRequest(
+        content="Content about microservices and team organization.",
+        title="Microservices Architecture Guide",
+        content_type="article",
+        url="https://example.com/microservices",
+    )
+
+    result = generator.generate(request)
+
+    assert result.model == "gpt-4o"
+    assert result.tokens_used == 1500
+    assert result.latency_ms >= 0
+
+    summary = result.structured_summary
+    assert isinstance(summary, KnowledgeGraphSummary)
+    assert summary.core_answer == "Microservices enable independent team scaling and rapid deployment."
+    assert len(summary.unique_insights) == 2
+    assert summary.classification.primary_topic == "#microservices"
+    assert len(summary.core_insights) == 1
+    assert summary.core_insights[0].memory_aid == "Two-pizza teams"
+
+
+@pytest.mark.integration
+def test_summary_generator_uses_baseline_prompt(mock_openai_client):
+    generator = SummaryGenerator(
+        openai_client=mock_openai_client,
+        model="mistralai/mistral-medium-3.1",
+        system_prompt=DEFAULT_SYSTEM_PROMPT,
+        user_prompt_template=DEFAULT_USER_PROMPT_TEMPLATE,
+        response_schema=KnowledgeGraphSummary,
+        temperature=0,
+        max_tokens=3000,
+    )
+
+    request = SummaryRequest(
+        content="Test content",
+        title="Test Title",
+        content_type="article",
+        url="https://example.com/test",
+    )
+
+    generator.generate(request)
+
+    mock_openai_client.beta.chat.completions.parse.assert_called_once()
+    call_args = mock_openai_client.beta.chat.completions.parse.call_args
+
+    assert call_args.kwargs["model"] == "mistralai/mistral-medium-3.1"
+    assert call_args.kwargs["temperature"] == 0
+    assert call_args.kwargs["max_tokens"] == 3000
+    assert call_args.kwargs["response_format"] == KnowledgeGraphSummary
+
+    messages = call_args.kwargs["messages"]
+    assert len(messages) == 2
+    assert messages[0]["role"] == "system"
+    assert "Extract information from content" in messages[0]["content"]
+    assert "CRITICAL: Capture ALL details" in messages[0]["content"]
+    assert "ONE-SENTENCE answer" in messages[0]["content"]
+
+    assert messages[1]["role"] == "user"
+    assert "Test Title" in messages[1]["content"]
+    assert "Test content" in messages[1]["content"]
+    assert "Provide comprehensive extraction" in messages[1]["content"]

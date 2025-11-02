@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "mlflow>=2.20.0",
     "fastapi>=0.100.0",
+    "streamlit>=1.51.0",
 ]
 
 [dependency-groups]
@@ -40,7 +41,7 @@ packages = ["src"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 140
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -49,6 +50,9 @@ ignore = []
 [tool.ty.environment]
 python-version = "3.12"
 python = "./.venv"
+
+[tool.ty.src]
+include = ["dagster_project", "tests"]
 
 [tool.ty.rules]
 # Core type safety - error

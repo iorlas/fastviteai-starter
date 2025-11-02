@@ -42,9 +42,7 @@ class InsightsEvaluator:
         with open(insights_file) as f:
             return json.load(f)
 
-    def check_insights_coverage(
-        self, summary: str, insights: list[dict[str, Any]], source_content: str
-    ) -> dict[str, Any]:
+    def check_insights_coverage(self, summary: str, insights: list[dict[str, Any]], source_content: str) -> dict[str, Any]:
         """
         Use LLM to check which insights are present in the summary
 
@@ -60,9 +58,7 @@ class InsightsEvaluator:
             }
 
         # Build prompt for LLM to check each insight
-        insights_text = "\n".join(
-            [f"{i + 1}. {ins['insight']} [{ins['vitality']}]" for i, ins in enumerate(insights)]
-        )
+        insights_text = "\n".join([f"{i + 1}. {ins['insight']} [{ins['vitality']}]" for i, ins in enumerate(insights)])
 
         prompt = f"""You are evaluating a summary against a list of insights.
 
@@ -88,9 +84,7 @@ Evaluate each insight and return the results."""
 
         # Parse structured response
         parsed_response = response.choices[0].message.parsed
-        coverage_results = [
-            {"insight_id": e.insight_id, "status": e.status} for e in parsed_response.evaluations
-        ]
+        coverage_results = [{"insight_id": e.insight_id, "status": e.status} for e in parsed_response.evaluations]
 
         logger.debug("parsed_coverage_results", count=len(coverage_results))
 
@@ -99,16 +93,13 @@ Evaluate each insight and return the results."""
         vital_found = sum(
             1
             for result in coverage_results
-            if insights[result["insight_id"] - 1]["vitality"] == "vital"
-            and result["status"] in ["yes", "partial"]
+            if insights[result["insight_id"] - 1]["vitality"] == "vital" and result["status"] in ["yes", "partial"]
         )
 
         all_found = sum(1 for result in coverage_results if result["status"] in ["yes", "partial"])
 
         return {
-            "vital_coverage_pct": (vital_found / len(vital_insights) * 100)
-            if vital_insights
-            else 0.0,
+            "vital_coverage_pct": (vital_found / len(vital_insights) * 100) if vital_insights else 0.0,
             "all_coverage_pct": (all_found / len(insights) * 100) if insights else 0.0,
             "vital_found": vital_found,
             "vital_total": len(vital_insights),
@@ -125,9 +116,7 @@ Evaluate each insight and return the results."""
         """
         from mlflow.metrics import MetricValue, make_metric
 
-        def insights_eval_fn(
-            predictions, metrics=None, inputs=None, targets=None, parameters=None
-        ) -> MetricValue:
+        def insights_eval_fn(predictions, metrics=None, inputs=None, targets=None, parameters=None) -> MetricValue:
             """Evaluates insights coverage with LLM justification"""
             scores = []
             justifications = []
@@ -141,12 +130,7 @@ Evaluate each insight and return the results."""
                     justifications.append("No insights provided for evaluation")
                     continue
 
-                insights_text = "\n".join(
-                    [
-                        f"{i + 1}. {ins['insight']} [{ins['vitality']}]"
-                        for i, ins in enumerate(insights)
-                    ]
-                )
+                insights_text = "\n".join([f"{i + 1}. {ins['insight']} [{ins['vitality']}]" for i, ins in enumerate(insights)])
 
                 eval_prompt = f"""Evaluate summary insights preservation.
 
@@ -266,10 +250,7 @@ Return your evaluation."""
 
         readability_metric = make_genai_metric(
             name="readability",
-            definition=(
-                "Readability measures how clear, well-structured, and easy to understand "
-                "the summary is for a general audience."
-            ),
+            definition=("Readability measures how clear, well-structured, and easy to understand the summary is for a general audience."),
             grading_prompt=(
                 "Score the summary's readability on a scale of 1-5:\n"
                 "1 = Confusing, poor grammar, hard to follow\n"
@@ -300,9 +281,7 @@ Return your evaluation."""
 
         return [faithfulness_metric, conciseness_metric, readability_metric]
 
-    def evaluate_summary(
-        self, summary: str, source_content: str, content_file: Path
-    ) -> dict[str, Any]:
+    def evaluate_summary(self, summary: str, source_content: str, content_file: Path) -> dict[str, Any]:
         """
         Evaluate a single summary
 

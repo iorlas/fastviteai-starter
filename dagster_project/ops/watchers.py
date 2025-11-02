@@ -23,8 +23,7 @@ class RSSWatcher:
                 # Log but continue processing if entries are available
                 if not feed.entries:
                     raise RSSWatcherError(
-                        f"Malformed RSS feed with no entries: {source_url}"
-                        f" (error: {feed.get('bozo_exception', 'unknown')})"
+                        f"Malformed RSS feed with no entries: {source_url} (error: {feed.get('bozo_exception', 'unknown')})"
                     )
 
             # Extract links from feed entries

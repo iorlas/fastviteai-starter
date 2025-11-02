@@ -9,7 +9,6 @@ import structlog
 import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
-
 from schemas import KnowledgeGraphSummary
 
 load_dotenv()
@@ -27,9 +26,7 @@ def load_test_data(test_path: Path) -> dict:
         return json.load(f)
 
 
-def call_llm(
-    model: str, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int
-) -> tuple[dict, dict]:
+def call_llm(model: str, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int) -> tuple[dict, dict]:
     start_time = time.time()
 
     if model.startswith("openai/"):
@@ -74,7 +71,7 @@ def call_llm(
         )
 
         summary_obj = response.choices[0].message.parsed
-        output = summary_obj.model_dump()
+        output = summary_obj.model_dump() if summary_obj else {}
 
         metadata = {
             "latency": round(time.time() - start_time, 2),
@@ -90,9 +87,7 @@ def run_experiment(experiment_name: str, model: str, test_file: Path) -> None:
     experiments = load_experiments()
 
     if experiment_name not in experiments:
-        log.error(
-            "experiment_not_found", experiment=experiment_name, available=list(experiments.keys())
-        )
+        log.error("experiment_not_found", experiment=experiment_name, available=list(experiments.keys()))
         sys.exit(1)
 
     exp = experiments[experiment_name]

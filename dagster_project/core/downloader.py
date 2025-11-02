@@ -60,9 +60,7 @@ class HTTPDownloader:
             return DownloadResult(
                 url=url,
                 html_content="",
-                status_code=getattr(e.response, "status_code", None)
-                if hasattr(e, "response")
-                else None,
+                status_code=getattr(e.response, "status_code", None) if hasattr(e, "response") else None,
                 headers={},
                 final_url=url,
                 download_timestamp=datetime.now(UTC).isoformat(),

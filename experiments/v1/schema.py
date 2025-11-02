@@ -19,14 +19,10 @@ class CoreInsight(BaseModel):
 
     insight: str = Field(description="Main insight statement")
     memory_aid: str = Field(description="Key phrase to remember this insight")
-    supporting_facts: list[str] = Field(
-        description="Supporting evidence and examples with exact details"
-    )
+    supporting_facts: list[str] = Field(description="Supporting evidence and examples with exact details")
     quantitative_data: str | None = Field(None, description="Exact numbers, formulas, or metrics")
     why_it_matters: str = Field(description="Practical implication or importance")
-    connections: list[str] = Field(
-        default_factory=list, description="How this connects to other insights"
-    )
+    connections: list[str] = Field(default_factory=list, description="How this connects to other insights")
 
 
 class Entity(BaseModel):
@@ -49,32 +45,22 @@ class KnowledgeGraphSummary(BaseModel):
 
     core_answer: str = Field(description="One clear sentence directly answering the article title")
 
-    unique_insights: list[str] = Field(
-        description="Novel insights, contrarian views, or standout data not found in typical articles"
-    )
+    unique_insights: list[str] = Field(description="Novel insights, contrarian views, or standout data not found in typical articles")
 
     classification: Classification
 
-    core_insights: list[CoreInsight] = Field(
-        description="Hierarchical insights with memory aids and supporting details"
-    )
+    core_insights: list[CoreInsight] = Field(description="Hierarchical insights with memory aids and supporting details")
 
-    knowledge_graph_ascii: str = Field(
-        description="ASCII diagram showing key relationships using arrows and hierarchies"
-    )
+    knowledge_graph_ascii: str = Field(description="ASCII diagram showing key relationships using arrows and hierarchies")
 
     people: list[Entity] = Field(
         default_factory=list,
         description="People mentioned with full quote context (who, when, why)",
     )
 
-    organizations: list[Entity] = Field(
-        default_factory=list, description="Organizations/companies with context and relevance"
-    )
+    organizations: list[Entity] = Field(default_factory=list, description="Organizations/companies with context and relevance")
 
-    concepts: list[Entity] = Field(
-        default_factory=list, description="Key concepts/terms with brief definitions"
-    )
+    concepts: list[Entity] = Field(default_factory=list, description="Key concepts/terms with brief definitions")
 
     formulas_data: list[Entity] = Field(
         default_factory=list,

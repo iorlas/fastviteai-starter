@@ -49,9 +49,7 @@ def extract_youtube_content(url: str) -> YouTubeContent:
 
             # If no transcript, use description as fallback
             if not transcript:
-                transcript = (
-                    description if description else "No transcript or description available"
-                )
+                transcript = description if description else "No transcript or description available"
 
             # Build metadata dict
             extracted_at = datetime.now(UTC).isoformat()

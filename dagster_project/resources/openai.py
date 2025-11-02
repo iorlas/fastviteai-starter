@@ -37,10 +37,7 @@ class OpenAIClient(ConfigurableResource):
 
     def _validate_config(self) -> None:
         if not self.api_key:
-            raise ValueError(
-                "OPENAI_API_KEY environment variable is required but not set. "
-                "Please set it in your .env file or environment."
-            )
+            raise ValueError("OPENAI_API_KEY environment variable is required but not set. Please set it in your .env file or environment.")
 
     def setup_for_execution(self, context) -> None:
         self._validate_config()
@@ -58,9 +55,7 @@ class OpenAIClient(ConfigurableResource):
 
         # Log request metadata
         context.log.debug(
-            f"OpenAI API request: model={self.model}, "
-            f"messages={len(messages)}, temp={temperature}, "
-            f"max_tokens={max_tokens or 'unlimited'}"
+            f"OpenAI API request: model={self.model}, messages={len(messages)}, temp={temperature}, max_tokens={max_tokens or 'unlimited'}"
         )
 
         # Make API call using OpenAI client

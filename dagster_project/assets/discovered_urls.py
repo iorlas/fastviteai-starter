@@ -68,10 +68,7 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
 
     watcher = RSSWatcher()
     for feed_url in monitoring_urls:
-        is_rss_feed = any(
-            pattern in feed_url.lower()
-            for pattern in [".xml", ".rss", "/feed", "/rss", "feeds/", "atom.xml"]
-        )
+        is_rss_feed = any(pattern in feed_url.lower() for pattern in [".xml", ".rss", "/feed", "/rss", "feeds/", "atom.xml"])
 
         if is_rss_feed:
             logger.info("discovery.rss_feed", feed_url=feed_url)
@@ -111,9 +108,7 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
     )
 
     existing_partitions = set(context.instance.get_dynamic_partitions(url_partitions.name))
-    new_partitions = [
-        url_hash for url_hash in unique_url_hashes if url_hash not in existing_partitions
-    ]
+    new_partitions = [url_hash for url_hash in unique_url_hashes if url_hash not in existing_partitions]
 
     if new_partitions:
         context.instance.add_dynamic_partitions(

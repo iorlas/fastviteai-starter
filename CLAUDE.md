@@ -12,3 +12,6 @@ This is a doctrine, non-negotiatable rules
 - use context7 at planning and analysis to prepare for stuff. Use it also when you are in trouble
 - Use structlog instead of print. Don't be too verbal, we care a lot about code volume
 - Use ideomatic approaches only. If you need to diverge - ask.
+- All imports should be at the top of the file - no inline imports
+- "Divide and conquer" as a methodology: components with concentrated logic + orchestrator. Yet, no enterprise scale
+- Happy paths - first. Fail often, fail early - not worth it handling negative cases unless we will face it. If it really necessary - ask me an opinion.

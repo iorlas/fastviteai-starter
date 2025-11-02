@@ -1,7 +1,7 @@
 import structlog
 from dagster import AssetExecutionContext, Backoff, RetryPolicy, asset
 
-from dagster_project.core.summarizer import SummaryGenerator, SummaryRequest
+from dagster_project.core.summarizer import SummaryRequest
 from dagster_project.partitions import url_partitions
 from dagster_project.url_metadata import URLMetadataStore
 
@@ -11,7 +11,7 @@ logger = structlog.get_logger()
 @asset(
     partitions_def=url_partitions,
     io_manager_key="silver_io_manager",
-    required_resource_keys={"openai"},
+    required_resource_keys={"summary_generator"},
     retry_policy=RetryPolicy(
         max_retries=3,
         delay=1,
@@ -69,7 +69,7 @@ def silver_summary(
 
         return result
 
-    openai_resource = context.resources.openai
+    summary_generator = context.resources.summary_generator
     title = silver_extracted_content.get("title", canonical_url)
 
     logger.info(
@@ -77,14 +77,12 @@ def silver_summary(
         url_hash=url_hash,
         canonical_url=canonical_url,
         title=title,
+        model=summary_generator.generator.model,
+        temperature=summary_generator.generator.temperature,
     )
 
     try:
-        generator = SummaryGenerator(
-            openai_client=openai_resource.client, model=openai_resource.model
-        )
-
-        result = generator.generate(
+        result = summary_generator.generator.generate(
             SummaryRequest(
                 content=silver_extracted_content.get("content", ""),
                 title=title,
@@ -100,6 +98,8 @@ def silver_summary(
                 "model": result.model,
                 "tokens_used": result.tokens_used,
                 "latency_ms": result.latency_ms,
+                "core_answer": result.structured_summary.core_answer,
+                "unique_insights_count": len(result.structured_summary.unique_insights),
             }
         )
 
@@ -109,7 +109,7 @@ def silver_summary(
             "title": title,
             "status": "success",
             "content_type": silver_extracted_content.get("content_type", "unknown"),
-            "summary": result.summary,
+            "structured_summary": result.structured_summary.model_dump(),
             "model": result.model,
             "tokens_used": result.tokens_used,
             "latency_ms": result.latency_ms,
