@@ -105,6 +105,9 @@ def render_compact_card(summary_data: dict[str, Any]) -> None:
 
         st.markdown(f"**📝** {summary.core_answer}")
 
+        if summary.why_this_matters:
+            st.markdown(f"**💎 Why:** {summary.why_this_matters}")
+
         if summary.unique_insights:
             with st.expander(f"💡 {len(summary.unique_insights)} Unique Insights"):
                 for insight in summary.unique_insights[:3]:
@@ -211,6 +214,12 @@ def render_structured_summary(summary_data: dict[str, Any], title: str, url: str
             st.caption(f"{format_timestamp(created_at)}")
 
         st.info(f"**📝 Core Answer:** {summary.core_answer}")
+
+        if summary.why_this_matters:
+            st.success(f"**💎 Why This Matters:** {summary.why_this_matters}")
+
+        if summary.expert_opinion:
+            st.markdown(f"**🎓 Expert Opinion:** _{summary.expert_opinion}_")
 
         tab1, tab2, tab3, tab4 = st.tabs(["💡 Insights", "🎯 Details", "🗺️ Graph & Data", "🧠 Memory"])
 

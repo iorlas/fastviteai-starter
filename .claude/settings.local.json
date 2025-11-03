@@ -105,7 +105,13 @@
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains mv:*)",
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains status --short)",
       "Bash(/dev/null)",
-      "Bash(experiments/v3/test_cases/case_001.json)"
+      "Bash(experiments/v3/test_cases/case_001.json)",
+      "WebFetch(domain:hn.algolia.com)",
+      "WebFetch(domain:www.pythonforbeginners.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:deepeshsoni.com)",
+      "WebFetch(domain:hacker-news.firebaseio.com)",
+      "WebFetch(domain:pypi.org)"
     ],
     "deny": [],
     "ask": []

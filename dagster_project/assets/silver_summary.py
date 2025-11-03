@@ -16,6 +16,7 @@ def silver_summary(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
     silver_extracted_content: dict,
+    silver_discussions: dict,
 ) -> dict:
     """Generate AI summaries from extracted content.
 
@@ -79,6 +80,25 @@ def silver_summary(
 
         title = extracted_content.get("title", url)
 
+        discussion_data = None
+        discussion_metadata = None
+        if silver_io_manager.exists("silver_discussions", url_hash):
+            try:
+                discussion_data_full = silver_io_manager.load("silver_discussions", url_hash)
+                discussion_data = discussion_data_full.get("comments", [])
+                discussion_metadata = discussion_data_full.get("metadata", {})
+                logger.info(
+                    "silver.summary.with_discussions",
+                    url_hash=url_hash,
+                    comments=len(discussion_data),
+                )
+            except Exception as e:
+                logger.warning(
+                    "silver.summary.discussion_load_failed",
+                    url_hash=url_hash,
+                    error=str(e),
+                )
+
         context.log.info(f"Summarizing: {title[:80]}...")
         logger.info(
             "silver.summary.processing",
@@ -86,6 +106,7 @@ def silver_summary(
             url=url,
             title=title,
             model=summary_generator.generator.model,
+            has_discussions=discussion_data is not None,
         )
 
         try:
@@ -95,6 +116,8 @@ def silver_summary(
                     title=title,
                     content_type=extracted_content.get("content_type", "unknown"),
                     url=url,
+                    discussions=discussion_data,
+                    discussion_metadata=discussion_metadata,
                 )
             )
 

@@ -55,6 +55,8 @@ class SummaryRequest(BaseModel):
     title: str
     content_type: str
     url: str
+    discussions: list[dict] | None = None
+    discussion_metadata: dict | None = None
 
 
 class SummaryResult(BaseModel):
@@ -161,6 +163,41 @@ class SummaryGenerator:
             content=request.content,
         )
 
+        if request.discussions and request.discussion_metadata:
+            discussion_section = self._format_discussions(request.discussions, request.discussion_metadata)
+            user_content += f"\n\n{discussion_section}"
+
         user_message = {"role": "user", "content": user_content}
 
         return [system_message, user_message]
+
+    def _format_discussions(self, discussions: list[dict], metadata: dict) -> str:
+        total_comments = metadata.get("total_comments", 0)
+        platforms = ", ".join(metadata.get("platforms", []))
+
+        discussion_text = f"""
+## Community Discussions
+
+Found {total_comments} comments across {platforms}.
+
+Top Comments (weighted by votes, depth, and quality):
+"""
+
+        for idx, comment in enumerate(discussions[:20], 1):
+            author = comment.get("author", "Unknown")
+            text = comment.get("text", "")
+            points = comment.get("points")
+            depth = comment.get("depth", 0)
+
+            points_str = f" ({points} points)" if points else ""
+            depth_str = f" [depth {depth}]" if depth > 0 else ""
+
+            discussion_text += f"\n{idx}. {author}{points_str}{depth_str}:\n{text}\n"
+
+        discussion_text += """
+Based on these discussions, include in your response:
+- discussion_summary: Overall sentiment, key themes, top opinions, debate points, expert perspectives
+- discussion_metrics: Total stories, comments, platforms, avg quality score
+"""
+
+        return discussion_text

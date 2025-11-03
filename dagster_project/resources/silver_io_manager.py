@@ -46,7 +46,7 @@ class SilverIOManager(ConfigurableIOManager):
         }
 
         with output_path.open("w") as f:
-            json.dump(metadata, f, indent=2)
+            json.dump(metadata, f, indent=2, default=str)
 
         if "summar" in asset_name:
             self._generate_markdown(output_path, metadata)

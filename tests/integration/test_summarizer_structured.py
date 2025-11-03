@@ -25,6 +25,15 @@ def mock_openai_client():
 
     mock_structured_output = KnowledgeGraphSummary(
         core_answer="Microservices enable independent team scaling and rapid deployment.",
+        why_this_matters=(
+            "Essential reading for engineering leaders scaling teams beyond 20 people, "
+            "as it provides proven patterns for maintaining velocity during growth."
+        ),
+        expert_opinion=(
+            "This guide distills Amazon's hard-won lessons into actionable principles. "
+            "The two-pizza rule and Conway's Law insights are particularly valuable "
+            "for organizations transitioning from monoliths."
+        ),
         unique_insights=[
             "Amazon's two-pizza rule limits teams to 6-8 members",
             "Conway's Law drives microservice boundaries",
@@ -152,6 +161,8 @@ def test_summary_generator_retries_on_validation_error():
 
     mock_structured_output = KnowledgeGraphSummary(
         core_answer="Success on retry",
+        why_this_matters="Demonstrates retry mechanism works correctly.",
+        expert_opinion="Well-implemented retry logic ensures robustness.",
         unique_insights=["Retry worked"],
         classification=Classification(
             primary_topic="#test",
