@@ -1,17 +1,43 @@
-from dagster import AssetSelection, define_asset_job
+from dagster import AssetSelection, RunConfig, define_asset_job
 
-process_partitions_job = define_asset_job(
-    name="process_partitions",
-    description="Process URL partitions through pipeline: bronze → silver (skip discovery)",
+manual_urls_pipeline = define_asset_job(
+    name="manual_urls_pipeline",
+    description="Process URLs from manual_links.txt: discovery → bronze → silver → summary",
     selection=AssetSelection.assets(
+        "discovered_urls",
         "bronze_raw_html",
         "silver_extracted_content",
         "silver_summary",
     ),
+    config=RunConfig(
+        ops={
+            "discovered_urls": {
+                "config": {
+                    "source_type": "manual",
+                }
+            }
+        }
+    ),
+    tags={"pipeline": "manual"},
 )
 
-discovery_only_job = define_asset_job(
-    name="discovery_only",
-    description="Only run URL discovery (adds new partitions, sensor auto-processes)",
-    selection=AssetSelection.assets("discovered_urls"),
+watchers_pipeline = define_asset_job(
+    name="watchers_pipeline",
+    description="Process URLs from monitoring_list.txt via watchers: discovery → bronze → silver → summary",
+    selection=AssetSelection.assets(
+        "discovered_urls",
+        "bronze_raw_html",
+        "silver_extracted_content",
+        "silver_summary",
+    ),
+    config=RunConfig(
+        ops={
+            "discovered_urls": {
+                "config": {
+                    "source_type": "watchers",
+                }
+            }
+        }
+    ),
+    tags={"pipeline": "watchers"},
 )

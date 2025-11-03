@@ -1,13 +1,9 @@
 import hashlib
 
-from dagster import DynamicPartitionsDefinition
-
-url_partitions = DynamicPartitionsDefinition(name="urls")
-
 
 def compute_url_hash(url: str) -> str:
-    """Compute deterministic hash for a URL to use as partition key."""
-    return hashlib.sha256(url.encode()).hexdigest()
+    """Compute deterministic hash for a URL."""
+    return hashlib.sha256(url.encode()).hexdigest()[:16]
 
 
 def normalize_url(url: str) -> str:

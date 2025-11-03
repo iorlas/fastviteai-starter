@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 class SilverIOManager(ConfigurableIOManager):
     """IO Manager for Silver layer (cleaned, standardized data).
 
-    Stores transformed data partitioned by URL hash.
+    Stores transformed data by URL hash.
 
     Directory structure:
         {base_dir}/{asset_name}/{url_hash}.json
@@ -24,47 +24,43 @@ class SilverIOManager(ConfigurableIOManager):
 
     base_dir: str = str(SILVER_EXTRACTED_CONTENT_DIR.parent)
 
-    def _get_path(self, context: OutputContext | InputContext) -> Path:
-        """Construct path using asset key and partition key (URL hash)."""
-        asset_name = context.asset_key.path[-1]
-        partition_key = context.partition_key
+    def _get_path(self, asset_name: str, url_hash: str) -> Path:
+        """Construct path using asset name and URL hash."""
+        return Path(self.base_dir) / asset_name / f"{url_hash}.json"
 
-        if not partition_key:
-            msg = f"SilverIOManager requires partitioned assets, got {context.asset_key}"
-            raise ValueError(msg)
+    def exists(self, asset_name: str, url_hash: str) -> bool:
+        """Check if data exists for given URL hash."""
+        return self._get_path(asset_name, url_hash).exists()
 
-        return Path(self.base_dir) / asset_name / f"{partition_key}.json"
-
-    def handle_output(self, context: OutputContext, obj: Any) -> None:
+    def save(self, asset_name: str, url_hash: str, data: dict) -> None:
         """Save transformed data to silver layer."""
-        output_path = self._get_path(context)
+        output_path = self._get_path(asset_name, url_hash)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         now = datetime.now(UTC).isoformat()
         metadata = {
-            **obj,
+            **data,
             "created_at": now,
             "updated_at": now,
-            "partition_key": context.partition_key,
+            "url_hash": url_hash,
         }
 
         with output_path.open("w") as f:
             json.dump(metadata, f, indent=2)
 
-        asset_name = context.asset_key.path[-1]
         if "summar" in asset_name:
             self._generate_markdown(output_path, metadata)
 
         logger.info(
             "silver.saved",
             asset=asset_name,
-            partition=context.partition_key,
+            url_hash=url_hash,
             path=str(output_path),
         )
 
-    def load_input(self, context: InputContext) -> Any:
+    def load(self, asset_name: str, url_hash: str) -> dict:
         """Load transformed data from silver layer."""
-        input_path = self._get_path(context)
+        input_path = self._get_path(asset_name, url_hash)
 
         if not input_path.exists():
             msg = f"Silver data not found: {input_path}"
@@ -77,8 +73,8 @@ class SilverIOManager(ConfigurableIOManager):
 
             logger.info(
                 "silver.loaded",
-                asset=context.asset_key.path[-1],
-                partition=context.partition_key,
+                asset=asset_name,
+                url_hash=url_hash,
                 path=str(input_path),
             )
 
@@ -87,6 +83,14 @@ class SilverIOManager(ConfigurableIOManager):
         except json.JSONDecodeError as e:
             logger.error("silver.load_error", path=str(input_path), error=str(e))
             raise
+
+    def handle_output(self, context: OutputContext, obj: Any) -> None:
+        """Backward compatibility - not used in list-based processing."""
+        pass
+
+    def load_input(self, context: InputContext) -> Any:
+        """Backward compatibility - not used in list-based processing."""
+        pass
 
     def _generate_markdown(self, json_path: Path, metadata: dict) -> None:
         """Generate human-readable markdown for summaries."""

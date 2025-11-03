@@ -1,0 +1,165 @@
+import structlog
+from dagster import AssetExecutionContext, asset
+
+from dagster_project.core.summarizer import SummaryRequest
+
+logger = structlog.get_logger()
+
+
+@asset(
+    required_resource_keys={"summary_generator", "silver_io_manager"},
+    compute_kind="python",
+    group_name="silver_layer",
+    tags={"layer": "silver", "operation": "summarization"},
+)
+def silver_summary(
+    context: AssetExecutionContext,
+    discovered_urls: list[dict],
+    silver_extracted_content: dict,
+) -> dict:
+    """Generate AI summaries from extracted content.
+
+    Skips URLs that already have summaries (can be deleted to regenerate).
+
+    Returns summary statistics.
+    """
+    silver_io_manager = context.resources.silver_io_manager
+    summary_generator = context.resources.summary_generator
+
+    total_urls = len(discovered_urls)
+    processed = 0
+    cached = 0
+    failed = 0
+
+    for url_data in discovered_urls:
+        url = url_data["url"]
+        url_hash = url_data["url_hash"]
+
+        if silver_io_manager.exists("silver_summary", url_hash):
+            logger.info("silver.summary.cache_hit", url_hash=url_hash, url=url)
+            cached += 1
+            continue
+
+        if not silver_io_manager.exists("silver_extracted_content", url_hash):
+            logger.warning(
+                "silver.summary.no_extracted_content",
+                url_hash=url_hash,
+                url=url,
+            )
+            failed += 1
+            continue
+
+        extracted_content = silver_io_manager.load("silver_extracted_content", url_hash)
+
+        if not extracted_content.get("extraction_success"):
+            logger.warning(
+                "silver.summary.skip_failed_extraction",
+                url_hash=url_hash,
+                url=url,
+            )
+
+            summary_data = {
+                "url": url,
+                "title": extracted_content.get("title", "Unknown"),
+                "status": "failed",
+                "error": extracted_content.get("error_message", "Content extraction failed"),
+                "error_type": "ExtractionError",
+                "content_type": extracted_content.get("content_type", "unknown"),
+                "lineage": {
+                    "silver_extracted_content": {
+                        "extraction_success": False,
+                        "error": extracted_content.get("error_message"),
+                    },
+                },
+            }
+            silver_io_manager.save("silver_summary", url_hash, summary_data)
+            failed += 1
+            continue
+
+        title = extracted_content.get("title", url)
+
+        logger.info(
+            "silver.summary.processing",
+            url_hash=url_hash,
+            url=url,
+            title=title,
+            model=summary_generator.generator.model,
+        )
+
+        try:
+            result = summary_generator.generator.generate(
+                SummaryRequest(
+                    content=extracted_content.get("content", ""),
+                    title=title,
+                    content_type=extracted_content.get("content_type", "unknown"),
+                    url=url,
+                )
+            )
+
+            summary_data = {
+                "url": url,
+                "title": title,
+                "status": "success",
+                "content_type": extracted_content.get("content_type", "unknown"),
+                "structured_summary": result.structured_summary.model_dump(),
+                "model": result.model,
+                "tokens_used": result.tokens_used,
+                "latency_ms": result.latency_ms,
+                "lineage": {
+                    "silver_extracted_content": {
+                        "extraction_success": True,
+                        "content_length": len(extracted_content.get("content", "")),
+                    },
+                },
+            }
+            silver_io_manager.save("silver_summary", url_hash, summary_data)
+            processed += 1
+
+        except Exception as e:
+            logger.error(
+                "silver.summary.failed",
+                url_hash=url_hash,
+                url=url,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+
+            summary_data = {
+                "url": url,
+                "title": title,
+                "status": "failed",
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "content_type": extracted_content.get("content_type", "unknown"),
+                "lineage": {
+                    "silver_extracted_content": {
+                        "extraction_success": True,
+                    },
+                },
+            }
+            silver_io_manager.save("silver_summary", url_hash, summary_data)
+            failed += 1
+
+    logger.info(
+        "silver.summary.complete",
+        total=total_urls,
+        processed=processed,
+        cached=cached,
+        failed=failed,
+    )
+
+    context.add_output_metadata(
+        {
+            "total_urls": total_urls,
+            "processed": processed,
+            "cached": cached,
+            "failed": failed,
+        }
+    )
+
+    return {
+        "total_urls": total_urls,
+        "processed": processed,
+        "cached": cached,
+        "failed": failed,
+    }

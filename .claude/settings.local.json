@@ -98,7 +98,10 @@
       "WebFetch(domain:lilianweng.github.io)",
       "Bash(make typecheck:*)",
       "Bash(prek install:*)",
-      "Bash(prek status:*)"
+      "Bash(prek status:*)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show HEAD:dagster_project/partitions.py)",
+      "Bash(for f in bronze_raw_html.py silver_extracted_content.py silver_summary.py)",
+      "Bash(do echo \"=== $f ===\")"
     ],
     "deny": [],
     "ask": []

@@ -6,14 +6,10 @@ from dagster_project.assets import (
     silver_extracted_content,
     silver_summary,
 )
-from dagster_project.jobs import (
-    discovery_only_job,
-    process_partitions_job,
-)
+from dagster_project.jobs import manual_urls_pipeline, watchers_pipeline
 from dagster_project.resources.io_managers import BronzeIOManager, SilverIOManager
 from dagster_project.resources.summary_generator_resource import summary_generator_resource
 from dagster_project.schedules import monitoring_schedule
-from dagster_project.sensors import discover_and_process_sensor
 
 all_assets = [
     discovered_urls,
@@ -25,14 +21,11 @@ all_assets = [
 defs = Definitions(
     assets=all_assets,
     jobs=[
-        discovery_only_job,
-        process_partitions_job,
+        manual_urls_pipeline,
+        watchers_pipeline,
     ],
     schedules=[
         monitoring_schedule,
-    ],
-    sensors=[
-        discover_and_process_sensor,
     ],
     resources={
         "summary_generator": summary_generator_resource,

@@ -1,9 +1,9 @@
 from dagster_project.jobs.partitioned_pipeline import (
-    discovery_only_job,
-    process_partitions_job,
+    manual_urls_pipeline,
+    watchers_pipeline,
 )
 
 __all__ = [
-    "process_partitions_job",
-    "discovery_only_job",
+    "manual_urls_pipeline",
+    "watchers_pipeline",
 ]

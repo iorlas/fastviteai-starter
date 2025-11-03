@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 class BronzeIOManager(ConfigurableIOManager):
     """IO Manager for Bronze layer (raw, immutable data).
 
-    Stores data partitioned by URL hash. Each URL's raw data is saved once
+    Stores data by URL hash. Each URL's raw data is saved once
     and cached forever (immutable bronze layer principle).
 
     Directory structure:
@@ -23,30 +23,27 @@ class BronzeIOManager(ConfigurableIOManager):
 
     base_dir: str = str(BRONZE_RAW_HTML_DIR.parent)
 
-    def _get_path(self, context: OutputContext | InputContext) -> Path:
-        """Construct path using asset key and partition key (URL hash)."""
-        asset_name = context.asset_key.path[-1]
-        partition_key = context.partition_key
+    def _get_path(self, asset_name: str, url_hash: str) -> Path:
+        """Construct path using asset name and URL hash."""
+        return Path(self.base_dir) / asset_name / f"{url_hash}.json"
 
-        if not partition_key:
-            msg = f"BronzeIOManager requires partitioned assets, got {context.asset_key}"
-            raise ValueError(msg)
+    def exists(self, asset_name: str, url_hash: str) -> bool:
+        """Check if data exists for given URL hash."""
+        return self._get_path(asset_name, url_hash).exists()
 
-        return Path(self.base_dir) / asset_name / f"{partition_key}.json"
-
-    def handle_output(self, context: OutputContext, obj: Any) -> None:
+    def save(self, asset_name: str, url_hash: str, data: Any) -> None:
         """Save raw data to bronze layer.
 
         For bronze layer, we implement caching: if file exists, skip save.
         This ensures immutability and avoids re-downloading.
         """
-        output_path = self._get_path(context)
+        output_path = self._get_path(asset_name, url_hash)
 
         if output_path.exists():
             logger.info(
                 "bronze.cache_hit",
-                asset=context.asset_key.path[-1],
-                partition=context.partition_key,
+                asset=asset_name,
+                url_hash=url_hash,
                 path=str(output_path),
             )
             return
@@ -54,9 +51,9 @@ class BronzeIOManager(ConfigurableIOManager):
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         metadata = {
-            "data": obj,
+            "data": data,
             "created_at": datetime.now(UTC).isoformat(),
-            "partition_key": context.partition_key,
+            "url_hash": url_hash,
         }
 
         with output_path.open("w") as f:
@@ -64,14 +61,14 @@ class BronzeIOManager(ConfigurableIOManager):
 
         logger.info(
             "bronze.saved",
-            asset=context.asset_key.path[-1],
-            partition=context.partition_key,
+            asset=asset_name,
+            url_hash=url_hash,
             path=str(output_path),
         )
 
-    def load_input(self, context: InputContext) -> Any:
+    def load(self, asset_name: str, url_hash: str) -> Any:
         """Load raw data from bronze layer."""
-        input_path = self._get_path(context)
+        input_path = self._get_path(asset_name, url_hash)
 
         if not input_path.exists():
             msg = f"Bronze data not found: {input_path}"
@@ -84,8 +81,8 @@ class BronzeIOManager(ConfigurableIOManager):
 
             logger.info(
                 "bronze.loaded",
-                asset=context.asset_key.path[-1],
-                partition=context.partition_key,
+                asset=asset_name,
+                url_hash=url_hash,
                 path=str(input_path),
             )
 
@@ -94,3 +91,11 @@ class BronzeIOManager(ConfigurableIOManager):
         except json.JSONDecodeError as e:
             logger.error("bronze.load_error", path=str(input_path), error=str(e))
             raise
+
+    def handle_output(self, context: OutputContext, obj: Any) -> None:
+        """Backward compatibility - not used in list-based processing."""
+        pass
+
+    def load_input(self, context: InputContext) -> Any:
+        """Backward compatibility - not used in list-based processing."""
+        pass
