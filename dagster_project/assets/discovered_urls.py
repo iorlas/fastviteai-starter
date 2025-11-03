@@ -4,12 +4,11 @@ import structlog
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.ops.watchers import RSSWatcher, RSSWatcherError
-from dagster_project.partitions import url_partitions
-from dagster_project.url_metadata import URLMetadataStore
+from dagster_project.partitions import compute_url_hash, normalize_url, url_partitions
 from dagster_project.utils.paths import (
+    BRONZE_URL_MAPPING_DIR,
     MANUAL_LINKS_FILE,
     MONITORING_LINKS_FILE,
-    SILVER_SUMMARIES_DIR,
 )
 
 logger = structlog.get_logger()
@@ -30,6 +29,13 @@ def read_links_from_file(file_path: Path) -> list[str]:
     return links
 
 
+def write_url_mapping(url_hash: str, canonical_url: str) -> None:
+    """Write URL hash to canonical URL mapping file."""
+    BRONZE_URL_MAPPING_DIR.mkdir(parents=True, exist_ok=True)
+    mapping_file = BRONZE_URL_MAPPING_DIR / f"{url_hash}.txt"
+    mapping_file.write_text(canonical_url)
+
+
 @asset(
     compute_kind="python",
     group_name="discovery",
@@ -40,27 +46,24 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
 
     This asset:
     1. Discovers URLs from RSS feeds, manual lists, etc.
-    2. Tracks source metadata in URLMetadataStore
+    2. Normalizes URLs and computes hashes
     3. Adds new URLs to dynamic partition definition
     4. Returns summary statistics
 
     Returns:
         Dict with discovery statistics and metadata
     """
-    metadata_store = URLMetadataStore()
-    new_urls = []
+    discovered_hashes = []
     total_discoveries = 0
 
     manual_links = read_links_from_file(MANUAL_LINKS_FILE)
     logger.info("discovery.manual_links", count=len(manual_links))
 
     for url in manual_links:
-        url_hash = metadata_store.add_discovery(
-            canonical_url=url,
-            source="manual",
-            source_metadata={"file": str(MANUAL_LINKS_FILE)},
-        )
-        new_urls.append(url_hash)
+        canonical_url = normalize_url(url)
+        url_hash = compute_url_hash(canonical_url)
+        write_url_mapping(url_hash, canonical_url)
+        discovered_hashes.append(url_hash)
         total_discoveries += 1
 
     monitoring_urls = read_links_from_file(MONITORING_LINKS_FILE)
@@ -81,26 +84,22 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
                 )
 
                 for url in discovered_links:
-                    url_hash = metadata_store.add_discovery(
-                        canonical_url=url,
-                        source="rss",
-                        source_metadata={"feed_url": feed_url},
-                    )
-                    new_urls.append(url_hash)
+                    canonical_url = normalize_url(url)
+                    url_hash = compute_url_hash(canonical_url)
+                    write_url_mapping(url_hash, canonical_url)
+                    discovered_hashes.append(url_hash)
                     total_discoveries += 1
 
             except RSSWatcherError as e:
                 logger.warning("discovery.rss_failed", feed_url=feed_url, error=str(e))
         else:
-            url_hash = metadata_store.add_discovery(
-                canonical_url=feed_url,
-                source="monitoring",
-                source_metadata={"file": str(MONITORING_LINKS_FILE)},
-            )
-            new_urls.append(url_hash)
+            canonical_url = normalize_url(feed_url)
+            url_hash = compute_url_hash(canonical_url)
+            write_url_mapping(url_hash, canonical_url)
+            discovered_hashes.append(url_hash)
             total_discoveries += 1
 
-    unique_url_hashes = list(set(new_urls))
+    unique_url_hashes = list(set(discovered_hashes))
     logger.info(
         "discovery.complete",
         total_discoveries=total_discoveries,
@@ -117,16 +116,12 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
         )
         logger.info("discovery.partitions_added", count=len(new_partitions))
 
-    unprocessed = metadata_store.get_unprocessed_urls(SILVER_SUMMARIES_DIR)
-    logger.info("discovery.unprocessed_urls", count=len(unprocessed))
-
     context.add_output_metadata(
         {
             "total_discoveries": total_discoveries,
             "unique_urls": len(unique_url_hashes),
             "new_partitions": len(new_partitions),
             "existing_partitions": len(existing_partitions),
-            "unprocessed_urls": len(unprocessed),
         }
     )
 
@@ -134,5 +129,4 @@ def discovered_urls(context: AssetExecutionContext) -> dict:
         "total_discoveries": total_discoveries,
         "unique_url_hashes": unique_url_hashes,
         "new_partitions": new_partitions,
-        "unprocessed_count": len(unprocessed),
     }

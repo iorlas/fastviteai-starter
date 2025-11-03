@@ -7,7 +7,7 @@ url_partitions = DynamicPartitionsDefinition(name="urls")
 
 def compute_url_hash(url: str) -> str:
     """Compute deterministic hash for a URL to use as partition key."""
-    return hashlib.sha256(url.encode()).hexdigest()[:16]
+    return hashlib.sha256(url.encode()).hexdigest()
 
 
 def normalize_url(url: str) -> str:

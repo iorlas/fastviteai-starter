@@ -3,7 +3,6 @@ from dagster import AssetExecutionContext, Backoff, RetryPolicy, asset
 
 from dagster_project.core.summarizer import SummaryRequest
 from dagster_project.partitions import url_partitions
-from dagster_project.url_metadata import URLMetadataStore
 
 logger = structlog.get_logger()
 
@@ -26,15 +25,12 @@ def silver_summary(
     silver_extracted_content: dict,
 ) -> dict:
     url_hash = context.partition_key
-    metadata_store = URLMetadataStore()
-    url_metadata = metadata_store.get_metadata(url_hash)
+    canonical_url = silver_extracted_content.get("url")
 
-    if not url_metadata:
-        msg = f"No metadata found for URL hash: {url_hash}"
-        logger.error("silver.summary.no_metadata", url_hash=url_hash)
+    if not canonical_url:
+        msg = f"No URL found in extracted content for hash: {url_hash}"
+        logger.error("silver.summary.no_url", url_hash=url_hash)
         raise ValueError(msg)
-
-    canonical_url = url_metadata["canonical_url"]
 
     if not silver_extracted_content.get("extraction_success"):
         logger.warning(

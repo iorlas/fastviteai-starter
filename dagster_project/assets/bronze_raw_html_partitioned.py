@@ -3,7 +3,7 @@ from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.downloader import HTTPDownloader
 from dagster_project.partitions import url_partitions
-from dagster_project.url_metadata import URLMetadataStore
+from dagster_project.utils.paths import BRONZE_URL_MAPPING_DIR
 
 logger = structlog.get_logger()
 
@@ -17,15 +17,14 @@ logger = structlog.get_logger()
 )
 def bronze_raw_html(context: AssetExecutionContext) -> dict:
     url_hash = context.partition_key
-    metadata_store = URLMetadataStore()
-    url_metadata = metadata_store.get_metadata(url_hash)
+    mapping_file = BRONZE_URL_MAPPING_DIR / f"{url_hash}.txt"
 
-    if not url_metadata:
-        msg = f"No metadata found for URL hash: {url_hash}"
-        logger.error("bronze.no_metadata", url_hash=url_hash)
+    if not mapping_file.exists():
+        msg = f"No URL mapping found for hash: {url_hash}"
+        logger.error("bronze.no_mapping", url_hash=url_hash)
         raise ValueError(msg)
 
-    canonical_url = url_metadata["canonical_url"]
+    canonical_url = mapping_file.read_text().strip()
 
     downloader = HTTPDownloader(timeout=30)
     result = downloader.download(canonical_url)

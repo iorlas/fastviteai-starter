@@ -96,7 +96,9 @@
       "Bash(xargs:*)",
       "Bash(jq:*)",
       "WebFetch(domain:lilianweng.github.io)",
-      "Bash(make typecheck:*)"
+      "Bash(make typecheck:*)",
+      "Bash(prek install:*)",
+      "Bash(prek status:*)"
     ],
     "deny": [],
     "ask": []
