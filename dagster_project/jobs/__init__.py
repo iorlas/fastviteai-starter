@@ -1,4 +1,4 @@
-from dagster_project.jobs.partitioned_pipeline import (
+from dagster_project.jobs.pipelines import (
     manual_urls_pipeline,
     watchers_pipeline,
 )

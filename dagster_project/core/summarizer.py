@@ -2,7 +2,8 @@ import time
 
 import structlog
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from dagster_project.core.summary_schema import KnowledgeGraphSummary
 
@@ -72,7 +73,8 @@ class SummaryGenerator:
         user_prompt_template: str = DEFAULT_USER_PROMPT_TEMPLATE,
         response_schema: type[BaseModel] = KnowledgeGraphSummary,
         temperature: float = 0,
-        max_tokens: int = 3000,
+        max_tokens: int = 8192,
+        max_retries: int = 2,
     ):
         self.client = openai_client
         self.model = model
@@ -81,18 +83,47 @@ class SummaryGenerator:
         self.response_schema = response_schema
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self._retry_attempt = 0
 
     def generate(self, request: SummaryRequest) -> SummaryResult:
-        logger.info("summarize.started", url=request.url, title=request.title)
+        self._retry_attempt = 0
+        return self._generate_with_retry(request)
+
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_fixed(1),
+        retry=retry_if_exception_type(ValidationError),
+        reraise=True,
+    )
+    def _generate_with_retry(self, request: SummaryRequest) -> SummaryResult:
+        self._retry_attempt += 1
+
+        if self._retry_attempt > 1:
+            logger.warning(
+                "summarize.retry",
+                url=request.url,
+                attempt=self._retry_attempt,
+                max_tokens=self.max_tokens * self._retry_attempt,
+            )
+
+        logger.info(
+            "summarize.started",
+            url=request.url,
+            title=request.title,
+            attempt=self._retry_attempt,
+        )
 
         messages = self._create_prompt(request)
+
+        max_tokens_for_attempt = self.max_tokens * self._retry_attempt
 
         start_time = time.time()
         response = self.client.beta.chat.completions.parse(
             model=self.model,
             messages=messages,
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_tokens=max_tokens_for_attempt,
             response_format=self.response_schema,
         )
         latency_ms = int((time.time() - start_time) * 1000)
@@ -110,6 +141,8 @@ class SummaryGenerator:
             model=model_used,
             tokens=tokens_used,
             latency_ms=latency_ms,
+            attempt=self._retry_attempt,
+            max_tokens_used=max_tokens_for_attempt,
         )
 
         return SummaryResult(

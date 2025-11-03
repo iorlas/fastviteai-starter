@@ -26,6 +26,7 @@ def bronze_raw_html(
     downloader = HTTPDownloader(timeout=30)
 
     total_urls = len(discovered_urls)
+    context.log.info(f"Starting bronze layer download for {total_urls} URLs")
     processed = 0
     cached = 0
     failed = 0
@@ -39,7 +40,22 @@ def bronze_raw_html(
             cached += 1
             continue
 
-        logger.info("bronze.downloading", url_hash=url_hash, url=url)
+        was_aggregator = url_data.get("was_aggregator", False)
+        aggregator_info = {}
+        if url_data.get("original_url"):
+            aggregator_info = {
+                "original_url": url_data.get("original_url"),
+                "aggregator_type": url_data.get("aggregator_type"),
+                "aggregator_title": url_data.get("aggregator_title"),
+            }
+
+        logger.info(
+            "bronze.downloading",
+            url_hash=url_hash,
+            url=url,
+            was_aggregator=was_aggregator,
+            **aggregator_info,
+        )
         result = downloader.download(url)
 
         bronze_data = {
@@ -59,16 +75,31 @@ def bronze_raw_html(
         bronze_io_manager.save("bronze_raw_html", url_hash, bronze_data)
 
         if result.success:
+            content_size = len(result.html_content) if result.html_content else 0
+            logger.info(
+                "bronze.download_success",
+                url_hash=url_hash,
+                url=url,
+                status_code=result.status_code,
+                content_size=content_size,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
+            )
             processed += 1
         else:
-            failed += 1
             logger.warning(
                 "bronze.download_failed",
                 url_hash=url_hash,
                 url=url,
                 error=result.error,
+                error_type=result.error_type,
+                status_code=result.status_code,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
             )
+            failed += 1
 
+    context.log.info(f"Bronze layer complete: {processed} downloaded, {cached} cached, {failed} failed (total: {total_urls})")
     logger.info(
         "bronze.complete",
         total=total_urls,

@@ -101,7 +101,11 @@
       "Bash(prek status:*)",
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show HEAD:dagster_project/partitions.py)",
       "Bash(for f in bronze_raw_html.py silver_extracted_content.py silver_summary.py)",
-      "Bash(do echo \"=== $f ===\")"
+      "Bash(do echo \"=== $f ===\")",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains mv:*)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains status --short)",
+      "Bash(/dev/null)",
+      "Bash(experiments/v3/test_cases/case_001.json)"
     ],
     "deny": [],
     "ask": []

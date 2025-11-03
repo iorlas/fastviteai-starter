@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from openai import OpenAI
+from pydantic import ValidationError
 
 from dagster_project.core.summarizer import (
     DEFAULT_SYSTEM_PROMPT,
@@ -143,3 +144,99 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
     assert "Test Title" in messages[1]["content"]
     assert "Test content" in messages[1]["content"]
     assert "Provide comprehensive extraction" in messages[1]["content"]
+
+
+@pytest.mark.integration
+def test_summary_generator_retries_on_validation_error():
+    client = MagicMock(spec=OpenAI)
+
+    mock_structured_output = KnowledgeGraphSummary(
+        core_answer="Success on retry",
+        unique_insights=["Retry worked"],
+        classification=Classification(
+            primary_topic="#test",
+            related_topics=[],
+            content_type="Test",
+            depth="Basic",
+        ),
+        core_insights=[],
+        knowledge_graph_ascii="A -> B",
+        people=[],
+        organizations=[],
+        concepts=[],
+        formulas_data=[],
+        examples_analogies=[],
+        forward_looking=[],
+        memory_aids=MemoryAids(
+            key_phrase="Retry success",
+            visual_metaphor="Second attempt wins",
+        ),
+    )
+
+    mock_success_response = MagicMock()
+    mock_success_response.choices = [MagicMock()]
+    mock_success_response.choices[0].message.parsed = mock_structured_output
+    mock_success_response.model = "test-model"
+    mock_success_response.usage.total_tokens = 500
+
+    call_count = {"count": 0}
+
+    def mock_parse(*args, **kwargs):
+        call_count["count"] += 1
+        if call_count["count"] == 1:
+            raise ValidationError.from_exception_data(
+                "validation_error",
+                [{"type": "json_invalid", "loc": (), "input": "{}", "ctx": {"error": "test"}}],
+            )
+        return mock_success_response
+
+    client.beta.chat.completions.parse.side_effect = mock_parse
+
+    generator = SummaryGenerator(
+        openai_client=client,
+        model="test-model",
+        max_tokens=4096,
+    )
+
+    request = SummaryRequest(
+        content="Test content",
+        title="Test",
+        content_type="article",
+        url="https://example.com",
+    )
+
+    result = generator.generate(request)
+
+    assert result.structured_summary.core_answer == "Success on retry"
+    assert call_count["count"] == 2
+
+
+@pytest.mark.integration
+def test_summary_generator_fails_after_max_retries():
+    client = MagicMock(spec=OpenAI)
+
+    def raise_validation_error(*args, **kwargs):
+        raise ValidationError.from_exception_data(
+            "validation_error",
+            [{"type": "json_invalid", "loc": (), "input": "{}", "ctx": {"error": "test"}}],
+        )
+
+    client.beta.chat.completions.parse.side_effect = raise_validation_error
+
+    generator = SummaryGenerator(
+        openai_client=client,
+        model="test-model",
+        max_tokens=4096,
+    )
+
+    request = SummaryRequest(
+        content="Test content",
+        title="Test",
+        content_type="article",
+        url="https://example.com",
+    )
+
+    with pytest.raises(ValidationError):
+        generator.generate(request)
+
+    assert client.beta.chat.completions.parse.call_count == 2

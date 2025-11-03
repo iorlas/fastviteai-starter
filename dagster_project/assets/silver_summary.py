@@ -27,6 +27,7 @@ def silver_summary(
     summary_generator = context.resources.summary_generator
 
     total_urls = len(discovered_urls)
+    context.log.info(f"Starting AI summarization for {total_urls} URLs using model: {summary_generator.generator.model}")
     processed = 0
     cached = 0
     failed = 0
@@ -78,6 +79,7 @@ def silver_summary(
 
         title = extracted_content.get("title", url)
 
+        context.log.info(f"Summarizing: {title[:80]}...")
         logger.info(
             "silver.summary.processing",
             url_hash=url_hash,
@@ -113,9 +115,11 @@ def silver_summary(
                 },
             }
             silver_io_manager.save("silver_summary", url_hash, summary_data)
+            context.log.info(f"✓ Summary generated ({result.tokens_used} tokens, {result.latency_ms}ms)")
             processed += 1
 
         except Exception as e:
+            context.log.error(f"Summary failed for {title[:50]}: {type(e).__name__} - {str(e)}")
             logger.error(
                 "silver.summary.failed",
                 url_hash=url_hash,
@@ -140,6 +144,7 @@ def silver_summary(
             silver_io_manager.save("silver_summary", url_hash, summary_data)
             failed += 1
 
+    context.log.info(f"✓ Summarization complete: {processed} generated, {cached} cached, {failed} failed (total: {total_urls})")
     logger.info(
         "silver.summary.complete",
         total=total_urls,

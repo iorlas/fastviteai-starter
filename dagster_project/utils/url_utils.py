@@ -3,7 +3,7 @@ import hashlib
 
 def compute_url_hash(url: str) -> str:
     """Compute deterministic hash for a URL."""
-    return hashlib.sha256(url.encode()).hexdigest()[:16]
+    return hashlib.sha256(url.encode()).hexdigest()
 
 
 def normalize_url(url: str) -> str:

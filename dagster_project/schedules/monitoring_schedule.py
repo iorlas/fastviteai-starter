@@ -1,6 +1,6 @@
 from dagster import ScheduleDefinition
 
-from dagster_project.jobs.partitioned_pipeline import watchers_pipeline
+from dagster_project.jobs.pipelines import watchers_pipeline
 
 monitoring_schedule = ScheduleDefinition(
     name="monitoring_schedule",

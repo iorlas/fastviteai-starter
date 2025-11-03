@@ -28,6 +28,7 @@ def silver_extracted_content(
     extractor = ContentExtractor()
 
     total_urls = len(discovered_urls)
+    context.log.info(f"Starting silver extraction for {total_urls} URLs")
     processed = 0
     cached = 0
     failed = 0
@@ -35,6 +36,15 @@ def silver_extracted_content(
     for url_data in discovered_urls:
         url = url_data["url"]
         url_hash = url_data["url_hash"]
+
+        was_aggregator = url_data.get("was_aggregator", False)
+        aggregator_info = {}
+        if url_data.get("original_url"):
+            aggregator_info = {
+                "original_url": url_data.get("original_url"),
+                "aggregator_type": url_data.get("aggregator_type"),
+                "aggregator_title": url_data.get("aggregator_title"),
+            }
 
         if silver_io_manager.exists("silver_extracted_content", url_hash):
             logger.info("silver.extraction.cache_hit", url_hash=url_hash, url=url)
@@ -46,6 +56,8 @@ def silver_extracted_content(
                 "silver.extraction.no_bronze",
                 url_hash=url_hash,
                 url=url,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
             )
             failed += 1
             continue
@@ -58,6 +70,8 @@ def silver_extracted_content(
                 "silver.extraction.empty_html",
                 url_hash=url_hash,
                 url=url,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
             )
             silver_data = {
                 "url": url,
@@ -75,7 +89,13 @@ def silver_extracted_content(
             failed += 1
             continue
 
-        logger.info("silver.extraction.processing", url_hash=url_hash, url=url)
+        logger.info(
+            "silver.extraction.processing",
+            url_hash=url_hash,
+            url=url,
+            was_aggregator=was_aggregator,
+            **aggregator_info,
+        )
         result = extractor.extract(ExtractionRequest(url=url))
 
         silver_data = {
@@ -94,10 +114,30 @@ def silver_extracted_content(
         silver_io_manager.save("silver_extracted_content", url_hash, silver_data)
 
         if result.success:
+            content_length = len(result.content) if result.content else 0
+            logger.info(
+                "silver.extraction.success",
+                url_hash=url_hash,
+                url=url,
+                title=result.title,
+                content_type=result.content_type,
+                content_length=content_length,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
+            )
             processed += 1
         else:
+            logger.warning(
+                "silver.extraction.failed",
+                url_hash=url_hash,
+                url=url,
+                error=result.error,
+                was_aggregator=was_aggregator,
+                **aggregator_info,
+            )
             failed += 1
 
+    context.log.info(f"Silver extraction complete: {processed} extracted, {cached} cached, {failed} failed (total: {total_urls})")
     logger.info(
         "silver.extraction.complete",
         total=total_urls,

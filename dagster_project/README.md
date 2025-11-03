@@ -34,11 +34,11 @@ Tests are in the `dagster_project_tests` directory and you can run tests using `
 pytest dagster_project_tests
 ```
 
-### Schedules and sensors
+### Schedules
 
-If you want to enable Dagster [Schedules](https://docs.dagster.io/guides/automate/schedules/) or [Sensors](https://docs.dagster.io/guides/automate/sensors/) for your jobs, the [Dagster Daemon](https://docs.dagster.io/guides/deploy/execution/dagster-daemon) process must be running. This is done automatically when you run `dagster dev`.
+If you want to enable Dagster [Schedules](https://docs.dagster.io/guides/automate/schedules/) for your jobs, the [Dagster Daemon](https://docs.dagster.io/guides/deploy/execution/dagster-daemon) process must be running. This is done automatically when you run `dagster dev`.
 
-Once your Dagster Daemon is running, you can start turning on schedules and sensors for your jobs.
+Once your Dagster Daemon is running, you can start turning on schedules for your jobs.
 
 ## Deploy on Dagster+
 
