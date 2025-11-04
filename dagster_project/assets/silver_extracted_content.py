@@ -51,43 +51,52 @@ def silver_extracted_content(
             cached += 1
             continue
 
-        if not bronze_io_manager.exists("bronze_raw_html", url_hash):
-            logger.warning(
-                "silver.extraction.no_bronze",
-                url_hash=url_hash,
-                url=url,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            failed += 1
-            continue
+        # YouTube URLs don't need bronze layer
+        is_youtube = ContentExtractor.is_youtube_url(url)
 
-        bronze_data = bronze_io_manager.load("bronze_raw_html", url_hash)
-        html_content = bronze_data.get("html_content", "")
+        if is_youtube:
+            # YouTube: no bronze dependency
+            bronze_data = None
+            html_content = None
+        else:
+            # Regular URLs: require bronze layer
+            if not bronze_io_manager.exists("bronze_raw_html", url_hash):
+                logger.warning(
+                    "silver.extraction.no_bronze",
+                    url_hash=url_hash,
+                    url=url,
+                    was_aggregator=was_aggregator,
+                    **aggregator_info,
+                )
+                failed += 1
+                continue
 
-        if not html_content:
-            logger.warning(
-                "silver.extraction.empty_html",
-                url_hash=url_hash,
-                url=url,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            silver_data = {
-                "url": url,
-                "content_type": "unknown",
-                "title": "Extraction Failed - Empty Content",
-                "content": "",
-                "metadata": {},
-                "extraction_success": False,
-                "error_message": "Empty HTML content from bronze layer",
-                "lineage": {
-                    "bronze_raw_html": bronze_data.get("download_info", {}),
-                },
-            }
-            silver_io_manager.save("silver_extracted_content", url_hash, silver_data)
-            failed += 1
-            continue
+            bronze_data = bronze_io_manager.load("bronze_raw_html", url_hash)
+            html_content = bronze_data.get("html_content", "")
+
+            if not html_content:
+                logger.warning(
+                    "silver.extraction.empty_html",
+                    url_hash=url_hash,
+                    url=url,
+                    was_aggregator=was_aggregator,
+                    **aggregator_info,
+                )
+                silver_data = {
+                    "url": url,
+                    "content_type": "unknown",
+                    "title": "Extraction Failed - Empty Content",
+                    "content": "",
+                    "metadata": {},
+                    "extraction_success": False,
+                    "error_message": "Empty HTML content from bronze layer",
+                    "lineage": {
+                        "bronze_raw_html": bronze_data.get("download_info", {}),
+                    },
+                }
+                silver_io_manager.save("silver_extracted_content", url_hash, silver_data)
+                failed += 1
+                continue
 
         logger.info(
             "silver.extraction.processing",
@@ -96,7 +105,7 @@ def silver_extracted_content(
             was_aggregator=was_aggregator,
             **aggregator_info,
         )
-        result = extractor.extract(ExtractionRequest(url=url))
+        result = extractor.extract(ExtractionRequest(url=url, html_content=html_content))
 
         silver_data = {
             "url": result.url,
@@ -107,7 +116,7 @@ def silver_extracted_content(
             "extraction_success": result.success,
             "error_message": result.error,
             "lineage": {
-                "bronze_raw_html": bronze_data.get("download_info", {}),
+                "bronze_raw_html": bronze_data.get("download_info", {}) if bronze_data else {},
             },
         }
 

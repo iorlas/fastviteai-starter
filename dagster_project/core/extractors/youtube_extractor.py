@@ -1,7 +1,12 @@
 from datetime import UTC, datetime
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import yt_dlp
+from youtube_transcript_api import (
+    NoTranscriptFound,
+    TranscriptsDisabled,
+    YouTubeTranscriptApi,
+)
 from yt_dlp.utils import DownloadError
 
 
@@ -47,9 +52,9 @@ def extract_youtube_content(url: str) -> YouTubeContent:
             # Try to get transcript
             transcript = _extract_transcript(info)
 
-            # If no transcript, use description as fallback
-            if not transcript:
-                transcript = description if description else "No transcript or description available"
+            # If no transcript available, fail the extraction
+            if transcript is None:
+                raise YouTubeExtractionError(f"No transcript available for video: {url}")
 
             # Build metadata dict
             extracted_at = datetime.now(UTC).isoformat()
@@ -59,7 +64,7 @@ def extract_youtube_content(url: str) -> YouTubeContent:
                 "view_count": info.get("view_count", 0),
                 "like_count": info.get("like_count", 0),
                 "extracted_at": extracted_at,
-                "has_transcript": bool(_extract_transcript(info)),
+                "has_transcript": True,
             }
 
             return YouTubeContent(
@@ -82,27 +87,56 @@ def extract_youtube_content(url: str) -> YouTubeContent:
         raise YouTubeExtractionError(f"Error extracting content from {url}: {e}") from e
 
 
-def _extract_transcript(info: dict) -> str:
-    # Try automatic captions first
-    if "automatic_captions" in info:
-        for lang in ["en", "en-US", "en-GB"]:
-            if lang in info["automatic_captions"]:
-                captions = info["automatic_captions"][lang]
-                # Find the plain text format
-                for caption in captions:
-                    if caption.get("ext") in ["vtt", "srv3", "srv2", "srv1"]:
-                        # Note: yt-dlp doesn't download subtitles in extract_info
-                        # We'd need to actually download them, but for simplicity
-                        # we'll just note they exist and use description
-                        return ""
+def _extract_transcript(info: dict) -> str | None:
+    """Extract transcript with fallback logic:
+    1. Manual English transcript
+    2. Manual transcript in original language
+    3. Auto-generated English transcript
+    4. Auto-generated transcript in original language
+    Returns None if no transcript available.
+    """
+    video_id = info.get("id")
+    if not video_id:
+        return None
 
-    # Try manual subtitles
-    if "subtitles" in info:
-        for lang in ["en", "en-US", "en-GB"]:
-            if lang in info["subtitles"]:
-                captions = info["subtitles"][lang]
-                for caption in captions:
-                    if caption.get("ext") in ["vtt", "srv3", "srv2", "srv1"]:
-                        return ""
+    try:
+        ytt_api = YouTubeTranscriptApi()
+        transcript_list = ytt_api.list(video_id)
 
-    return ""
+        # 1. Try manual English first (preferred)
+        try:
+            transcript = transcript_list.find_manually_created_transcript(["en", "en-US", "en-GB"])
+            return _format_transcript(transcript.fetch())
+        except NoTranscriptFound:
+            pass
+
+        # 2. Try any manual transcript (original language)
+        for transcript in transcript_list:
+            if not transcript.is_generated:
+                return _format_transcript(transcript.fetch())
+
+        # 3. Try auto-generated English
+        try:
+            transcript = transcript_list.find_generated_transcript(["en", "en-US", "en-GB"])
+            return _format_transcript(transcript.fetch())
+        except NoTranscriptFound:
+            pass
+
+        # 4. Try any auto-generated transcript
+        for transcript in transcript_list:
+            if transcript.is_generated:
+                return _format_transcript(transcript.fetch())
+
+        return None
+
+    except (NoTranscriptFound, TranscriptsDisabled):
+        return None
+    except Exception:
+        return None
+
+
+def _format_transcript(transcript_data: Any) -> str:
+    """Format transcript data into plain text.
+    Accepts FetchedTranscript or iterable of transcript snippets.
+    """
+    return " ".join(entry["text"] for entry in transcript_data)

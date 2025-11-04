@@ -3,11 +3,11 @@ from urllib.parse import urlparse
 import structlog
 from pydantic import BaseModel
 
-from dagster_project.ops.html_extractor import (
+from dagster_project.core.extractors.html_extractor import (
     HTMLExtractionError,
     extract_html_content,
 )
-from dagster_project.ops.youtube_extractor import (
+from dagster_project.core.extractors.youtube_extractor import (
     YouTubeExtractionError,
     extract_youtube_content,
 )
@@ -48,7 +48,7 @@ class ContentExtractor:
             if self.is_youtube_url(request.url):
                 return self._extract_youtube(request.url)
             else:
-                return self._extract_html(request.url)
+                return self._extract_html(request.url, request.html_content)
 
         except (HTMLExtractionError, YouTubeExtractionError) as e:
             logger.warning(
@@ -89,20 +89,20 @@ class ContentExtractor:
             success=True,
         )
 
-    def _extract_html(self, url: str) -> ExtractionResult:
-        html_content = extract_html_content(url)
+    def _extract_html(self, url: str, html_content: str | None = None) -> ExtractionResult:
+        html_result = extract_html_content(url, html_content=html_content)
 
-        logger.info("extract.html_success", url=url, title=html_content.title)
+        logger.info("extract.html_success", url=url, title=html_result.title)
 
         return ExtractionResult(
             url=url,
             content_type="html",
-            title=html_content.title,
-            content=html_content.content,
+            title=html_result.title,
+            content=html_result.content,
             metadata={
-                "author": html_content.author,
-                "publish_date": html_content.publish_date,
-                **html_content.metadata,
+                "author": html_result.author,
+                "publish_date": html_result.publish_date,
+                **html_result.metadata,
             },
             success=True,
         )

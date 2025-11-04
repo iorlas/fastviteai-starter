@@ -5,7 +5,7 @@ from dagster import AssetExecutionContext, Config, asset
 from pydantic import Field
 
 from dagster_project.core.aggregator_resolver import resolve_url
-from dagster_project.ops.watchers import RSSWatcher, RSSWatcherError
+from dagster_project.core.extractors.watchers import RSSWatcher, RSSWatcherError
 from dagster_project.utils.paths import MANUAL_LINKS_FILE, MONITORING_LINKS_FILE
 from dagster_project.utils.url_utils import compute_url_hash, normalize_url
 

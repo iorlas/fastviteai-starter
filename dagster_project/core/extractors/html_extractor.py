@@ -61,7 +61,11 @@ def extract_html_from_cached(html_content: str, url: str) -> HTMLContent:
         raise HTMLExtractionError(f"Error extracting content from {url}: {e}") from e
 
 
-def extract_html_content(url: str, timeout: int = 30) -> HTMLContent:
+def extract_html_content(url: str, timeout: int = 30, html_content: str | None = None) -> HTMLContent:
+    # If cached HTML is provided, use it
+    if html_content:
+        return extract_html_from_cached(html_content, url)
+
     try:
         # Fetch HTML content
         response = httpx.get(url, timeout=timeout, follow_redirects=True)

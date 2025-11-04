@@ -1,6 +1,7 @@
 import structlog
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.core.content_extractor import ContentExtractor
 from dagster_project.core.downloader import HTTPDownloader
 
 logger = structlog.get_logger()
@@ -34,6 +35,11 @@ def bronze_raw_html(
     for url_data in discovered_urls:
         url = url_data["url"]
         url_hash = url_data["url_hash"]
+
+        # Skip YouTube URLs - they don't need HTML download
+        if ContentExtractor.is_youtube_url(url):
+            logger.info("bronze.skip_youtube", url_hash=url_hash, url=url)
+            continue
 
         if bronze_io_manager.exists("bronze_raw_html", url_hash):
             logger.info("bronze.cache_hit", url_hash=url_hash, url=url)

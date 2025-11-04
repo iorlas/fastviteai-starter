@@ -111,7 +111,8 @@
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:deepeshsoni.com)",
       "WebFetch(domain:hacker-news.firebaseio.com)",
-      "WebFetch(domain:pypi.org)"
+      "WebFetch(domain:pypi.org)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains rm:*)"
     ],
     "deny": [],
     "ask": []
