@@ -1,0 +1,14 @@
+[
+  {
+    "insight": "System should detect empty/insufficient content and refuse to generate summary",
+    "vitality": "vital"
+  },
+  {
+    "insight": "Model hallucinated complete content about 'propolis' (bee product) based solely on title",
+    "vitality": "vital"
+  },
+  {
+    "insight": "No warning or indication that content was empty - output appears authoritative",
+    "vitality": "vital"
+  }
+]

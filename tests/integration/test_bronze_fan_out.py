@@ -1,0 +1,58 @@
+import pytest
+
+from dagster_project.utils.content_type import ContentType, detect_content_type
+
+
+@pytest.mark.integration
+def test_discovered_urls_routing_by_type():
+    """Test that URLs are correctly routed by content type."""
+    test_urls = [
+        {"url": "https://youtube.com/watch?v=123", "url_hash": "yt_hash_1"},
+        {"url": "https://example.com/article", "url_hash": "html_hash_1"},
+        {"url": "https://youtu.be/456", "url_hash": "yt_hash_2"},
+        {"url": "https://news.ycombinator.com/item?id=789", "url_hash": "html_hash_2"},
+    ]
+
+    youtube_urls = [u for u in test_urls if detect_content_type(u["url"]) == ContentType.YOUTUBE]
+    html_urls = [u for u in test_urls if detect_content_type(u["url"]) == ContentType.HTML]
+
+    assert len(youtube_urls) == 2
+    assert len(html_urls) == 2
+    assert len(youtube_urls) + len(html_urls) == len(test_urls)
+
+
+@pytest.mark.integration
+def test_no_url_processed_by_multiple_bronze_assets():
+    """Test that each URL is processed by exactly one bronze asset."""
+    test_urls = [
+        {"url": "https://youtube.com/watch?v=123", "url_hash": "yt_1"},
+        {"url": "https://example.com", "url_hash": "html_1"},
+    ]
+
+    youtube_urls = [u for u in test_urls if detect_content_type(u["url"]) == ContentType.YOUTUBE]
+    html_urls = [u for u in test_urls if detect_content_type(u["url"]) == ContentType.HTML]
+
+    youtube_hashes = {u["url_hash"] for u in youtube_urls}
+    html_hashes = {u["url_hash"] for u in html_urls}
+
+    assert youtube_hashes.isdisjoint(html_hashes)
+
+
+@pytest.mark.integration
+def test_bronze_asset_filtering():
+    """Test that bronze assets correctly filter URLs by content type."""
+    all_urls = [
+        {"url": "https://youtube.com/watch?v=1", "url_hash": "yt_1"},
+        {"url": "https://youtube.com/watch?v=2", "url_hash": "yt_2"},
+        {"url": "https://example.com/1", "url_hash": "html_1"},
+        {"url": "https://example.com/2", "url_hash": "html_2"},
+        {"url": "https://example.com/3", "url_hash": "html_3"},
+    ]
+
+    youtube_urls = [u for u in all_urls if detect_content_type(u["url"]) == ContentType.YOUTUBE]
+    html_urls = [u for u in all_urls if detect_content_type(u["url"]) == ContentType.HTML]
+
+    assert len(youtube_urls) == 2
+    assert len(html_urls) == 3
+    assert all(detect_content_type(u["url"]) == ContentType.YOUTUBE for u in youtube_urls)
+    assert all(detect_content_type(u["url"]) == ContentType.HTML for u in html_urls)

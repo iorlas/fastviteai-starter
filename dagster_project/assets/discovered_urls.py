@@ -69,6 +69,7 @@ def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig
                     "url": canonical_url,
                     "url_hash": url_hash,
                     "source": "manual",
+                    "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
                 }
 
                 if resolution_result.was_aggregator:
@@ -127,6 +128,7 @@ def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig
                                 "url": canonical_url,
                                 "url_hash": url_hash,
                                 "source": f"rss:{feed_url}",
+                                "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
                             }
 
                             if resolution_result.was_aggregator:
@@ -167,6 +169,7 @@ def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig
                         "url": canonical_url,
                         "url_hash": url_hash,
                         "source": "monitoring_direct",
+                        "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
                     }
 
                     if resolution_result.was_aggregator:

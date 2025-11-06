@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import sys
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -87,9 +86,7 @@ def main():
         url=test_case.get("url", ""),
     )
 
-    start_time = time.time()
     result = generator.generate(request)
-    elapsed_ms = int((time.time() - start_time) * 1000)
 
     timestamp = datetime.now(UTC).isoformat()
 

@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-11-03T03:44:50.654246+00:00",
+  "model": "mistralai/mistral-medium-3.1",
+  "config": {
+    "temperature": 0,
+    "max_tokens": 3000,
+    "system_prompt": "Extract information from content into structured JSON for programmatic processing.\n\nCRITICAL - CONTENT VALIDATION:\nBefore extracting, validate that actual content exists:\n- If content is empty, whitespace-only, or < 50 characters: STOP\n- If content only contains boilerplate/navigation (e.g., \"Home\", \"Contact\", \"Menu\"): STOP\n- If you cannot answer the core question from the PROVIDED content: STOP\n\nWhen STOPPING due to insufficient content:\n- Set core_answer to: \"INSUFFICIENT_CONTENT: Cannot generate summary from empty or minimal content\"\n- Set all other fields to null or empty arrays\n- DO NOT use your training data or general knowledge\n- DO NOT infer or assume content based on the title\n\nOnly proceed with extraction if ACTUAL substantive content is provided.\n\nWhen extracting from sufficient content, focus on:\n- What's the ONE-SENTENCE answer to the article title?\n- What's UNIQUE or NOVEL here (vs typical articles on this topic)?\n- How do concepts CONNECT (visual relationships)?\n- What aids MEMORY (sticky phrases, metaphors)?\n\nCRITICAL: Capture ALL details from the PROVIDED content, including:\n- Full context around quotes (who said it, when, why - not just the quote)\n- Exact numbers and team sizes (e.g., \"4 people\" not just \"small teams\")\n- Supporting examples with specific details and numbers\n- Forward-looking statements (future posts, upcoming work, tooling plans)\n- Exact formulas and quantitative data\n- Historical comparisons and lessons learned (e.g., how SOA failed, what went wrong with predecessors)\n- Cautionary tales and warnings about pitfalls\n- Contrarian examples that illustrate principles",
+    "user_prompt_template": "Extract structured information from this {content_type}:\n\nTitle: {title}\n\nContent:\n{content}\n\nProvide comprehensive extraction covering:\n- Core answer (one sentence directly answering the title)\n- Unique insights (novel/contrarian views, standout data)\n- Classification (topics, content type, depth level)\n- Core insights (with memory aids, supporting facts, quantitative data, connections)\n- Knowledge graph ASCII (visual relationships with arrows and hierarchies)\n- Entities (people with full quote context, organizations, concepts, formulas with exact numbers, examples with specific details)\n- Forward-looking statements (future posts, planned content)\n- Memory aids (key phrases with full context, visual metaphors, mnemonics)",
+    "notes": "Testing empty content detection with improved prompt"
+  },
+  "input": {
+    "test_case": "case_002_propolis",
+    "url": "https://app.propolis.tech/#/launch",
+    "title": "Propolis",
+    "content": "",
+    "content_type": "html",
+    "content_length": 0
+  },
+  "output": {
+    "structured_summary": {
+      "core_answer": "INSUFFICIENT_CONTENT: Cannot generate summary from empty or minimal content",
+      "unique_insights": [],
+      "classification": {
+        "primary_topic": "",
+        "related_topics": [],
+        "content_type": "",
+        "depth": ""
+      },
+      "core_insights": [],
+      "knowledge_graph_ascii": "",
+      "people": [],
+      "organizations": [],
+      "concepts": [],
+      "formulas_data": [],
+      "examples_analogies": [],
+      "forward_looking": [],
+      "memory_aids": {
+        "key_phrase": "",
+        "visual_metaphor": "",
+        "mnemonic": null
+      }
+    },
+    "tokens_used": 664,
+    "latency_ms": 2145
+  },
+  "evaluation": {
+    "judgement": null,
+    "completeness": {
+      "insights_found": [],
+      "insights_missing": [],
+      "vital_coverage_percent": 0
+    }
+  },
+  "insights_file": "experiments/v3/test_cases/case_002_propolis.insights.json"
+}

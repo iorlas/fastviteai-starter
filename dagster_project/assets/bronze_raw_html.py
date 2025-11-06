@@ -1,8 +1,8 @@
 import structlog
 from dagster import AssetExecutionContext, asset
 
-from dagster_project.core.content_extractor import ContentExtractor
 from dagster_project.core.downloader import HTTPDownloader
+from dagster_project.utils.content_type import ContentType, detect_content_type
 
 logger = structlog.get_logger()
 
@@ -11,35 +11,33 @@ logger = structlog.get_logger()
     required_resource_keys={"bronze_io_manager"},
     compute_kind="python",
     group_name="bronze_layer",
-    tags={"layer": "bronze", "source": "download"},
+    tags={"layer": "bronze", "source": "download", "content_type": "html"},
 )
 def bronze_raw_html(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> dict:
-    """Download HTML content for discovered URLs.
+    """Download HTML content for non-YouTube URLs.
 
-    Skips URLs that already have cached HTML (bronze layer immutability).
+    Filters to HTML content type only. Skips URLs that already have
+    cached HTML (bronze layer immutability).
 
     Returns summary statistics.
     """
     bronze_io_manager = context.resources.bronze_io_manager
     downloader = HTTPDownloader(timeout=30)
 
-    total_urls = len(discovered_urls)
-    context.log.info(f"Starting bronze layer download for {total_urls} URLs")
+    html_urls = [u for u in discovered_urls if detect_content_type(u["url"]) == ContentType.HTML]
+
+    total_urls = len(html_urls)
+    context.log.info(f"Starting bronze HTML layer download for {total_urls} URLs")
     processed = 0
     cached = 0
     failed = 0
 
-    for url_data in discovered_urls:
+    for url_data in html_urls:
         url = url_data["url"]
         url_hash = url_data["url_hash"]
-
-        # Skip YouTube URLs - they don't need HTML download
-        if ContentExtractor.is_youtube_url(url):
-            logger.info("bronze.skip_youtube", url_hash=url_hash, url=url)
-            continue
 
         if bronze_io_manager.exists("bronze_raw_html", url_hash):
             logger.info("bronze.cache_hit", url_hash=url_hash, url=url)
@@ -67,6 +65,7 @@ def bronze_raw_html(
         bronze_data = {
             "url": result.url,
             "url_hash": url_hash,
+            "content_type": ContentType.HTML.value,
             "html_content": result.html_content,
             "download_info": {
                 "status_code": result.status_code,

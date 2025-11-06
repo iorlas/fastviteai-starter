@@ -1,6 +1,12 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+class DiscussionLink(BaseModel):
+    type: Literal["hackernews", "lobsters"]
+    url: str
 
 
 class HNComment(BaseModel):
@@ -50,26 +56,13 @@ class HNSearchResponse(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class CleanedComment(BaseModel):
-    comment_id: int
-    story_id: int
-    author: str | None
-    text: str
-    text_html: str | None
-    points: int | None
-    created_at: datetime
-    created_at_i: int
-    parent_id: int | None
-    depth: int
-    thread_position: int
-
-
 class DiscussionMetadata(BaseModel):
     url: str
     url_hash: str
     total_stories: int
-    total_comments: int
     platforms: list[str]
     hn_story_ids: list[int] = Field(default_factory=list)
+    lobsters_story_ids: list[str] = Field(default_factory=list)
+    discussion_links: list[DiscussionLink] = Field(default_factory=list)
     discovered_at: datetime
     cache_ttl_hours: int = 24

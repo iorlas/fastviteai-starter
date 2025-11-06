@@ -4,7 +4,7 @@ from pathlib import Path
 import structlog
 from dagster import AssetExecutionContext, asset
 
-from dagster_project.core.discussions.comment_processor import CommentProcessor
+from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
 from dagster_project.core.discussions.models import (
     DiscussionMetadata,
     HNStoryFull,
@@ -27,8 +27,6 @@ def silver_discussions(
     bronze_io_manager = context.resources.bronze_io_manager
     silver_io_manager = context.resources.silver_io_manager
     base_dir = Path(bronze_io_manager.base_dir) / "bronze_discussions"
-
-    processor = CommentProcessor()
 
     total_urls = len(discovered_urls)
     context.log.info(f"Starting discussion extraction for {total_urls} URLs")
@@ -68,7 +66,7 @@ def silver_discussions(
                 metadata_dict = json.load(f)
             metadata = DiscussionMetadata(**metadata_dict)
 
-            all_comments = []
+            all_stories = []
 
             for story_id in metadata.hn_story_ids:
                 story_file = url_dir / f"{story_id}.json"
@@ -78,6 +76,7 @@ def silver_discussions(
                         "silver.discussions.story_file_missing",
                         url_hash=url_hash,
                         story_id=story_id,
+                        platform="hackernews",
                     )
                     continue
 
@@ -85,23 +84,64 @@ def silver_discussions(
                     story_dict = json.load(f)
 
                 story = HNStoryFull(**story_dict)
-
-                comments = processor.flatten_comments(story.children, story.story_id)
-                all_comments.extend(comments)
+                all_stories.append(story)
 
                 logger.info(
                     "silver.discussions.story_processed",
                     url_hash=url_hash,
                     story_id=story_id,
-                    comments=len(comments),
+                    comments_root=len(story.children),
+                    platform="hackernews",
                 )
+
+            for story_id in metadata.lobsters_story_ids:
+                story_file = url_dir / f"{story_id}.json"
+
+                if not story_file.exists():
+                    logger.warning(
+                        "silver.discussions.story_file_missing",
+                        url_hash=url_hash,
+                        story_id=story_id,
+                        platform="lobsters",
+                    )
+                    continue
+
+                with story_file.open() as f:
+                    story_dict = json.load(f)
+
+                story = LobstersStoryFull(**story_dict)
+                all_stories.append(story)
+
+                logger.info(
+                    "silver.discussions.story_processed",
+                    url_hash=url_hash,
+                    story_id=story_id,
+                    comments_root=len(story.comments),
+                    platform="lobsters",
+                )
+
+            def count_comments(comments: list) -> int:
+                count = len(comments)
+                for comment in comments:
+                    if hasattr(comment, "children"):
+                        count += count_comments(comment.children)
+                return count
+
+            def get_story_comments(story) -> list:
+                if isinstance(story, HNStoryFull):
+                    return story.children
+                elif isinstance(story, LobstersStoryFull):
+                    return story.comments
+                return []
+
+            total_comments = sum(count_comments(get_story_comments(story)) for story in all_stories)
 
             silver_data = {
                 "url": url,
                 "url_hash": url_hash,
                 "metadata": metadata.model_dump(),
-                "comments": [c.model_dump() for c in all_comments],
-                "total_comments": len(all_comments),
+                "stories": [s.model_dump() for s in all_stories],
+                "total_comments": total_comments,
                 "lineage": {
                     "bronze_discussions": {
                         "total_stories": metadata.total_stories,
@@ -116,14 +156,14 @@ def silver_discussions(
                 "silver.discussions.success",
                 url_hash=url_hash,
                 url=url,
-                total_comments=len(all_comments),
+                total_comments=total_comments,
                 stories=metadata.total_stories,
             )
 
-            context.log.info(f"[{idx}/{total_urls}] ✓ Extracted {len(all_comments)} comments from {metadata.total_stories} discussion(s)")
+            context.log.info(f"[{idx}/{total_urls}] ✓ Extracted {total_comments} comments from {metadata.total_stories} discussion(s)")
 
             processed += 1
-            total_comments_extracted += len(all_comments)
+            total_comments_extracted += total_comments
 
         except Exception as e:
             logger.error(

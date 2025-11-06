@@ -7,7 +7,8 @@ import structlog
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.discussions.hn_client import HNClient
-from dagster_project.core.discussions.models import DiscussionMetadata
+from dagster_project.core.discussions.lobsters_client import LobstersClient
+from dagster_project.core.discussions.models import DiscussionLink, DiscussionMetadata
 
 logger = structlog.get_logger()
 
@@ -18,12 +19,12 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
     cached = 0
     failed = 0
     total_stories = 0
-    total_comments = 0
 
-    async with HNClient() as hn_client:
+    async with HNClient() as hn_client, LobstersClient() as lobsters_client:
         for idx, url_data in enumerate(discovered_urls, 1):
             url = url_data["url"]
             url_hash = url_data["url_hash"]
+            pre_saved_links = [DiscussionLink(**link) for link in url_data.get("discussion_links", [])]
 
             url_dir = base_dir / url_hash
             metadata_file = url_dir / "metadata.json"
@@ -35,46 +36,73 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
                 cached += 1
                 continue
 
-            logger.info("discussions.discovering", url_hash=url_hash, url=url)
+            logger.info("discussions.discovering", url_hash=url_hash, url=url, pre_saved_links=len(pre_saved_links))
             if progress_callback:
                 progress_callback(f"[{idx}/{total_urls}] Discovering discussions for: {url}")
 
             try:
-                stories = await hn_client.search_by_url(url)
+                all_discussion_urls = set()
+                hn_story_ids = []
+                lobsters_story_ids = []
+                platforms = []
 
-                if not stories:
+                for link in pre_saved_links:
+                    all_discussion_urls.add(link.url)
+
+                hn_stories = await hn_client.search_by_url(url)
+                for story in hn_stories:
+                    hn_url = f"https://news.ycombinator.com/item?id={story.story_id}"
+                    all_discussion_urls.add(hn_url)
+
+                lobsters_urls = await lobsters_client.search_by_url(url)
+                all_discussion_urls.update(lobsters_urls)
+
+                if not all_discussion_urls:
                     logger.info("discussions.no_stories_found", url_hash=url_hash, url=url)
                     if progress_callback:
-                        progress_callback(f"[{idx}/{total_urls}] No HN discussions found for: {url}")
+                        progress_callback(f"[{idx}/{total_urls}] No discussions found for: {url}")
                     continue
 
                 url_dir.mkdir(parents=True, exist_ok=True)
 
-                story_ids = []
-                story_comments = 0
-
                 if progress_callback:
-                    progress_callback(f"[{idx}/{total_urls}] Found {len(stories)} HN discussion(s), fetching comments...")
+                    progress_callback(f"[{idx}/{total_urls}] Found {len(all_discussion_urls)} unique discussion(s), fetching comments...")
 
-                for story in stories:
-                    story_full = await hn_client.fetch_story_with_comments(story.story_id)
-                    story_full_dict = story_full.model_dump()
+                for disc_url in all_discussion_urls:
+                    if "news.ycombinator.com" in disc_url:
+                        story_id = int(disc_url.split("id=")[1].split("&")[0])
+                        if story_id not in hn_story_ids:
+                            story_full = await hn_client.fetch_story_with_comments(story_id)
+                            story_file = url_dir / f"{story_id}.json"
+                            with story_file.open("w") as f:
+                                json.dump(story_full.model_dump(), f, indent=2, default=str)
+                            hn_story_ids.append(story_id)
+                            if "hackernews" not in platforms:
+                                platforms.append("hackernews")
 
-                    story_file = url_dir / f"{story.story_id}.json"
-                    with story_file.open("w") as f:
-                        json.dump(story_full_dict, f, indent=2, default=str)
+                    elif "lobste.rs" in disc_url:
+                        short_id = LobstersClient.extract_short_id_from_url(disc_url)
+                        if short_id and short_id not in lobsters_story_ids:
+                            story_full = await lobsters_client.fetch_story_with_comments(short_id)
+                            story_file = url_dir / f"{short_id}.json"
+                            with story_file.open("w") as f:
+                                json.dump(story_full.model_dump(), f, indent=2, default=str)
+                            lobsters_story_ids.append(short_id)
+                            if "lobsters" not in platforms:
+                                platforms.append("lobsters")
 
-                    story_ids.append(story.story_id)
-                    comment_count = hn_client._count_comments(story_full.children)
-                    story_comments += comment_count
+                final_discussion_links = [
+                    DiscussionLink(type="hackernews", url=f"https://news.ycombinator.com/item?id={sid}") for sid in hn_story_ids
+                ] + [DiscussionLink(type="lobsters", url=f"https://lobste.rs/s/{sid}") for sid in lobsters_story_ids]
 
                 metadata = DiscussionMetadata(
                     url=url,
                     url_hash=url_hash,
-                    total_stories=len(stories),
-                    total_comments=story_comments,
-                    platforms=["hackernews"],
-                    hn_story_ids=story_ids,
+                    total_stories=len(hn_story_ids) + len(lobsters_story_ids),
+                    platforms=platforms,
+                    hn_story_ids=hn_story_ids,
+                    lobsters_story_ids=lobsters_story_ids,
+                    discussion_links=final_discussion_links,
                     discovered_at=datetime.now(UTC),
                     cache_ttl_hours=24,
                 )
@@ -86,16 +114,20 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
                     "discussions.discovery_success",
                     url_hash=url_hash,
                     url=url,
-                    stories=len(stories),
-                    comments=story_comments,
+                    total_stories=metadata.total_stories,
+                    hn_stories=len(hn_story_ids),
+                    lobsters_stories=len(lobsters_story_ids),
                 )
 
                 if progress_callback:
-                    progress_callback(f"[{idx}/{total_urls}] ✓ Saved {story_comments} comments from {len(stories)} discussion(s)")
+                    hn_count = len(hn_story_ids)
+                    lobsters_count = len(lobsters_story_ids)
+                    progress_callback(
+                        f"[{idx}/{total_urls}] ✓ Saved {metadata.total_stories} discussion(s) (HN: {hn_count}, Lobsters: {lobsters_count})"
+                    )
 
                 processed += 1
-                total_stories += len(stories)
-                total_comments += story_comments
+                total_stories += metadata.total_stories
 
             except Exception as e:
                 logger.error(
@@ -115,7 +147,6 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
         "cached": cached,
         "failed": failed,
         "total_stories": total_stories,
-        "total_comments": total_comments,
     }
 
 
@@ -149,7 +180,6 @@ def bronze_discussions(
         cached=result["cached"],
         failed=result["failed"],
         total_stories=result["total_stories"],
-        total_comments=result["total_comments"],
     )
 
     context.add_output_metadata(
@@ -159,7 +189,6 @@ def bronze_discussions(
             "cached": result["cached"],
             "failed": result["failed"],
             "total_stories": result["total_stories"],
-            "total_comments": result["total_comments"],
         }
     )
 

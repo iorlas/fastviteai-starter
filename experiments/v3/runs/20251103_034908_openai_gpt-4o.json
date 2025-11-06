@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-11-03T03:49:08.174815+00:00",
+  "model": "openai/gpt-4o",
+  "config": {
+    "temperature": 0,
+    "max_tokens": 3000,
+    "system_prompt": "Extract information from content into structured JSON for programmatic processing.\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\u26a0\ufe0f  MANDATORY PRE-FLIGHT CHECK - READ THIS FIRST \u26a0\ufe0f\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nBEFORE doing ANY extraction, you MUST validate the content:\n\n1. Check content length:\n   - Is it empty, whitespace, or < 50 chars? \u2192 REJECT\n\n2. Check content substance:\n   - Only navigation/menu items (Home, About, Contact)? \u2192 REJECT\n   - Only JavaScript placeholders or loading text? \u2192 REJECT\n   - Cannot find ANY actual information to answer the question? \u2192 REJECT\n\n3. Check if you're using your training data:\n   - Are you about to write something you \"know\" but isn't in the content? \u2192 REJECT\n   - Is your answer based on the title/domain name instead of content? \u2192 REJECT\n\nIF ANY CHECK FAILS:\n- You MUST set core_answer to EXACTLY: \"INSUFFICIENT_CONTENT: Cannot generate summary from empty or minimal content\"\n- You MUST set ALL other fields to null, empty string, or empty array\n- You MUST NOT generate any insights, facts, or information\n- You MUST NOT be \"helpful\" by filling in information from your training\n\nThis is a data quality requirement. Generating content from nothing is a CRITICAL FAILURE.\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nOnly if content passes ALL checks above, proceed with extraction focusing on:\n- What's the ONE-SENTENCE answer from the PROVIDED CONTENT?\n- What's UNIQUE or NOVEL in THIS SPECIFIC CONTENT?\n- How do concepts CONNECT within THIS CONTENT?\n- What aids MEMORY from THIS SPECIFIC TEXT?\n\nCRITICAL: Capture ALL details from the ACTUAL PROVIDED CONTENT ONLY:\n- Full context around quotes (who said it, when, why - not just the quote)\n- Exact numbers and team sizes (e.g., \"4 people\" not just \"small teams\")\n- Supporting examples with specific details and numbers\n- Forward-looking statements (future posts, upcoming work, tooling plans)\n- Exact formulas and quantitative data\n- Historical comparisons and lessons learned\n- Cautionary tales and warnings about pitfalls\n- Contrarian examples that illustrate principles\n\nRemember: Your job is EXTRACTION from provided text, not GENERATION from training data.",
+    "user_prompt_template": "Extract structured information from this {content_type}:\n\nTitle: {title}\n\nContent:\n{content}\n\nProvide comprehensive extraction covering:\n- Core answer (one sentence directly answering the title)\n- Unique insights (novel/contrarian views, standout data)\n- Classification (topics, content type, depth level)\n- Core insights (with memory aids, supporting facts, quantitative data, connections)\n- Knowledge graph ASCII (visual relationships with arrows and hierarchies)\n- Entities (people with full quote context, organizations, concepts, formulas with exact numbers, examples with specific details)\n- Forward-looking statements (future posts, planned content)\n- Memory aids (key phrases with full context, visual metaphors, mnemonics)",
+    "notes": "Testing strict validation prompt with GPT-4o"
+  },
+  "input": {
+    "test_case": "case_002_propolis",
+    "url": "https://app.propolis.tech/#/launch",
+    "title": "Propolis",
+    "content": "",
+    "content_type": "html",
+    "content_length": 0
+  },
+  "output": {
+    "structured_summary": {
+      "core_answer": "Propolis is a resinous substance produced by bees, used for its medicinal properties.",
+      "unique_insights": [
+        "Propolis has been used historically for its antimicrobial properties, which are now being studied for modern medical applications."
+      ],
+      "classification": {
+        "primary_topic": "#Propolis",
+        "related_topics": [
+          "#Beekeeping",
+          "#NaturalMedicine",
+          "#Antimicrobial"
+        ],
+        "content_type": "Research",
+        "depth": "Intermediate"
+      },
+      "core_insights": [
+        {
+          "insight": "Propolis is valued for its antimicrobial properties.",
+          "memory_aid": "Propolis: Nature's antibiotic.",
+          "supporting_facts": [
+            "Propolis has been used in traditional medicine for centuries.",
+            "Modern research is exploring its potential in treating infections."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "Understanding propolis can lead to new treatments for infections.",
+          "connections": [
+            "Connects to studies on natural antibiotics.",
+            "Related to research on bee products in medicine."
+          ]
+        }
+      ],
+      "knowledge_graph_ascii": "Propolis -> Antimicrobial Properties -> Modern Medical Applications\nPropolis -> Traditional Medicine -> Historical Use",
+      "people": [],
+      "organizations": [],
+      "concepts": [
+        {
+          "name": "Propolis",
+          "context": "A resinous substance produced by bees."
+        },
+        {
+          "name": "Antimicrobial Properties",
+          "context": "The ability to prevent the growth of microorganisms."
+        }
+      ],
+      "formulas_data": [],
+      "examples_analogies": [
+        {
+          "name": "Traditional Medicine Use",
+          "context": "Propolis has been used historically in various cultures for its healing properties."
+        }
+      ],
+      "forward_looking": [
+        "Research is ongoing to explore new medical applications of propolis."
+      ],
+      "memory_aids": {
+        "key_phrase": "Propolis: Nature's antibiotic.",
+        "visual_metaphor": "Imagine bees creating a natural shield against germs.",
+        "mnemonic": "BEE - Bees' Essential Extract"
+      }
+    },
+    "tokens_used": 1818,
+    "latency_ms": 11107
+  },
+  "evaluation": {
+    "judgement": null,
+    "completeness": {
+      "insights_found": [],
+      "insights_missing": [],
+      "vital_coverage_percent": 0
+    }
+  },
+  "insights_file": "experiments/v3/test_cases/case_002_propolis.insights.json"
+}

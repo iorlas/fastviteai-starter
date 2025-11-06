@@ -11,6 +11,7 @@ class AggregatorPattern(BaseModel):
 
 AGGREGATORS = [
     AggregatorPattern(domain="news.ycombinator.com", name="hackernews", url_pattern="/item"),
+    AggregatorPattern(domain="lobste.rs", name="lobsters", url_pattern="/s/"),
 ]
 
 

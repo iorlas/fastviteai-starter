@@ -90,7 +90,11 @@ def check_insight_coverage(insight_text: str, summary_text: str) -> bool:
         return False
 
     key_words = [w.strip("'\"()[]{}.,!?;:") for w in words if len(w) > 3]
-    key_words = [w for w in key_words if w not in {"that", "with", "from", "this", "have", "been", "were", "will", "their", "about", "when", "which", "there"}]
+    key_words = [
+        w
+        for w in key_words
+        if w not in {"that", "with", "from", "this", "have", "been", "were", "will", "their", "about", "when", "which", "there"}
+    ]
 
     if not key_words:
         return False
@@ -136,7 +140,6 @@ def main():
     summary_text = flatten_summary_to_text(structured_summary)
 
     vital_insights = [i for i in insights if i.get("vitality") == "vital"]
-    all_insights = insights
 
     found_vital = []
     missing_vital = []

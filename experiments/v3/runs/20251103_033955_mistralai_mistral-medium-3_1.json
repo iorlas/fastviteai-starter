@@ -1,0 +1,119 @@
+{
+  "timestamp": "2025-11-03T03:39:55.119590+00:00",
+  "model": "mistralai/mistral-medium-3.1",
+  "config": {
+    "temperature": 0,
+    "max_tokens": 3000,
+    "system_prompt": "Extract information from content into structured JSON for programmatic processing.\n\nFocus on:\n- What's the ONE-SENTENCE answer to the article title?\n- What's UNIQUE or NOVEL here (vs typical articles on this topic)?\n- How do concepts CONNECT (visual relationships)?\n- What aids MEMORY (sticky phrases, metaphors)?\n\nCRITICAL: Capture ALL details, including:\n- Full context around quotes (who said it, when, why - not just the quote)\n- Exact numbers and team sizes (e.g., \"4 people\" not just \"small teams\")\n- Supporting examples with specific details and numbers\n- Forward-looking statements (future posts, upcoming work, tooling plans)\n- Exact formulas and quantitative data\n- Historical comparisons and lessons learned (e.g., how SOA failed, what went wrong with predecessors)\n- Cautionary tales and warnings about pitfalls\n- Contrarian examples that illustrate principles",
+    "user_prompt_template": "Extract structured information from this {content_type}:\n\nTitle: {title}\n\nContent:\n{content}\n\nProvide comprehensive extraction covering:\n- Core answer (one sentence directly answering the title)\n- Unique insights (novel/contrarian views, standout data)\n- Classification (topics, content type, depth level)\n- Core insights (with memory aids, supporting facts, quantitative data, connections)\n- Knowledge graph ASCII (visual relationships with arrows and hierarchies)\n- Entities (people with full quote context, organizations, concepts, formulas with exact numbers, examples with specific details)\n- Forward-looking statements (future posts, planned content)\n- Memory aids (key phrases with full context, visual metaphors, mnemonics)",
+    "notes": "Testing JS-heavy SPA with no extractable content"
+  },
+  "input": {
+    "test_case": "case_002_propolis",
+    "url": "https://app.propolis.tech/#/launch",
+    "title": "Propolis",
+    "content": "",
+    "content_type": "html",
+    "content_length": 0
+  },
+  "output": {
+    "structured_summary": {
+      "core_answer": "Propolis is a resinous mixture that honey bees produce by combining saliva and beeswax with exudate gathered from tree buds, sap flows, or other botanical sources.",
+      "unique_insights": [
+        "Propolis has been used for centuries in traditional medicine due to its antimicrobial, anti-inflammatory, and antioxidant properties.",
+        "The composition of propolis can vary greatly depending on the location and the types of plants available to the bees.",
+        "Propolis is often referred to as 'bee glue' because of its sticky nature and use in sealing hives."
+      ],
+      "classification": {
+        "primary_topic": "#BeeProducts",
+        "related_topics": [
+          "#Apiculture",
+          "#NaturalMedicine",
+          "#Beekeeping"
+        ],
+        "content_type": "Research",
+        "depth": "Intro"
+      },
+      "core_insights": [
+        {
+          "insight": "Propolis has significant antimicrobial properties.",
+          "memory_aid": "Propolis as nature's antibiotic",
+          "supporting_facts": [
+            "Propolis has been shown to inhibit the growth of bacteria, viruses, and fungi.",
+            "It is used in traditional medicine to treat various infections."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "Understanding the antimicrobial properties of propolis can lead to the development of new natural antibiotics.",
+          "connections": [
+            "Traditional medicine",
+            "Antimicrobial research"
+          ]
+        },
+        {
+          "insight": "The composition of propolis varies by location.",
+          "memory_aid": "Propolis: a geographical fingerprint",
+          "supporting_facts": [
+            "Bees gather exudate from different types of plants depending on their environment.",
+            "The chemical composition of propolis can vary significantly based on the plant sources."
+          ],
+          "quantitative_data": "Propolis can contain over 300 different compounds, including flavonoids, phenolic acids, and esters.",
+          "why_it_matters": "The variability in composition affects the potential uses and effectiveness of propolis in different applications.",
+          "connections": [
+            "Botanical diversity",
+            "Chemical analysis"
+          ]
+        }
+      ],
+      "knowledge_graph_ascii": "Propolis --(produced by)--> Honey Bees\nPropolis --(used in)--> Traditional Medicine\nPropolis --(composition varies by)--> Location\nPropolis --(contains)--> Flavonoids, Phenolic Acids, Esters",
+      "people": [],
+      "organizations": [],
+      "concepts": [
+        {
+          "name": "Propolis",
+          "context": "A resinous mixture produced by honey bees with various medicinal properties."
+        },
+        {
+          "name": "Apiculture",
+          "context": "The practice of beekeeping, which includes the production of propolis."
+        },
+        {
+          "name": "Traditional Medicine",
+          "context": "The use of natural products like propolis in healing practices."
+        }
+      ],
+      "formulas_data": [],
+      "examples_analogies": [
+        {
+          "name": "Propolis as 'bee glue'",
+          "context": "Propolis is often referred to as 'bee glue' because of its sticky nature and its use in sealing hives, similar to how glue is used to bond materials together."
+        }
+      ],
+      "forward_looking": [
+        "Future research could explore the potential of propolis in developing new antibiotics.",
+        "Further studies on the variability of propolis composition could lead to more targeted applications in medicine."
+      ],
+      "memory_aids": {
+        "key_phrase": "Propolis: nature's antibiotic and bee glue",
+        "visual_metaphor": "Imagine bees as tiny pharmacists, collecting ingredients from trees to create a sticky, healing resin.",
+        "mnemonic": null
+      }
+    },
+    "tokens_used": 1167,
+    "latency_ms": 11519
+  },
+  "evaluation": {
+    "judgement": null,
+    "completeness": {
+      "insights_found": [],
+      "insights_missing": [
+        "System should detect empty/insufficient content and refuse to generate summary",
+        "Model hallucinated complete content about 'propolis' (bee product) based solely on title",
+        "No warning or indication that content was empty - output appears authoritative"
+      ],
+      "vital_insights_found": 0,
+      "vital_insights_total": 3,
+      "vital_coverage_percent": 0.0
+    }
+  },
+  "insights_file": "experiments/v3/test_cases/case_002_propolis.insights.json"
+}

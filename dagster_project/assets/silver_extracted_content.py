@@ -2,6 +2,7 @@ import structlog
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.content_extractor import ContentExtractor, ExtractionRequest
+from dagster_project.utils.content_type import ContentType, detect_content_type
 
 logger = structlog.get_logger()
 
@@ -16,9 +17,11 @@ def silver_extracted_content(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
     bronze_raw_html: dict,
+    bronze_raw_youtube: dict,
 ) -> dict:
-    """Extract clean content from bronze HTML.
+    """Extract clean content from all bronze sources (HTML, YouTube).
 
+    Fan-in pattern: depends on bronze_raw_html and bronze_raw_youtube.
     Skips URLs that already have extracted content (can be deleted to reprocess).
 
     Returns summary statistics.
@@ -51,20 +54,31 @@ def silver_extracted_content(
             cached += 1
             continue
 
-        # YouTube URLs don't need bronze layer
-        is_youtube = ContentExtractor.is_youtube_url(url)
+        content_type = detect_content_type(url)
 
-        if is_youtube:
-            # YouTube: no bronze dependency
-            bronze_data = None
+        if content_type == ContentType.YOUTUBE:
+            if not bronze_io_manager.exists("bronze_raw_youtube", url_hash):
+                logger.warning(
+                    "silver.extraction.no_bronze",
+                    url_hash=url_hash,
+                    url=url,
+                    content_type=content_type.value,
+                    was_aggregator=was_aggregator,
+                    **aggregator_info,
+                )
+                failed += 1
+                continue
+
+            bronze_data = bronze_io_manager.load("bronze_raw_youtube", url_hash)
             html_content = None
-        else:
-            # Regular URLs: require bronze layer
+
+        elif content_type == ContentType.HTML:
             if not bronze_io_manager.exists("bronze_raw_html", url_hash):
                 logger.warning(
                     "silver.extraction.no_bronze",
                     url_hash=url_hash,
                     url=url,
+                    content_type=content_type.value,
                     was_aggregator=was_aggregator,
                     **aggregator_info,
                 )
@@ -97,6 +111,15 @@ def silver_extracted_content(
                 silver_io_manager.save("silver_extracted_content", url_hash, silver_data)
                 failed += 1
                 continue
+        else:
+            logger.error(
+                "silver.extraction.unknown_content_type",
+                url_hash=url_hash,
+                url=url,
+                content_type=content_type.value,
+            )
+            failed += 1
+            continue
 
         logger.info(
             "silver.extraction.processing",

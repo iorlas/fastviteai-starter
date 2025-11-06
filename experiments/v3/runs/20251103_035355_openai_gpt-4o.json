@@ -1,0 +1,159 @@
+{
+  "timestamp": "2025-11-03T03:53:55.114808+00:00",
+  "model": "openai/gpt-4o",
+  "config": {
+    "temperature": 0,
+    "max_tokens": 3000,
+    "system_prompt": "Extract information from content into structured JSON for programmatic processing.\n\nYou are being tested on your ability to distinguish between:\n- EXTRACTION: Using only information explicitly present in provided content\n- HALLUCINATION: Using your training data to fill in information not in the content\n\nThis system includes test cases with empty/minimal content to verify you follow instructions.\n\nVALIDATION PROTOCOL (execute before any extraction):\n\nStep 1: Measure content\n   content_length = len(content.strip())\n   if content_length < 50:\n       return INSUFFICIENT_CONTENT_RESPONSE\n\nStep 2: Check for actual information\n   Can you quote 3+ sentences from the content?\n   No \u2192 return INSUFFICIENT_CONTENT_RESPONSE\n\nStep 3: Verify answer source\n   Is your answer based on content you can quote?\n   No \u2192 return INSUFFICIENT_CONTENT_RESPONSE\n\nINSUFFICIENT_CONTENT_RESPONSE format:\n{\n  \"core_answer\": \"INSUFFICIENT_CONTENT: Cannot generate summary from empty or minimal content\",\n  \"unique_insights\": [],\n  \"classification\": {\"primary_topic\": \"\", \"related_topics\": [], \"content_type\": \"\", \"depth\": \"\"},\n  \"core_insights\": [],\n  \"knowledge_graph_ascii\": \"\",\n  \"people\": [],\n  \"organizations\": [],\n  \"concepts\": [],\n  \"formulas_data\": [],\n  \"examples_analogies\": [],\n  \"forward_looking\": [],\n  \"memory_aids\": {\"key_phrase\": \"\", \"visual_metaphor\": \"\", \"mnemonic\": null}\n}\n\nWARNING: Filling in information from your training data when content is empty is considered a FAILED TEST. You will be evaluated on whether you correctly identify insufficient content.\n\nFor valid content (passes all checks above), extract comprehensively:\n- What's the ONE-SENTENCE answer from the PROVIDED CONTENT?\n- What's UNIQUE in THIS SPECIFIC CONTENT?\n- How do concepts CONNECT within THIS CONTENT?\n- What aids MEMORY from THIS TEXT?\n\nCapture ALL details from ACTUAL PROVIDED CONTENT ONLY:\n- Full context around quotes (who said it, when, why)\n- Exact numbers and team sizes\n- Supporting examples with specific details\n- Forward-looking statements\n- Exact formulas and quantitative data\n- Historical comparisons and lessons learned\n- Cautionary tales and warnings\n- Contrarian examples",
+    "user_prompt_template": "Extract structured information from this {content_type}:\n\nTitle: {title}\n\nContent:\n{content}\n\nProvide comprehensive extraction covering:\n- Core answer (one sentence directly answering the title)\n- Unique insights (novel/contrarian views, standout data)\n- Classification (topics, content type, depth level)\n- Core insights (with memory aids, supporting facts, quantitative data, connections)\n- Knowledge graph ASCII (visual relationships with arrows and hierarchies)\n- Entities (people with full quote context, organizations, concepts, formulas with exact numbers, examples with specific details)\n- Forward-looking statements (future posts, planned content)\n- Memory aids (key phrases with full context, visual metaphors, mnemonics)",
+    "notes": "Verify test framework prompt works with real content on GPT-4o"
+  },
+  "input": {
+    "test_case": "case_001",
+    "url": "",
+    "title": "The Real Success Story of Microservices Architectures",
+    "content": "The Real Success Story of Microservices Architectures\n\nWe\n\nhear the benefits of microservices architectures\n\nloud and clear; we hear the constant drum beat of how/why/by all means/etc you should be doing microservices; we know companies such as\n\nAmazon\n\n,\n\nNetflix\n\nand\n\nGilt\n\nhave successful microservices architectures.\n\nHowever, as I\u2019ve touched on in my blog post titled\n\nYou\u2019re not going to do microservices\n\n, getting microservices right \u2013 and being able to add your company or organization to the list of success stories \u2013 is difficult. Just deciding to use\n\nDropwizard\n\n/\n\nSpringBoot\n\n/\n\nWildflySwarm\n\n/flat classloader/\n\nDocker\n\netc doesn\u2019t mean you\u2019re doing microservices. In fact, prematurely breaking your apps/services down into smaller services\n\nhas significant tradeoffs\n\nand could lead to a SOA on steroids disaster. Even the venerable Martin Fowler\n\nagrees with me\n\n.\n\nSo when we talk about the success stories of microservices at conferences, on developer blogs, etc. I think we\u2019re missing the point. The successes aren\u2019t about which dependency manager, or classloader structure, or linux container, or cloud service to use. They aren\u2019t about mythical internet web-scale unicorns or their architects. I think it\u2019s about something a bit more fundamental, albeit, less sexy than Docker/Kubernetes/SpringBoot.\n\nThe real success?\n\nThe real success stories of a microservice architecture are about how organizations that embrace small, cross-functional teams that engage with a flat, self/peer-management structure, are able to scale and innovate at levels unheard of in traditional organizational structures and do it wildly successfully.\n\nTwo-pizza team\n\nI had the pleasure to work closely with teams at Amazon and learn about their organizational culture. One tenant of their structure was that organized teams had to follow the \u201ctwo-pizza\u201d rule. Simply, a team could not be larger than what two pizzas could feed. The thinking behind this was summed up by\n\nan Amazon CEO Jeff Bezos quote\n\n:\n\nManagers: We need more communication on and between our teams\n\nBezos: No. Communication is terrible\u201d\n\nTo create and sustain autonomous, creative, innovative teams,\n\nyou don\u2019t want \u201cmore communication\u201d you want \u201ceffective communication.\u201d\n\nThis is easier said than done, but it starts by having smaller groups of people work together. They get to know each other better, they form relationships, trust, and motivation. There is less chance of\n\ngroup think\n\nor\n\nsocial loafing\n\n.\n\nJ Richard Hackman\n\nstudied team and group dynamics found that the communication links between members grows as you add more people to a team following this equation:\n\n(n * n-1) / 2\n\nAs the number of links grow within a team (ie, more members), the communication degrades and team productivity similarly degrades. The number Hackman settled on was something less than 10. Amazon teams usually consist of 6-8 members. Navy Seals work in combat teams of 4. The number is not hard and fast, but it should be small. In fact, just stop and think about social situations you encounter ever day. Is it easier to have a conversation and relate to one another in large groups (ie, at a wedding, people break off into smaller groups to chat)?\n\nI highly recommend\n\nreading Hackman\u2019s article here about why teams don\u2019t work\n\n.\n\nCross functional\n\nI saw this quote recently that can perfectly sum up why a team should be cross-functional:\n\nBad behavior arises when you abstract people away from the consequences of their actions\n\nCreating more functional silos seems to have the effect of \u201cencouraging bad behavior\u201d. For example, developers should be focused on writing and delivering quality code. They should also be thinking about non-functional aspects like security, performance, scalability, high availability, etc. However if you start creating application Database teams, or QA teams, or separate operations teams, then developers seem to focus on \u201cgetting features in\u201d and throwing the rest over the proverbial fence.\n\nDo these sound familiar?\n\n\u201cI dont have time for testing, QA does that\u201d\n\n\u201cI don\u2019t have to know how the database works, the DBA does that\u201d\n\n\u201cI just code it, Operations makes it highly available\u201d\n\nThe opposite to this, is to have teams be cross-functional: have a database, operations, test, person on the same team. Or have individuals take on multiple roles. This is what a lot of these internet unicorn companies do (Amazon, Netflix, Facebook, Google, etc). This way, what your team builds, you\u2019re responsible for it. There\u2019s no chance for \u201cthrowing over the fence\u201d and absolving yourself of responsibility of building quality software. In this vein, there is\n\nno such thing\n\nas a DevOps team\n\n. These practices are ingrained in all of the teams.\n\nConways law\n\nConway\u2019s Law\n\nhelps tie the above two points together. Conway stated:\n\norganizations which design systems \u2026 are constrained to produce designs which are copies of the communication structures of these organizations\n\nAnd we see some of the rigidity of traditional architectures (including those that embraced SOA) because of this simple law. Hierarchical, siloed, organizations build systems that are rough copies of themselves. People, processes, and communication have been molded around this structure for ages. This does not scale in such a way to allow autonomy and innovation. So if we want to build scalable systems like we talk about with microservices, we have to start with building scalable organizational structures. Then Conways law follows that the communication structures (within and between smallish, loosely coupled, cross-functional teams) we create will be found in the systems we design.\n\nOpen-source communities?\n\nIf you squint, you\u2019ll start to see that these small, cross-functional, microservices teams start to look like and behave like small open-source projects do. People work together, they aren\u2019t afriad to share their opinions, they\u2019re passionate about building quality software and since they\u2019re small and focused they seem to follow conway\u2019s law by building modular software. They are developers, testers, ops, etc all working together toward a common goal. And that\u2019s what DevOps and Microservices is really about.\n\nSOA vs Microservices?\n\nAgain, to reiterate, in my opinion the success stories about microservices that we hear about are not necessarily technological success stories, and we run the risk of missing the point and going down the same path SOA took. SOA had a lot of the same principles that are the foundation of microservices, but SOA lost sight of the finish line. People startin doing SOA just because it was SOA, and vendors, committees, and consortiums came together to give us specs we \u201cneeded\u201d. Ultimately, SOA had some of the same goals about organizational structure, but those got lost in WS-* spcs.\n\nThere is no doubt tooling and processes are important, even in a microservices world, but those should follow the principles that are rooted in organizational structures.\n\nTooling\n\nThis post is already getting long, but in my next post, I\u2019ll want to point out some of the things we\u2019re doing in the\n\nOpenShift\n\nand\n\nfabric8io\n\nprojects that aim to simplify things for cross-functional developers working in microservices teams but\n\nwithout\n\noverlooking the important foundations of social, organziational, and communication aspects of a microservice team.",
+    "content_type": "html",
+    "content_length": 7373
+  },
+  "output": {
+    "structured_summary": {
+      "core_answer": "The real success of microservices architectures lies in small, cross-functional teams that enable organizations to scale and innovate effectively.",
+      "unique_insights": [
+        "The success of microservices is not about the technology stack but about organizational structure and team dynamics.",
+        "The 'two-pizza team' rule at Amazon emphasizes the importance of small team sizes for effective communication and innovation.",
+        "Conway's Law suggests that the communication structures of organizations influence the design of their systems."
+      ],
+      "classification": {
+        "primary_topic": "Microservices",
+        "related_topics": [
+          "OrganizationalStructure",
+          "TeamDynamics",
+          "ConwaysLaw"
+        ],
+        "content_type": "Opinion",
+        "depth": "Intermediate"
+      },
+      "core_insights": [
+        {
+          "insight": "Small, cross-functional teams are key to the success of microservices architectures.",
+          "memory_aid": "Two-pizza team rule: Keep teams small for better communication.",
+          "supporting_facts": [
+            "Amazon uses the 'two-pizza' rule to limit team size, enhancing communication and innovation.",
+            "J Richard Hackman's research shows that communication links grow as team size increases, degrading productivity."
+          ],
+          "quantitative_data": "Amazon teams usually consist of 6-8 members.",
+          "why_it_matters": "Smaller teams foster better communication, trust, and innovation, crucial for successful microservices.",
+          "connections": [
+            "Conway's Law: Organizational communication structures influence system design."
+          ]
+        },
+        {
+          "insight": "Cross-functional teams prevent the silo effect and encourage responsibility for the entire product.",
+          "memory_aid": "Cross-functional teams: Everyone shares responsibility, no 'throwing over the fence.'",
+          "supporting_facts": [
+            "Developers should consider non-functional aspects like security and scalability, not just features.",
+            "Cross-functional teams include diverse roles like database, operations, and testing within the same team."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "Cross-functional teams ensure quality and accountability, preventing the pitfalls of siloed work environments.",
+          "connections": [
+            "Conway's Law: Cross-functional teams align with modular system design."
+          ]
+        }
+      ],
+      "knowledge_graph_ascii": "Microservices -> Small Teams -> Innovation\nMicroservices -> Cross-functional Teams -> Accountability\nConway's Law -> Organizational Structure -> System Design",
+      "people": [
+        {
+          "name": "Jeff Bezos",
+          "context": "Amazon CEO who emphasized the importance of small teams for effective communication."
+        },
+        {
+          "name": "J Richard Hackman",
+          "context": "Studied team dynamics and communication, highlighting the impact of team size on productivity."
+        },
+        {
+          "name": "Martin Fowler",
+          "context": "Agrees with the challenges of implementing microservices effectively."
+        }
+      ],
+      "organizations": [
+        {
+          "name": "Amazon",
+          "context": "Uses small, cross-functional teams to successfully implement microservices."
+        },
+        {
+          "name": "Netflix",
+          "context": "Cited as a successful example of microservices architecture."
+        },
+        {
+          "name": "Gilt",
+          "context": "Cited as a successful example of microservices architecture."
+        }
+      ],
+      "concepts": [
+        {
+          "name": "Two-pizza team",
+          "context": "A team size rule at Amazon ensuring teams are small enough for effective communication."
+        },
+        {
+          "name": "Conway's Law",
+          "context": "The idea that organizational communication structures influence system design."
+        },
+        {
+          "name": "Cross-functional team",
+          "context": "Teams composed of diverse roles to ensure accountability and quality."
+        }
+      ],
+      "formulas_data": [
+        {
+          "name": "Communication links formula",
+          "context": "(n * n-1) / 2, used to show how communication links increase with team size."
+        }
+      ],
+      "examples_analogies": [
+        {
+          "name": "Navy Seals",
+          "context": "Work in combat teams of 4, illustrating the effectiveness of small teams."
+        }
+      ],
+      "forward_looking": [
+        "The author plans to discuss OpenShift and fabric8io projects in the next post."
+      ],
+      "memory_aids": {
+        "key_phrase": "\"Managers: We need more communication on and between our teams. Bezos: No. Communication is terrible.\"",
+        "visual_metaphor": "A small team sharing two pizzas, symbolizing the 'two-pizza team' rule.",
+        "mnemonic": "TEAM: Together Everyone Achieves More, emphasizing small, cross-functional teams."
+      },
+      "discussion_summary": null,
+      "discussion_metrics": null
+    },
+    "tokens_used": 4117,
+    "latency_ms": 14947
+  },
+  "evaluation": {
+    "judgement": null,
+    "completeness": {
+      "insights_found": [
+        "Microservices success is fundamentally about organizational structure, not technology choices like Docker or Kubernetes",
+        "Amazon's two-pizza rule limits teams to 6-8 members (size that two pizzas can feed)",
+        "Team communication links grow by formula (n * n-1) / 2, causing communication to degrade as teams grow",
+        "J Richard Hackman's research found optimal team size is less than 10 members",
+        "Conway's Law states organizations design systems that mirror their communication structures",
+        "Cross-functional teams must include developers, DBAs, QA, and operations on the same team to prevent 'throwing over the fence'",
+        "Jeff Bezos stated 'Communication is terrible' when managers requested more team communication, emphasizing effective over frequent communication",
+        "Small microservices teams behave like open-source projects with developers, testers, and ops working together",
+        "Navy Seals work in combat teams of 4 people",
+        "Author plans to discuss OpenShift and fabric8io tooling in a future post"
+      ],
+      "insights_missing": [
+        "Prematurely breaking apps into microservices without proper organizational structure can lead to 'SOA on steroids disaster'",
+        "SOA had similar principles to microservices but lost focus by getting caught up in WS-* specs rather than organizational goals"
+      ],
+      "vital_insights_found": 10,
+      "vital_insights_total": 12,
+      "vital_coverage_percent": 83.3
+    }
+  },
+  "insights_file": "experiments/v3/test_cases/case_001.insights.json"
+}
