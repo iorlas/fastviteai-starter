@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.config.constants import HTTP_TIMEOUT_DEFAULT
@@ -7,7 +9,7 @@ from dagster_project.utils.content_type import ContentType, detect_content_type
 
 
 @asset(
-    required_resource_keys={"bronze_io_manager"},
+    required_resource_keys={"bronze_storage"},
     compute_kind="python",
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "download", "content_type": "html"},
@@ -15,8 +17,8 @@ from dagster_project.utils.content_type import ContentType, detect_content_type
 async def bronze_raw_html(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
-) -> dict:
-    bronze_io_manager = context.resources.bronze_io_manager
+) -> None:
+    bronze_storage = context.resources.bronze_storage
     downloader = HTTPDownloader(timeout=HTTP_TIMEOUT_DEFAULT)
 
     html_urls = [u for u in discovered_urls if detect_content_type(u["url"]) == ContentType.HTML]
@@ -28,7 +30,7 @@ async def bronze_raw_html(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_io_manager.exists("bronze_raw_html", url_hash):
+        if bronze_storage.exists("bronze_raw_html", url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
@@ -49,9 +51,10 @@ async def bronze_raw_html(
                 "error": result.error,
                 "error_type": result.error_type,
             },
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
-        bronze_io_manager.save("bronze_raw_html", url_hash, bronze_data)
+        bronze_storage.save("bronze_raw_html", url_hash, bronze_data)
 
         if result.success:
             content_size = len(result.html_content) if result.html_content else 0
@@ -61,6 +64,5 @@ async def bronze_raw_html(
             context.log.warning(f"✗ Download failed: {url} - {result.error} (status: {result.status_code})")
             stats.failed += 1
 
-    return stats.log_and_return(
-        context, f"Bronze layer complete: {stats.processed} downloaded, {stats.cached} cached, {stats.failed} failed"
-    )
+    context.log.info(f"Bronze layer complete: {stats.processed} downloaded, {stats.cached} cached, {stats.failed} failed")
+    context.add_output_metadata(stats.model_dump())

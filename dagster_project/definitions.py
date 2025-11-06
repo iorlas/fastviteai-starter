@@ -3,19 +3,21 @@ from dagster import Definitions
 from dagster_project.assets import (
     bronze_discussions,
     bronze_raw_html,
+    bronze_raw_youtube,
     discovered_urls,
     silver_discussions,
     silver_extracted_content,
     silver_summary,
 )
 from dagster_project.jobs import manual_urls_pipeline, watchers_pipeline
-from dagster_project.resources.io_managers import BronzeIOManager, SilverIOManager
+from dagster_project.resources.storage import Storage
 from dagster_project.resources.summary_generator_resource import summary_generator_resource
 from dagster_project.schedules import monitoring_schedule
 
 all_assets = [
     discovered_urls,
     bronze_raw_html,
+    bronze_raw_youtube,
     bronze_discussions,
     silver_extracted_content,
     silver_discussions,
@@ -33,7 +35,7 @@ defs = Definitions(
     ],
     resources={
         "summary_generator": summary_generator_resource,
-        "bronze_io_manager": BronzeIOManager(),
-        "silver_io_manager": SilverIOManager(),
+        "bronze_storage": Storage(base_dir="artifacts/bronze"),
+        "silver_storage": Storage(base_dir="artifacts/silver"),
     },
 )

@@ -118,7 +118,10 @@
       "WebFetch(domain:retryhttp.readthedocs.io)",
       "Bash(uv pip index:*)",
       "Bash(pip index:*)",
-      "WebFetch(domain:hishel.com)"
+      "WebFetch(domain:hishel.com)",
+      "WebFetch(domain:www.getorchestra.io)",
+      "WebFetch(domain:maxfiltenborg.com)",
+      "WebFetch(domain:dagster.io)"
     ],
     "deny": [],
     "ask": []

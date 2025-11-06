@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.utils.asset_utils import Stats
@@ -6,7 +8,7 @@ from dagster_project.utils.url_utils import extract_aggregator_info
 
 
 @asset(
-    required_resource_keys={"bronze_io_manager"},
+    required_resource_keys={"bronze_storage"},
     compute_kind="python",
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "youtube_api", "content_type": "youtube"},
@@ -14,8 +16,8 @@ from dagster_project.utils.url_utils import extract_aggregator_info
 def bronze_raw_youtube(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
-) -> dict:
-    bronze_io_manager = context.resources.bronze_io_manager
+) -> None:
+    bronze_storage = context.resources.bronze_storage
 
     youtube_urls = [u for u in discovered_urls if detect_content_type(u["url"]) == ContentType.YOUTUBE]
 
@@ -26,7 +28,7 @@ def bronze_raw_youtube(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_io_manager.exists("bronze_raw_youtube", url_hash):
+        if bronze_storage.exists("bronze_raw_youtube", url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
@@ -43,11 +45,13 @@ def bronze_raw_youtube(
                 "was_aggregator": bool(aggregator_info),
                 **aggregator_info,
             },
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
-        bronze_io_manager.save("bronze_raw_youtube", url_hash, bronze_data)
+        bronze_storage.save("bronze_raw_youtube", url_hash, bronze_data)
 
         context.log.info(f"✓ Stored: {url}")
         stats.processed += 1
 
-    return stats.log_and_return(context, f"Bronze YouTube layer complete: {stats.processed} stored, {stats.cached} cached")
+    context.log.info(f"Bronze YouTube layer complete: {stats.processed} stored, {stats.cached} cached")
+    context.add_output_metadata(stats.model_dump())

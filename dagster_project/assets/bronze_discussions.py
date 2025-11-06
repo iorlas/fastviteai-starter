@@ -1,6 +1,4 @@
-import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 from dagster import AssetExecutionContext, asset
 
@@ -12,7 +10,7 @@ from dagster_project.core.discussions.models import DiscussionLink, DiscussionMe
 from dagster_project.utils.asset_utils import Stats
 
 
-async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progress_callback=None) -> dict:
+async def _fetch_discussions(discovered_urls: list[dict], storage, progress_callback=None) -> dict:
     stats = Stats(total=len(discovered_urls))
     total_stories = 0
 
@@ -25,10 +23,7 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
             url_hash = url_data["url_hash"]
             pre_saved_links = [DiscussionLink(**link) for link in url_data.get("discussion_links", [])]
 
-            url_dir = base_dir / url_hash
-            metadata_file = url_dir / "metadata.json"
-
-            if metadata_file.exists():
+            if storage.exists(f"bronze_discussions/{url_hash}", "metadata"):
                 if progress_callback:
                     progress_callback(f"Cached: {url}")
                 stats.cached += 1
@@ -50,8 +45,6 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
                         progress_callback(f"No discussions found for: {url}")
                     continue
 
-                url_dir.mkdir(parents=True, exist_ok=True)
-
                 if progress_callback:
                     progress_callback(f"Found {len(all_discussion_urls)} unique discussion(s), fetching comments...")
 
@@ -63,18 +56,22 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
                         story_id = hn_handler.extract_story_id(disc_url)
                         if story_id not in hn_story_ids:
                             story_full = await hn_handler.fetch_story(disc_url)
-                            story_file = url_dir / f"{story_id}.json"
-                            with story_file.open("w") as f:
-                                json.dump(story_full.model_dump(), f, indent=2, default=str)
+                            story_data = {
+                                **story_full.model_dump(),
+                                "created_at": datetime.now(UTC).isoformat(),
+                            }
+                            storage.save(f"bronze_discussions/{url_hash}", story_id, story_data)
                             hn_story_ids.append(story_id)
 
                     elif "lobste.rs" in disc_url:
                         story_id = lobsters_handler.extract_story_id(disc_url)
                         if story_id not in lobsters_story_ids:
                             story_full = await lobsters_handler.fetch_story(disc_url)
-                            story_file = url_dir / f"{story_id}.json"
-                            with story_file.open("w") as f:
-                                json.dump(story_full.model_dump(), f, indent=2, default=str)
+                            story_data = {
+                                **story_full.model_dump(),
+                                "created_at": datetime.now(UTC).isoformat(),
+                            }
+                            storage.save(f"bronze_discussions/{url_hash}", story_id, story_data)
                             lobsters_story_ids.append(story_id)
 
                 platforms = []
@@ -99,8 +96,11 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
                     cache_ttl_hours=24,
                 )
 
-                with metadata_file.open("w") as f:
-                    json.dump(metadata.model_dump(), f, indent=2, default=str)
+                metadata_data = {
+                    **metadata.model_dump(),
+                    "created_at": datetime.now(UTC).isoformat(),
+                }
+                storage.save(f"bronze_discussions/{url_hash}", "metadata", metadata_data)
 
                 if progress_callback:
                     progress_callback(
@@ -121,7 +121,7 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
 
 
 @asset(
-    required_resource_keys={"bronze_io_manager"},
+    required_resource_keys={"bronze_storage"},
     compute_kind="python",
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "discussions"},
@@ -129,17 +129,14 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
 async def bronze_discussions(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
-) -> dict:
-    bronze_io_manager = context.resources.bronze_io_manager
-    base_dir = Path(bronze_io_manager.base_dir) / "bronze_discussions"
-    base_dir.mkdir(parents=True, exist_ok=True)
+) -> None:
+    bronze_storage = context.resources.bronze_storage
 
     context.log.info(f"Starting discussion discovery for {len(discovered_urls)} URLs")
-    result = await _fetch_discussions(discovered_urls, base_dir, context.log.info)
+    result = await _fetch_discussions(discovered_urls, bronze_storage, context.log.info)
 
     context.log.info(
         f"Discussion discovery complete: {result['processed']} processed, "
         f"{result['cached']} cached, {result['failed']} failed, {result['total_stories']} total stories"
     )
     context.add_output_metadata(result)
-    return result

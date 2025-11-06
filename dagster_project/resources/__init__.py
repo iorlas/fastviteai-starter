@@ -1,12 +1,11 @@
-from .openai import OpenAIClient, openai_resource
+from .storage import Storage
 from .summary_generator_resource import (
     SummaryGeneratorResource,
     summary_generator_resource,
 )
 
 __all__ = [
-    "OpenAIClient",
-    "openai_resource",
+    "Storage",
     "SummaryGeneratorResource",
     "summary_generator_resource",
 ]
