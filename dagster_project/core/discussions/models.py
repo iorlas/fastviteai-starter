@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    pass
 
 
 class DiscussionLink(BaseModel):
@@ -44,6 +47,16 @@ class HNStoryFull(BaseModel):
     created_at_i: int
     children: list[HNComment] = Field(default_factory=list)
 
+    def count_total_comments(self) -> int:
+        """Count all nested comments recursively."""
+        from dagster_project.utils.discussion_utils import count_comments_recursive
+
+        return count_comments_recursive(self.children)
+
+    def get_comments(self) -> list[HNComment]:
+        """Get comment list (for polymorphic access)."""
+        return self.children
+
 
 class HNSearchResponse(BaseModel):
     hits: list[HNStory]
@@ -66,3 +79,13 @@ class DiscussionMetadata(BaseModel):
     discussion_links: list[DiscussionLink] = Field(default_factory=list)
     discovered_at: datetime
     cache_ttl_hours: int = 24
+
+
+def _get_discussion_story_union():
+    """Lazy union type to avoid circular import."""
+    from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
+
+    return HNStoryFull | LobstersStoryFull
+
+
+DiscussionStory = _get_discussion_story_union()

@@ -113,7 +113,9 @@
       "WebFetch(domain:hacker-news.firebaseio.com)",
       "WebFetch(domain:pypi.org)",
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains rm:*)",
-      "WebFetch(domain:lobste.rs)"
+      "WebFetch(domain:lobste.rs)",
+      "WebFetch(domain:trafilatura.readthedocs.io)",
+      "WebFetch(domain:retryhttp.readthedocs.io)"
     ],
     "deny": [],
     "ask": []

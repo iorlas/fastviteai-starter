@@ -1,3 +1,5 @@
+import json
+
 import structlog
 
 from dagster_project.core.aggregators.base import AggregatorExtractor, ExtractionResult
@@ -16,8 +18,6 @@ class LobstersExtractor(AggregatorExtractor):
         try:
             json_url = lobsters_url.rstrip("/") + ".json"
             json_content = self.http_cache.fetch(json_url, ttl_seconds=86400)
-
-            import json
 
             data = json.loads(json_content)
 

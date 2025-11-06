@@ -1,10 +1,8 @@
-import structlog
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.content_extractor import ContentExtractor, ExtractionRequest
+from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.content_type import ContentType, detect_content_type
-
-logger = structlog.get_logger()
 
 
 @asset(
@@ -19,54 +17,28 @@ def silver_extracted_content(
     bronze_raw_html: dict,
     bronze_raw_youtube: dict,
 ) -> dict:
-    """Extract clean content from all bronze sources (HTML, YouTube).
-
-    Fan-in pattern: depends on bronze_raw_html and bronze_raw_youtube.
-    Skips URLs that already have extracted content (can be deleted to reprocess).
-
-    Returns summary statistics.
-    """
     bronze_io_manager = context.resources.bronze_io_manager
     silver_io_manager = context.resources.silver_io_manager
     extractor = ContentExtractor()
 
-    total_urls = len(discovered_urls)
-    context.log.info(f"Starting silver extraction for {total_urls} URLs")
-    processed = 0
-    cached = 0
-    failed = 0
+    stats = Stats(total=len(discovered_urls))
+    context.log.info(f"Starting silver extraction for {stats.total} URLs")
 
     for url_data in discovered_urls:
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        was_aggregator = url_data.get("was_aggregator", False)
-        aggregator_info = {}
-        if url_data.get("original_url"):
-            aggregator_info = {
-                "original_url": url_data.get("original_url"),
-                "aggregator_type": url_data.get("aggregator_type"),
-                "aggregator_title": url_data.get("aggregator_title"),
-            }
-
         if silver_io_manager.exists("silver_extracted_content", url_hash):
-            logger.info("silver.extraction.cache_hit", url_hash=url_hash, url=url)
-            cached += 1
+            context.log.info(f"Cache hit: {url}")
+            stats.cached += 1
             continue
 
         content_type = detect_content_type(url)
 
         if content_type == ContentType.YOUTUBE:
             if not bronze_io_manager.exists("bronze_raw_youtube", url_hash):
-                logger.warning(
-                    "silver.extraction.no_bronze",
-                    url_hash=url_hash,
-                    url=url,
-                    content_type=content_type.value,
-                    was_aggregator=was_aggregator,
-                    **aggregator_info,
-                )
-                failed += 1
+                context.log.warning(f"No bronze data for YouTube: {url}")
+                stats.failed += 1
                 continue
 
             bronze_data = bronze_io_manager.load("bronze_raw_youtube", url_hash)
@@ -74,28 +46,15 @@ def silver_extracted_content(
 
         elif content_type == ContentType.HTML:
             if not bronze_io_manager.exists("bronze_raw_html", url_hash):
-                logger.warning(
-                    "silver.extraction.no_bronze",
-                    url_hash=url_hash,
-                    url=url,
-                    content_type=content_type.value,
-                    was_aggregator=was_aggregator,
-                    **aggregator_info,
-                )
-                failed += 1
+                context.log.warning(f"No bronze data for HTML: {url}")
+                stats.failed += 1
                 continue
 
             bronze_data = bronze_io_manager.load("bronze_raw_html", url_hash)
             html_content = bronze_data.get("html_content", "")
 
             if not html_content:
-                logger.warning(
-                    "silver.extraction.empty_html",
-                    url_hash=url_hash,
-                    url=url,
-                    was_aggregator=was_aggregator,
-                    **aggregator_info,
-                )
+                context.log.warning(f"Empty HTML content: {url}")
                 silver_data = {
                     "url": url,
                     "content_type": "unknown",
@@ -109,25 +68,14 @@ def silver_extracted_content(
                     },
                 }
                 silver_io_manager.save("silver_extracted_content", url_hash, silver_data)
-                failed += 1
+                stats.failed += 1
                 continue
         else:
-            logger.error(
-                "silver.extraction.unknown_content_type",
-                url_hash=url_hash,
-                url=url,
-                content_type=content_type.value,
-            )
-            failed += 1
+            context.log.error(f"Unknown content type {content_type.value}: {url}")
+            stats.failed += 1
             continue
 
-        logger.info(
-            "silver.extraction.processing",
-            url_hash=url_hash,
-            url=url,
-            was_aggregator=was_aggregator,
-            **aggregator_info,
-        )
+        context.log.info(f"Extracting: {url}")
         result = extractor.extract(ExtractionRequest(url=url, html_content=html_content))
 
         silver_data = {
@@ -147,49 +95,12 @@ def silver_extracted_content(
 
         if result.success:
             content_length = len(result.content) if result.content else 0
-            logger.info(
-                "silver.extraction.success",
-                url_hash=url_hash,
-                url=url,
-                title=result.title,
-                content_type=result.content_type,
-                content_length=content_length,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            processed += 1
+            context.log.info(f"✓ Extracted: {result.title} ({content_length} chars, type: {result.content_type})")
+            stats.processed += 1
         else:
-            logger.warning(
-                "silver.extraction.failed",
-                url_hash=url_hash,
-                url=url,
-                error=result.error,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            failed += 1
+            context.log.warning(f"✗ Extraction failed: {url} - {result.error}")
+            stats.failed += 1
 
-    context.log.info(f"Silver extraction complete: {processed} extracted, {cached} cached, {failed} failed (total: {total_urls})")
-    logger.info(
-        "silver.extraction.complete",
-        total=total_urls,
-        processed=processed,
-        cached=cached,
-        failed=failed,
+    return stats.log_and_return(
+        context, f"Silver extraction complete: {stats.processed} extracted, {stats.cached} cached, {stats.failed} failed"
     )
-
-    context.add_output_metadata(
-        {
-            "total_urls": total_urls,
-            "processed": processed,
-            "cached": cached,
-            "failed": failed,
-        }
-    )
-
-    return {
-        "total_urls": total_urls,
-        "processed": processed,
-        "cached": cached,
-        "failed": failed,
-    }

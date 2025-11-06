@@ -47,3 +47,13 @@ class LobstersStoryFull(BaseModel):
     short_id_url: str
     comments_url: str
     comments: list[LobstersComment] = Field(default_factory=list)
+
+    def count_total_comments(self) -> int:
+        """Count all nested comments recursively."""
+        from dagster_project.utils.discussion_utils import count_comments_recursive
+
+        return count_comments_recursive(self.comments)
+
+    def get_comments(self) -> list[LobstersComment]:
+        """Get comment list (for polymorphic access)."""
+        return self.comments

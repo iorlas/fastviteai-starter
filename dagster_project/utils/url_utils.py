@@ -2,17 +2,14 @@ import hashlib
 
 
 def compute_url_hash(url: str) -> str:
-    """Compute deterministic hash for a URL."""
     return hashlib.sha256(url.encode()).hexdigest()
 
 
-def normalize_url(url: str) -> str:
-    """Normalize URL to canonical form for deduplication.
-
-    Future: Handle redirects, remove tracking params, normalize domains.
-    For now: basic cleanup.
-    """
-    url = url.strip()
-    if url.endswith("/"):
-        url = url[:-1]
-    return url
+def extract_aggregator_info(url_data: dict) -> dict:
+    if not url_data.get("original_url"):
+        return {}
+    return {
+        "original_url": url_data["original_url"],
+        "aggregator_type": url_data["aggregator_type"],
+        "aggregator_title": url_data["aggregator_title"],
+    }

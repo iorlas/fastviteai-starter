@@ -1,10 +1,9 @@
-import structlog
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.config.constants import HTTP_TIMEOUT_DEFAULT
 from dagster_project.core.downloader import HTTPDownloader
+from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.content_type import ContentType, detect_content_type
-
-logger = structlog.get_logger()
 
 
 @asset(
@@ -17,49 +16,24 @@ def bronze_raw_html(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> dict:
-    """Download HTML content for non-YouTube URLs.
-
-    Filters to HTML content type only. Skips URLs that already have
-    cached HTML (bronze layer immutability).
-
-    Returns summary statistics.
-    """
     bronze_io_manager = context.resources.bronze_io_manager
-    downloader = HTTPDownloader(timeout=30)
+    downloader = HTTPDownloader(timeout=HTTP_TIMEOUT_DEFAULT)
 
     html_urls = [u for u in discovered_urls if detect_content_type(u["url"]) == ContentType.HTML]
 
-    total_urls = len(html_urls)
-    context.log.info(f"Starting bronze HTML layer download for {total_urls} URLs")
-    processed = 0
-    cached = 0
-    failed = 0
+    stats = Stats(total=len(html_urls))
+    context.log.info(f"Starting bronze HTML layer download for {stats.total} URLs")
 
     for url_data in html_urls:
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
         if bronze_io_manager.exists("bronze_raw_html", url_hash):
-            logger.info("bronze.cache_hit", url_hash=url_hash, url=url)
-            cached += 1
+            context.log.info(f"Cache hit: {url}")
+            stats.cached += 1
             continue
 
-        was_aggregator = url_data.get("was_aggregator", False)
-        aggregator_info = {}
-        if url_data.get("original_url"):
-            aggregator_info = {
-                "original_url": url_data.get("original_url"),
-                "aggregator_type": url_data.get("aggregator_type"),
-                "aggregator_title": url_data.get("aggregator_title"),
-            }
-
-        logger.info(
-            "bronze.downloading",
-            url_hash=url_hash,
-            url=url,
-            was_aggregator=was_aggregator,
-            **aggregator_info,
-        )
+        context.log.info(f"Downloading: {url}")
         result = downloader.download(url)
 
         bronze_data = {
@@ -81,50 +55,12 @@ def bronze_raw_html(
 
         if result.success:
             content_size = len(result.html_content) if result.html_content else 0
-            logger.info(
-                "bronze.download_success",
-                url_hash=url_hash,
-                url=url,
-                status_code=result.status_code,
-                content_size=content_size,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            processed += 1
+            context.log.info(f"✓ Downloaded: {url} ({content_size} bytes, status: {result.status_code})")
+            stats.processed += 1
         else:
-            logger.warning(
-                "bronze.download_failed",
-                url_hash=url_hash,
-                url=url,
-                error=result.error,
-                error_type=result.error_type,
-                status_code=result.status_code,
-                was_aggregator=was_aggregator,
-                **aggregator_info,
-            )
-            failed += 1
+            context.log.warning(f"✗ Download failed: {url} - {result.error} (status: {result.status_code})")
+            stats.failed += 1
 
-    context.log.info(f"Bronze layer complete: {processed} downloaded, {cached} cached, {failed} failed (total: {total_urls})")
-    logger.info(
-        "bronze.complete",
-        total=total_urls,
-        processed=processed,
-        cached=cached,
-        failed=failed,
+    return stats.log_and_return(
+        context, f"Bronze layer complete: {stats.processed} downloaded, {stats.cached} cached, {stats.failed} failed"
     )
-
-    context.add_output_metadata(
-        {
-            "total_urls": total_urls,
-            "processed": processed,
-            "cached": cached,
-            "failed": failed,
-        }
-    )
-
-    return {
-        "total_urls": total_urls,
-        "processed": processed,
-        "cached": cached,
-        "failed": failed,
-    }
