@@ -4,6 +4,7 @@ from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.summarizer import SummaryRequest
 from dagster_project.utils.asset_utils import Stats
+from dagster_project.utils.tables import SilverTable
 
 
 @asset(
@@ -27,17 +28,17 @@ async def silver_summary(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if silver_storage.exists("silver_summary", url_hash):
+        if silver_storage.exists(SilverTable.SUMMARIES, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
 
-        if not silver_storage.exists("silver_extracted_content", url_hash):
+        if not silver_storage.exists(SilverTable.EXTRACTED_CONTENT, url_hash):
             context.log.warning(f"No extracted content: {url}")
             stats.failed += 1
             continue
 
-        extracted_content = silver_storage.load("silver_extracted_content", url_hash)
+        extracted_content = silver_storage.load(SilverTable.EXTRACTED_CONTENT, url_hash)
 
         if not extracted_content.get("extraction_success"):
             context.log.warning(f"Skipping failed extraction: {url}")
@@ -58,7 +59,7 @@ async def silver_summary(
                 "created_at": datetime.now(UTC).isoformat(),
                 "updated_at": datetime.now(UTC).isoformat(),
             }
-            silver_storage.save("silver_summary", url_hash, summary_data)
+            silver_storage.save(SilverTable.SUMMARIES, url_hash, summary_data)
             stats.failed += 1
             continue
 
@@ -66,9 +67,9 @@ async def silver_summary(
 
         discussion_data = None
         discussion_metadata = None
-        if silver_storage.exists("silver_discussions", url_hash):
+        if silver_storage.exists(SilverTable.DISCUSSIONS, url_hash):
             try:
-                discussion_data_full = silver_storage.load("silver_discussions", url_hash)
+                discussion_data_full = silver_storage.load(SilverTable.DISCUSSIONS, url_hash)
                 discussion_data = discussion_data_full.get("comments", [])
                 discussion_metadata = discussion_data_full.get("metadata", {})
                 context.log.info(f"Loaded discussions: {len(discussion_data)} comments")
@@ -107,7 +108,7 @@ async def silver_summary(
                 "created_at": datetime.now(UTC).isoformat(),
                 "updated_at": datetime.now(UTC).isoformat(),
             }
-            silver_storage.save("silver_summary", url_hash, summary_data)
+            silver_storage.save(SilverTable.SUMMARIES, url_hash, summary_data)
             context.log.info(f"✓ Summary generated ({result.tokens_used} tokens, {result.latency_ms}ms)")
             stats.processed += 1
 
@@ -129,7 +130,7 @@ async def silver_summary(
                 "created_at": datetime.now(UTC).isoformat(),
                 "updated_at": datetime.now(UTC).isoformat(),
             }
-            silver_storage.save("silver_summary", url_hash, summary_data)
+            silver_storage.save(SilverTable.SUMMARIES, url_hash, summary_data)
             stats.failed += 1
 
     context.log.info(f"Summarization complete: {stats.processed} generated, {stats.cached} cached, {stats.failed} failed")

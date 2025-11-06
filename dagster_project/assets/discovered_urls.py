@@ -6,6 +6,7 @@ from url_normalize import url_normalize
 
 from dagster_project.core.aggregator_resolver import resolve_url
 from dagster_project.core.extractors.watchers import RSSWatcher, RSSWatcherError
+from dagster_project.utils.content_type import detect_content_type
 from dagster_project.utils.paths import MANUAL_LINKS_FILE, MONITORING_LINKS_FILE
 from dagster_project.utils.url_utils import compute_url_hash
 
@@ -49,6 +50,7 @@ async def _process_discovered_url(
     url_data = {
         "url": canonical_url,
         "url_hash": url_hash,
+        "content_type": detect_content_type(canonical_url).value,
         "source": source,
         "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
     }

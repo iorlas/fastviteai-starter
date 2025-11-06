@@ -123,7 +123,11 @@
       "WebFetch(domain:maxfiltenborg.com)",
       "WebFetch(domain:dagster.io)",
       "Bash(while read f)",
-      "Bash(do echo \"File: $f\")"
+      "Bash(do echo \"File: $f\")",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline --all -20)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show c31cab3:dagster_project/assets/bronze_discussions.py)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline -1 c31cab3)",
+      "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show c31cab3^:dagster_project/resources/bronze_io_manager.py)"
     ],
     "deny": [],
     "ask": []

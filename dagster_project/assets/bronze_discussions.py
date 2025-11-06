@@ -8,6 +8,7 @@ from dagster_project.core.discussions.hn_client import HNClient
 from dagster_project.core.discussions.lobsters_client import LobstersClient
 from dagster_project.core.discussions.models import DiscussionLink, DiscussionMetadata
 from dagster_project.utils.asset_utils import Stats
+from dagster_project.utils.tables import BronzeTable
 
 
 async def _fetch_discussions(discovered_urls: list[dict], storage, progress_callback=None) -> dict:
@@ -23,7 +24,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
             url_hash = url_data["url_hash"]
             pre_saved_links = [DiscussionLink(**link) for link in url_data.get("discussion_links", [])]
 
-            if storage.exists(f"discussions/{url_hash}", "metadata"):
+            if storage.exists(BronzeTable.DISCUSSIONS, "metadata", sub_partition=url_hash):
                 if progress_callback:
                     progress_callback(f"Cached: {url}")
                 stats.cached += 1
@@ -55,23 +56,23 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                     if "news.ycombinator.com" in disc_url:
                         story_id = hn_handler.extract_story_id(disc_url)
                         if story_id not in hn_story_ids:
-                            story_full = await hn_handler.fetch_story(disc_url)
+                            story_full = await hn_handler.fetch_story(disc_url, story_id)
                             story_data = {
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
                             }
-                            storage.save(f"discussions/{url_hash}", story_id, story_data)
+                            storage.save(BronzeTable.DISCUSSIONS, story_id, story_data, sub_partition=url_hash)
                             hn_story_ids.append(story_id)
 
                     elif "lobste.rs" in disc_url:
                         story_id = lobsters_handler.extract_story_id(disc_url)
                         if story_id not in lobsters_story_ids:
-                            story_full = await lobsters_handler.fetch_story(disc_url)
+                            story_full = await lobsters_handler.fetch_story(disc_url, story_id)
                             story_data = {
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
                             }
-                            storage.save(f"discussions/{url_hash}", story_id, story_data)
+                            storage.save(BronzeTable.DISCUSSIONS, story_id, story_data, sub_partition=url_hash)
                             lobsters_story_ids.append(story_id)
 
                 platforms = []
@@ -99,7 +100,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                     **metadata.model_dump(),
                     "created_at": datetime.now(UTC).isoformat(),
                 }
-                storage.save(f"discussions/{url_hash}", "metadata", metadata_data)
+                storage.save(BronzeTable.DISCUSSIONS, "metadata", metadata_data, sub_partition=url_hash)
 
                 if progress_callback:
                     progress_callback(

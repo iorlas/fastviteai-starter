@@ -4,7 +4,8 @@ from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.content_extractor import ContentExtractor, ExtractionRequest
 from dagster_project.utils.asset_utils import Stats
-from dagster_project.utils.content_type import ContentType, detect_content_type
+from dagster_project.utils.content_type import ContentType
+from dagster_project.utils.tables import BronzeTable, SilverTable
 
 
 @asset(
@@ -29,29 +30,29 @@ async def silver_extracted_content(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if silver_storage.exists("silver_extracted_content", url_hash):
+        if silver_storage.exists(SilverTable.EXTRACTED_CONTENT, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
 
-        content_type = detect_content_type(url)
+        content_type = url_data["content_type"]
 
-        if content_type == ContentType.YOUTUBE:
-            if not bronze_storage.exists("bronze_raw_youtube", url_hash):
+        if content_type == ContentType.YOUTUBE.value:
+            if not bronze_storage.exists(BronzeTable.RAW_YOUTUBE, url_hash):
                 context.log.warning(f"No bronze data for YouTube: {url}")
                 stats.failed += 1
                 continue
 
-            bronze_data = bronze_storage.load("bronze_raw_youtube", url_hash)
+            bronze_data = bronze_storage.load(BronzeTable.RAW_YOUTUBE, url_hash)
             html_content = None
 
-        elif content_type == ContentType.HTML:
-            if not bronze_storage.exists("bronze_raw_html", url_hash):
+        elif content_type == ContentType.HTML.value:
+            if not bronze_storage.exists(BronzeTable.RAW_HTML, url_hash):
                 context.log.warning(f"No bronze data for HTML: {url}")
                 stats.failed += 1
                 continue
 
-            bronze_data = bronze_storage.load("bronze_raw_html", url_hash)
+            bronze_data = bronze_storage.load(BronzeTable.RAW_HTML, url_hash)
             html_content = bronze_data.get("html_content", "")
 
             if not html_content:
@@ -70,11 +71,11 @@ async def silver_extracted_content(
                     "created_at": datetime.now(UTC).isoformat(),
                     "updated_at": datetime.now(UTC).isoformat(),
                 }
-                silver_storage.save("silver_extracted_content", url_hash, silver_data)
+                silver_storage.save(SilverTable.EXTRACTED_CONTENT, url_hash, silver_data)
                 stats.failed += 1
                 continue
         else:
-            context.log.error(f"Unknown content type {content_type.value}: {url}")
+            context.log.error(f"Unknown content type {content_type}: {url}")
             stats.failed += 1
             continue
 
@@ -96,7 +97,7 @@ async def silver_extracted_content(
             "updated_at": datetime.now().isoformat(),
         }
 
-        silver_storage.save("silver_extracted_content", url_hash, silver_data)
+        silver_storage.save(SilverTable.EXTRACTED_CONTENT, url_hash, silver_data)
 
         if result.success:
             content_length = len(result.content) if result.content else 0

@@ -13,10 +13,11 @@ class LobstersHandler:
         """Search Lobsters for discussions of URL, return discussion URLs."""
         return await self.client.search_by_url(url)
 
-    async def fetch_story(self, discussion_url: str) -> LobstersStoryFull:
+    async def fetch_story(self, discussion_url: str, story_id: str | None = None) -> LobstersStoryFull:
         """Fetch full Lobsters story with comments."""
-        short_id = self.extract_story_id(discussion_url)
-        return await self.client.fetch_story_with_comments(short_id)
+        if story_id is None:
+            story_id = self.extract_story_id(discussion_url)
+        return await self.client.fetch_story_with_comments(story_id)
 
     def extract_story_id(self, discussion_url: str) -> str:
         """Extract short_id from Lobsters URL."""

@@ -13,9 +13,10 @@ class HNHandler:
         stories = await self.client.search_by_url(url)
         return [f"https://news.ycombinator.com/item?id={s.story_id}" for s in stories]
 
-    async def fetch_story(self, discussion_url: str) -> HNStoryFull:
+    async def fetch_story(self, discussion_url: str, story_id: int | None = None) -> HNStoryFull:
         """Fetch full HN story with comments."""
-        story_id = self.extract_story_id(discussion_url)
+        if story_id is None:
+            story_id = self.extract_story_id(discussion_url)
         return await self.client.fetch_story_with_comments(story_id)
 
     def extract_story_id(self, discussion_url: str) -> int:

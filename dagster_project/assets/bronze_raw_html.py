@@ -5,7 +5,8 @@ from dagster import AssetExecutionContext, asset
 from dagster_project.config.constants import HTTP_TIMEOUT_DEFAULT
 from dagster_project.core.downloader import HTTPDownloader
 from dagster_project.utils.asset_utils import Stats
-from dagster_project.utils.content_type import ContentType, detect_content_type
+from dagster_project.utils.content_type import ContentType
+from dagster_project.utils.tables import BronzeTable
 
 
 @asset(
@@ -21,7 +22,7 @@ async def bronze_raw_html(
     bronze_storage = context.resources.bronze_storage
     downloader = HTTPDownloader(timeout=HTTP_TIMEOUT_DEFAULT)
 
-    html_urls = [u for u in discovered_urls if detect_content_type(u["url"]) == ContentType.HTML]
+    html_urls = [u for u in discovered_urls if u["content_type"] == ContentType.HTML.value]
 
     stats = Stats(total=len(html_urls))
     context.log.info(f"Starting bronze HTML layer download for {stats.total} URLs")
@@ -30,7 +31,7 @@ async def bronze_raw_html(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_storage.exists("bronze_raw_html", url_hash):
+        if bronze_storage.exists(BronzeTable.RAW_HTML, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
@@ -54,7 +55,7 @@ async def bronze_raw_html(
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-        bronze_storage.save("bronze_raw_html", url_hash, bronze_data)
+        bronze_storage.save(BronzeTable.RAW_HTML, url_hash, bronze_data)
 
         if result.success:
             content_size = len(result.html_content) if result.html_content else 0
