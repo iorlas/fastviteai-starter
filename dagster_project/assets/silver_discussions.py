@@ -18,7 +18,7 @@ from dagster_project.utils.discussion_utils import load_stories_from_dir
     group_name="silver_layer",
     tags={"layer": "silver", "operation": "discussion_extraction"},
 )
-def silver_discussions(
+async def silver_discussions(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
     bronze_discussions: dict,

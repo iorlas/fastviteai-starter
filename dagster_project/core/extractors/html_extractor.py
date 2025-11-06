@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 from typing import NamedTuple
 
-import httpx
 import trafilatura
+
+from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 
 
 class HTMLContent(NamedTuple):
@@ -51,12 +52,16 @@ def extract_html_from_cached(html_content: str, url: str) -> HTMLContent:
         raise HTMLExtractionError(f"Error extracting content from {url}: {e}") from e
 
 
-def extract_html_content(url: str, timeout: int = 30, html_content: str | None = None) -> HTMLContent:
+async def extract_html_content(
+    url: str, timeout: int = 30, html_content: str | None = None, cache_client: AsyncCacheClient | None = None
+) -> HTMLContent:
     if html_content:
         return extract_html_from_cached(html_content, url)
 
+    client = cache_client or get_async_cache_client(timeout=timeout)
+
     try:
-        response = httpx.get(url, timeout=timeout, follow_redirects=True)
+        response = await client.get(url)
         response.raise_for_status()
 
         metadata_obj = trafilatura.extract_metadata(response.text)
@@ -87,7 +92,5 @@ def extract_html_content(url: str, timeout: int = 30, html_content: str | None =
             metadata=metadata,
         )
 
-    except httpx.HTTPError as e:
-        raise HTMLExtractionError(f"HTTP error fetching {url}: {e}") from e
     except Exception as e:
         raise HTMLExtractionError(f"Error extracting content from {url}: {e}") from e

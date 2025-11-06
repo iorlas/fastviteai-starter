@@ -2,20 +2,22 @@ import structlog
 from bs4 import BeautifulSoup
 
 from dagster_project.core.aggregators.base import AggregatorExtractor, ExtractionResult
-from dagster_project.core.cache.http_cache import HTTPCache
+from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 
 logger = structlog.get_logger()
 
 
 class HackerNewsExtractor(AggregatorExtractor):
-    def __init__(self, http_cache: HTTPCache | None = None):
-        self.http_cache = http_cache or HTTPCache()
+    def __init__(self, cache_client: AsyncCacheClient | None = None):
+        self.cache_client = cache_client or get_async_cache_client()
 
-    def extract_article_url(self, hn_url: str) -> ExtractionResult:
+    async def extract_article_url(self, hn_url: str) -> ExtractionResult:
         logger.info("hn_extraction_start", url=hn_url)
 
         try:
-            html_content = self.http_cache.fetch(hn_url, ttl_seconds=None)
+            response = await self.cache_client.get(hn_url)
+            response.raise_for_status()
+            html_content = response.text
 
             soup = BeautifulSoup(html_content, "html.parser")
 

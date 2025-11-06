@@ -1,4 +1,3 @@
-import asyncio
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -127,7 +126,7 @@ async def _fetch_discussions(discovered_urls: list[dict], base_dir: Path, progre
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "discussions"},
 )
-def bronze_discussions(
+async def bronze_discussions(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> dict:
@@ -136,7 +135,7 @@ def bronze_discussions(
     base_dir.mkdir(parents=True, exist_ok=True)
 
     context.log.info(f"Starting discussion discovery for {len(discovered_urls)} URLs")
-    result = asyncio.run(_fetch_discussions(discovered_urls, base_dir, context.log.info))
+    result = await _fetch_discussions(discovered_urls, base_dir, context.log.info)
 
     context.log.info(
         f"Discussion discovery complete: {result['processed']} processed, "

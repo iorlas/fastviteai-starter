@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -42,9 +42,12 @@ def mock_httpx_response(sample_html):
 
 
 @pytest.mark.integration
-def test_extract_html_content_success(mock_httpx_response):
-    with patch("dagster_project.core.extractors.html_extractor.httpx.get", return_value=mock_httpx_response):
-        result = extract_html_content("https://example.com/article")
+@pytest.mark.asyncio
+async def test_extract_html_content_success(mock_httpx_response):
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(return_value=mock_httpx_response)
+
+    result = await extract_html_content("https://example.com/article", cache_client=mock_client)
 
     assert isinstance(result, HTMLContent)
     assert result.url == "https://example.com/article"
@@ -56,9 +59,12 @@ def test_extract_html_content_success(mock_httpx_response):
 
 
 @pytest.mark.integration
-def test_extract_html_content_cleans_unwanted_elements(mock_httpx_response):
-    with patch("dagster_project.core.extractors.html_extractor.httpx.get", return_value=mock_httpx_response):
-        result = extract_html_content("https://example.com/article")
+@pytest.mark.asyncio
+async def test_extract_html_content_cleans_unwanted_elements(mock_httpx_response):
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(return_value=mock_httpx_response)
+
+    result = await extract_html_content("https://example.com/article", cache_client=mock_client)
 
     # Script content should be removed
     assert "console.log" not in result.content
@@ -67,16 +73,18 @@ def test_extract_html_content_cleans_unwanted_elements(mock_httpx_response):
 
 
 @pytest.mark.integration
-def test_extract_html_content_http_error():
-    with patch("dagster_project.core.extractors.html_extractor.httpx.get") as mock_get:
-        mock_get.side_effect = Exception("Network error")
+@pytest.mark.asyncio
+async def test_extract_html_content_http_error():
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=Exception("Network error"))
 
-        with pytest.raises(HTMLExtractionError):
-            extract_html_content("https://example.com/article")
+    with pytest.raises(HTMLExtractionError):
+        await extract_html_content("https://example.com/article", cache_client=mock_client)
 
 
 @pytest.mark.integration
-def test_extract_html_content_metadata():
+@pytest.mark.asyncio
+async def test_extract_html_content_metadata():
     html = """
     <html>
     <head><title>Test</title></head>
@@ -88,8 +96,10 @@ def test_extract_html_content_metadata():
     mock_response.url = "https://example.com/test"
     mock_response.raise_for_status = MagicMock()
 
-    with patch("dagster_project.core.extractors.html_extractor.httpx.get", return_value=mock_response):
-        result = extract_html_content("https://example.com/test")
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    result = await extract_html_content("https://example.com/test", cache_client=mock_client)
 
     assert "content_length" in result.metadata
     assert "extracted_at" in result.metadata

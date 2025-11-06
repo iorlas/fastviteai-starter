@@ -3,46 +3,58 @@ from pathlib import Path
 
 import pytest
 
-from dagster_project.core.cache.http_cache import HTTPCache
+from dagster_project.core.cache.hishel_cache import get_async_cache_client
 
 
 @pytest.mark.integration
-def test_http_cache_miss_and_fetch():
+@pytest.mark.asyncio
+async def test_http_cache_miss_and_fetch():
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache = HTTPCache(cache_dir=Path(tmpdir))
+        cache_dir = Path(tmpdir)
+        client = get_async_cache_client(cache_dir=cache_dir)
 
-        cached = cache.get("https://example.com")
-        assert cached is None
+        response1 = await client.get("https://example.com")
+        assert response1.status_code == 200
+        assert "Example Domain" in response1.text
+        assert response1.extensions.get("hishel_from_cache") is False
 
-        html = cache.fetch("https://example.com", ttl_seconds=None)
-        assert "Example Domain" in html
+        response2 = await client.get("https://example.com")
+        assert response2.status_code == 200
+        assert "Example Domain" in response2.text
+        assert response2.extensions.get("hishel_from_cache") is True
 
-        cached = cache.get("https://example.com")
-        assert cached is not None
-        assert "Example Domain" in cached.response_text
+        assert response1.text == response2.text
+        await client.aclose()
 
 
 @pytest.mark.integration
-def test_http_cache_stores_metadata():
+@pytest.mark.asyncio
+async def test_http_cache_stores_metadata():
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache = HTTPCache(cache_dir=Path(tmpdir))
+        cache_dir = Path(tmpdir)
+        client = get_async_cache_client(cache_dir=cache_dir, ttl=3600)
 
-        cache.fetch("https://example.com", ttl_seconds=3600)
+        response = await client.get("https://example.com")
 
-        cached = cache.get("https://example.com")
-        assert cached is not None
-        assert cached.url == "https://example.com"
-        assert cached.status_code == 200
-        assert cached.ttl_seconds == 3600
-        assert "text/html" in cached.headers.get("content-type", "").lower()
+        assert response.status_code == 200
+        assert str(response.url).startswith("https://example.com")
+        assert "text/html" in response.headers.get("content-type", "").lower()
+        await client.aclose()
 
 
 @pytest.mark.integration
-def test_http_cache_reuses_cached_response():
+@pytest.mark.asyncio
+async def test_http_cache_reuses_cached_response():
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache = HTTPCache(cache_dir=Path(tmpdir))
+        cache_dir = Path(tmpdir)
+        client = get_async_cache_client(cache_dir=cache_dir)
 
-        html1 = cache.fetch("https://example.com", ttl_seconds=None)
-        html2 = cache.fetch("https://example.com", ttl_seconds=None)
+        response1 = await client.get("https://example.com")
+        html1 = response1.text
+
+        response2 = await client.get("https://example.com")
+        html2 = response2.text
 
         assert html1 == html2
+        assert response2.extensions.get("hishel_from_cache") is True
+        await client.aclose()

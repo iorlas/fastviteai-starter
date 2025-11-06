@@ -1,8 +1,9 @@
 from urllib.parse import urlparse
 
-import httpx
 import structlog
+from hishel.httpx import AsyncCacheClient
 
+from dagster_project.core.cache.hishel_cache import get_async_cache_client
 from dagster_project.core.discussions.models import (
     HNSearchResponse,
     HNStory,
@@ -13,10 +14,10 @@ logger = structlog.get_logger()
 
 
 class HNClient:
-    def __init__(self, timeout: int = 30):
+    def __init__(self, timeout: int = 30, cache_client: AsyncCacheClient | None = None):
         self.algolia_base = "https://hn.algolia.com/api/v1"
         self.timeout = timeout
-        self.client = httpx.AsyncClient(timeout=timeout)
+        self.client = cache_client or get_async_cache_client(timeout=timeout)
 
     async def close(self):
         await self.client.aclose()

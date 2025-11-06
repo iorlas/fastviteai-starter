@@ -115,7 +115,10 @@
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains rm:*)",
       "WebFetch(domain:lobste.rs)",
       "WebFetch(domain:trafilatura.readthedocs.io)",
-      "WebFetch(domain:retryhttp.readthedocs.io)"
+      "WebFetch(domain:retryhttp.readthedocs.io)",
+      "Bash(uv pip index:*)",
+      "Bash(pip index:*)",
+      "WebFetch(domain:hishel.com)"
     ],
     "deny": [],
     "ask": []

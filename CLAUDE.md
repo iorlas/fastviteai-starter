@@ -17,6 +17,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **All imports at top** - no inline imports
 - **"Divide and conquer"** - components with concentrated logic + orchestrator, but not enterprise-scale
 - **Happy paths first** - fail fast, fail early; ask before handling edge cases
+- **Async-first HTTP** - all HTTP operations use AsyncCacheClient with native async/await (no sync clients)
+
+### Async/Await Pattern
+**All HTTP operations are async** to leverage Dagster's native async def support for assets:
+
+```python
+# ✅ Correct - async def asset with await
+@asset
+async def my_asset(context):
+    downloader = HTTPDownloader()
+    result = await downloader.download(url)  # await async operations
+    return result
+
+# ❌ Wrong - don't use asyncio.run() wrappers
+@asset
+def my_asset(context):
+    result = asyncio.run(some_async_function())  # avoid this pattern
+    return result
+```
+
+**Why async-first:**
+- Dagster supports `async def` for assets natively (since 2023)
+- Simpler code - no `asyncio.run()` wrappers needed
+- Better concurrency within single assets
+- Unified HTTP client API - single `AsyncCacheClient` instead of dual sync/async
+- Future-proof for concurrent operations
+
+**Testing async code:**
+- Use `@pytest.mark.asyncio` for async tests
+- Mock async methods with `AsyncMock` (not `MagicMock`)
+- All HTTP cache tests use `get_async_cache_client()`
 
 ## Commands
 

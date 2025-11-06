@@ -41,14 +41,14 @@ class ContentExtractor:
             "m.youtube.com",
         ]
 
-    def extract(self, request: ExtractionRequest) -> ExtractionResult:
+    async def extract(self, request: ExtractionRequest) -> ExtractionResult:
         logger.info("extract.started", url=request.url)
 
         try:
             if self.is_youtube_url(request.url):
                 return self._extract_youtube(request.url)
             else:
-                return self._extract_html(request.url, request.html_content)
+                return await self._extract_html(request.url, request.html_content)
 
         except (HTMLExtractionError, YouTubeExtractionError) as e:
             logger.warning(
@@ -89,8 +89,8 @@ class ContentExtractor:
             success=True,
         )
 
-    def _extract_html(self, url: str, html_content: str | None = None) -> ExtractionResult:
-        html_result = extract_html_content(url, html_content=html_content)
+    async def _extract_html(self, url: str, html_content: str | None = None) -> ExtractionResult:
+        html_result = await extract_html_content(url, html_content=html_content)
 
         logger.info("extract.html_success", url=url, title=html_result.title)
 

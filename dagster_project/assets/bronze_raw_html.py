@@ -12,7 +12,7 @@ from dagster_project.utils.content_type import ContentType, detect_content_type
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "download", "content_type": "html"},
 )
-def bronze_raw_html(
+async def bronze_raw_html(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> dict:
@@ -34,7 +34,7 @@ def bronze_raw_html(
             continue
 
         context.log.info(f"Downloading: {url}")
-        result = downloader.download(url)
+        result = await downloader.download(url)
 
         bronze_data = {
             "url": result.url,

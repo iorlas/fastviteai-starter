@@ -1,21 +1,23 @@
 import re
 
-import httpx
 import structlog
 from bs4 import BeautifulSoup
 
-from dagster_project.core.cache.http_cache import HTTPCache
+from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
 
 logger = structlog.get_logger()
 
 
 class LobstersClient:
-    def __init__(self, http_cache: HTTPCache | None = None, timeout: int = 30):
+    def __init__(
+        self,
+        cache_client: AsyncCacheClient | None = None,
+        timeout: int = 30,
+    ):
         self.base_url = "https://lobste.rs"
         self.timeout = timeout
-        self.http_cache = http_cache or HTTPCache()
-        self.client = httpx.AsyncClient(timeout=timeout)
+        self.client = cache_client or get_async_cache_client(timeout=timeout, ttl=86400)
 
     async def close(self):
         await self.client.aclose()
@@ -24,9 +26,10 @@ class LobstersClient:
         logger.info("searching_lobsters_discussions", url=url)
 
         search_url = f"{self.base_url}/search?q={url}"
-        html_content = self.http_cache.fetch(search_url, ttl_seconds=3600)
+        response = await self.client.get(search_url)
+        response.raise_for_status()
 
-        soup = BeautifulSoup(html_content, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
         discussion_urls = []
 
         for link in soup.select("ol.stories li.story .u-url"):
@@ -48,18 +51,9 @@ class LobstersClient:
 
         story_url = f"{self.base_url}/s/{short_id}.json"
 
-        cached = self.http_cache.get(story_url)
-        if cached:
-            data = httpx.Response(
-                status_code=cached.status_code,
-                content=cached.response_text.encode(),
-                request=httpx.Request("GET", story_url),
-            ).json()
-        else:
-            response = await self.client.get(story_url)
-            response.raise_for_status()
-            self.http_cache.set(story_url, response, ttl_seconds=86400)
-            data = response.json()
+        response = await self.client.get(story_url)
+        response.raise_for_status()
+        data = response.json()
 
         story = LobstersStoryFull(**data)
 

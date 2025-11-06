@@ -1,25 +1,24 @@
-import json
-
 import structlog
 
 from dagster_project.core.aggregators.base import AggregatorExtractor, ExtractionResult
-from dagster_project.core.cache.http_cache import HTTPCache
+from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 
 logger = structlog.get_logger()
 
 
 class LobstersExtractor(AggregatorExtractor):
-    def __init__(self, http_cache: HTTPCache | None = None):
-        self.http_cache = http_cache or HTTPCache()
+    def __init__(self, cache_client: AsyncCacheClient | None = None):
+        self.cache_client = cache_client or get_async_cache_client(ttl=86400)
 
-    def extract_article_url(self, lobsters_url: str) -> ExtractionResult:
+    async def extract_article_url(self, lobsters_url: str) -> ExtractionResult:
         logger.info("lobsters_extraction_start", url=lobsters_url)
 
         try:
             json_url = lobsters_url.rstrip("/") + ".json"
-            json_content = self.http_cache.fetch(json_url, ttl_seconds=86400)
+            response = await self.cache_client.get(json_url)
+            response.raise_for_status()
 
-            data = json.loads(json_content)
+            data = response.json()
 
             article_url = data.get("url")
             title = data.get("title")

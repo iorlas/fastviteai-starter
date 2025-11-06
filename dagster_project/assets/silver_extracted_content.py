@@ -11,7 +11,7 @@ from dagster_project.utils.content_type import ContentType, detect_content_type
     group_name="silver_layer",
     tags={"layer": "silver", "operation": "extraction"},
 )
-def silver_extracted_content(
+async def silver_extracted_content(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
     bronze_raw_html: dict,
@@ -76,7 +76,7 @@ def silver_extracted_content(
             continue
 
         context.log.info(f"Extracting: {url}")
-        result = extractor.extract(ExtractionRequest(url=url, html_content=html_content))
+        result = await extractor.extract(ExtractionRequest(url=url, html_content=html_content))
 
         silver_data = {
             "url": result.url,

@@ -31,14 +31,14 @@ def read_links_from_file(file_path: Path) -> list[str]:
     return links
 
 
-def _process_discovered_url(
+async def _process_discovered_url(
     url: str,
     source: str,
     seen_hashes: set[str],
     discovered_list: list[dict],
     context: AssetExecutionContext,
 ) -> bool:
-    resolution_result = resolve_url(url)
+    resolution_result = await resolve_url(url)
     normalized = url_normalize(resolution_result.resolved_url.strip())
     canonical_url = normalized if normalized else resolution_result.resolved_url.strip()
     url_hash = compute_url_hash(canonical_url)
@@ -74,7 +74,7 @@ def _process_discovered_url(
     group_name="discovery",
     tags={"layer": "discovery", "source": "ingestion"},
 )
-def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig) -> list[dict]:
+async def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig) -> list[dict]:
     context.log.info(f"Starting URL discovery with source_type={config.source_type}")
     discovered_urls_list = []
     seen_hashes = set()
@@ -84,7 +84,7 @@ def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig
         context.log.info(f"Found {len(manual_links)} manual links from {MANUAL_LINKS_FILE.name}")
 
         for url in manual_links:
-            _process_discovered_url(url, "manual", seen_hashes, discovered_urls_list, context)
+            await _process_discovered_url(url, "manual", seen_hashes, discovered_urls_list, context)
 
     if config.source_type in ("watchers", "both"):
         monitoring_urls = read_links_from_file(MONITORING_LINKS_FILE)
@@ -101,12 +101,12 @@ def discovered_urls(context: AssetExecutionContext, config: DiscoveredUrlsConfig
                     context.log.info(f"Discovered {len(discovered_links)} URLs from RSS feed: {feed_url}")
 
                     for url in discovered_links:
-                        _process_discovered_url(url, f"rss:{feed_url}", seen_hashes, discovered_urls_list, context)
+                        await _process_discovered_url(url, f"rss:{feed_url}", seen_hashes, discovered_urls_list, context)
 
                 except RSSWatcherError as e:
                     context.log.warning(f"Failed to fetch RSS feed {feed_url}: {e}")
             else:
-                _process_discovered_url(feed_url, "monitoring_direct", seen_hashes, discovered_urls_list, context)
+                await _process_discovered_url(feed_url, "monitoring_direct", seen_hashes, discovered_urls_list, context)
 
     context.log.info(f"Discovery complete: {len(discovered_urls_list)} unique URLs found (source: {config.source_type})")
 

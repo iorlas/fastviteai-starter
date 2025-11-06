@@ -10,7 +10,7 @@ from dagster_project.utils.asset_utils import Stats
     group_name="silver_layer",
     tags={"layer": "silver", "operation": "summarization"},
 )
-def silver_summary(
+async def silver_summary(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
     silver_extracted_content: dict,

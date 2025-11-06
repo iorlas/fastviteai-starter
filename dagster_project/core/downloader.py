@@ -4,6 +4,8 @@ import httpx
 import structlog
 from pydantic import BaseModel
 
+from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
+
 logger = structlog.get_logger()
 
 
@@ -20,14 +22,15 @@ class DownloadResult(BaseModel):
 
 
 class HTTPDownloader:
-    def __init__(self, timeout: int = 30):
+    def __init__(self, timeout: int = 30, cache_client: AsyncCacheClient | None = None):
         self.timeout = timeout
+        self.cache_client = cache_client or get_async_cache_client(timeout=timeout)
 
-    def download(self, url: str) -> DownloadResult:
+    async def download(self, url: str) -> DownloadResult:
         logger.info("download.started", url=url)
 
         try:
-            response = httpx.get(url, timeout=self.timeout, follow_redirects=True)
+            response = await self.cache_client.get(url)
             response.raise_for_status()
 
             result = DownloadResult(
