@@ -23,7 +23,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
             url_hash = url_data["url_hash"]
             pre_saved_links = [DiscussionLink(**link) for link in url_data.get("discussion_links", [])]
 
-            if storage.exists(f"bronze_discussions/{url_hash}", "metadata"):
+            if storage.exists(f"discussions/{url_hash}", "metadata"):
                 if progress_callback:
                     progress_callback(f"Cached: {url}")
                 stats.cached += 1
@@ -60,7 +60,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
                             }
-                            storage.save(f"bronze_discussions/{url_hash}", story_id, story_data)
+                            storage.save(f"discussions/{url_hash}", story_id, story_data)
                             hn_story_ids.append(story_id)
 
                     elif "lobste.rs" in disc_url:
@@ -71,7 +71,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
                             }
-                            storage.save(f"bronze_discussions/{url_hash}", story_id, story_data)
+                            storage.save(f"discussions/{url_hash}", story_id, story_data)
                             lobsters_story_ids.append(story_id)
 
                 platforms = []
@@ -86,7 +86,6 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
 
                 metadata = DiscussionMetadata(
                     url=url,
-                    url_hash=url_hash,
                     total_stories=len(hn_story_ids) + len(lobsters_story_ids),
                     platforms=platforms,
                     hn_story_ids=hn_story_ids,
@@ -100,7 +99,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                     **metadata.model_dump(),
                     "created_at": datetime.now(UTC).isoformat(),
                 }
-                storage.save(f"bronze_discussions/{url_hash}", "metadata", metadata_data)
+                storage.save(f"discussions/{url_hash}", "metadata", metadata_data)
 
                 if progress_callback:
                     progress_callback(

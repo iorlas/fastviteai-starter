@@ -71,7 +71,6 @@ class HNSearchResponse(BaseModel):
 
 class DiscussionMetadata(BaseModel):
     url: str
-    url_hash: str
     total_stories: int
     platforms: list[str]
     hn_story_ids: list[int] = Field(default_factory=list)

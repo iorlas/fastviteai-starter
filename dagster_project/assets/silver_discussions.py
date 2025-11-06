@@ -37,7 +37,7 @@ async def silver_discussions(
             stats.cached += 1
             continue
 
-        if not bronze_storage.exists(f"bronze_discussions/{url_hash}", "metadata"):
+        if not bronze_storage.exists(f"discussions/{url_hash}", "metadata"):
             context.log.info(f"No discussions in bronze: {url}")
             stats.cached += 1
             continue
@@ -45,16 +45,16 @@ async def silver_discussions(
         try:
             context.log.info(f"Extracting discussions: {url}")
 
-            metadata_dict = bronze_storage.load(f"bronze_discussions/{url_hash}", "metadata")
+            metadata_dict = bronze_storage.load(f"discussions/{url_hash}", "metadata")
             metadata = DiscussionMetadata(**metadata_dict)
 
             all_stories = []
             for story_id in metadata.hn_story_ids:
-                story_data = bronze_storage.load(f"bronze_discussions/{url_hash}", str(story_id))
+                story_data = bronze_storage.load(f"discussions/{url_hash}", str(story_id))
                 all_stories.append(HNStoryFull(**story_data))
 
             for story_id in metadata.lobsters_story_ids:
-                story_data = bronze_storage.load(f"bronze_discussions/{url_hash}", str(story_id))
+                story_data = bronze_storage.load(f"discussions/{url_hash}", str(story_id))
                 all_stories.append(LobstersStoryFull(**story_data))
 
             total_comments = sum(story.count_total_comments() for story in all_stories)

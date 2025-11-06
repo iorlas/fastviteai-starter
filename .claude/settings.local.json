@@ -121,7 +121,9 @@
       "WebFetch(domain:hishel.com)",
       "WebFetch(domain:www.getorchestra.io)",
       "WebFetch(domain:maxfiltenborg.com)",
-      "WebFetch(domain:dagster.io)"
+      "WebFetch(domain:dagster.io)",
+      "Bash(while read f)",
+      "Bash(do echo \"File: $f\")"
     ],
     "deny": [],
     "ask": []
