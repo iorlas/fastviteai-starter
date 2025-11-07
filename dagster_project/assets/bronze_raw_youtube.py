@@ -2,6 +2,10 @@ from datetime import UTC, datetime
 
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.core.extractors.youtube_extractor import (
+    YouTubeExtractionError,
+    extract_youtube_content,
+)
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.content_type import ContentType
 from dagster_project.utils.tables import BronzeTable
@@ -36,23 +40,59 @@ def bronze_raw_youtube(
 
         aggregator_info = extract_aggregator_info(url_data)
 
-        context.log.info(f"Storing YouTube metadata: {url}")
+        context.log.info(f"Extracting YouTube content: {url}")
 
-        bronze_data = {
-            "url": url,
-            "url_hash": url_hash,
-            "content_type": ContentType.YOUTUBE.value,
-            "metadata": {
-                "was_aggregator": bool(aggregator_info),
-                **aggregator_info,
-            },
-            "created_at": datetime.now(UTC).isoformat(),
-        }
+        try:
+            yt_content = extract_youtube_content(url)
 
-        bronze_storage.save(BronzeTable.RAW_YOUTUBE, url_hash, bronze_data)
+            bronze_data = {
+                "url": url,
+                "url_hash": url_hash,
+                "content_type": ContentType.YOUTUBE.value,
+                "title": yt_content.title,
+                "transcript": yt_content.transcript,
+                "description": yt_content.description,
+                "channel": yt_content.channel,
+                "duration": yt_content.duration,
+                "youtube_metadata": yt_content.metadata,
+                "aggregator_metadata": {
+                    "was_aggregator": bool(aggregator_info),
+                    **aggregator_info,
+                },
+                "extraction_success": True,
+                "error_message": None,
+                "created_at": datetime.now(UTC).isoformat(),
+            }
 
-        context.log.info(f"✓ Stored: {url}")
-        stats.processed += 1
+            bronze_storage.save(BronzeTable.RAW_YOUTUBE, url_hash, bronze_data)
 
-    context.log.info(f"Bronze YouTube layer complete: {stats.processed} stored, {stats.cached} cached")
+            context.log.info(f"✓ Extracted and stored: {yt_content.title}")
+            stats.processed += 1
+
+        except YouTubeExtractionError as e:
+            context.log.warning(f"✗ Extraction failed: {url} - {e}")
+
+            bronze_data = {
+                "url": url,
+                "url_hash": url_hash,
+                "content_type": ContentType.YOUTUBE.value,
+                "title": "Extraction Failed",
+                "transcript": "",
+                "description": "",
+                "channel": "",
+                "duration": None,
+                "youtube_metadata": {},
+                "aggregator_metadata": {
+                    "was_aggregator": bool(aggregator_info),
+                    **aggregator_info,
+                },
+                "extraction_success": False,
+                "error_message": str(e),
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+
+            bronze_storage.save(BronzeTable.RAW_YOUTUBE, url_hash, bronze_data)
+            stats.failed += 1
+
+    context.log.info(f"Bronze YouTube layer complete: {stats.processed} extracted, {stats.cached} cached, {stats.failed} failed")
     context.add_output_metadata(stats.model_dump())

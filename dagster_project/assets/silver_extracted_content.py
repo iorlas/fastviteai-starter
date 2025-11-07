@@ -45,6 +45,7 @@ async def silver_extracted_content(
 
             bronze_data = bronze_storage.load(BronzeTable.RAW_YOUTUBE, url_hash)
             html_content = None
+            youtube_bronze_data = bronze_data
 
         elif content_type == ContentType.HTML.value:
             if not bronze_storage.exists(BronzeTable.RAW_HTML, url_hash):
@@ -54,6 +55,7 @@ async def silver_extracted_content(
 
             bronze_data = bronze_storage.load(BronzeTable.RAW_HTML, url_hash)
             html_content = bronze_data.get("html_content", "")
+            youtube_bronze_data = None
 
             if not html_content:
                 context.log.warning(f"Empty HTML content: {url}")
@@ -80,7 +82,7 @@ async def silver_extracted_content(
             continue
 
         context.log.info(f"Extracting: {url}")
-        result = await extractor.extract(ExtractionRequest(url=url, html_content=html_content))
+        result = await extractor.extract(ExtractionRequest(url=url, html_content=html_content, youtube_bronze_data=youtube_bronze_data))
 
         silver_data = {
             "url": result.url,

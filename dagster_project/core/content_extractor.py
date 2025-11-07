@@ -9,7 +9,6 @@ from dagster_project.core.extractors.html_extractor import (
 )
 from dagster_project.core.extractors.youtube_extractor import (
     YouTubeExtractionError,
-    extract_youtube_content,
 )
 
 logger = structlog.get_logger()
@@ -18,6 +17,7 @@ logger = structlog.get_logger()
 class ExtractionRequest(BaseModel):
     url: str
     html_content: str | None = None
+    youtube_bronze_data: dict | None = None
 
 
 class ExtractionResult(BaseModel):
@@ -46,7 +46,7 @@ class ContentExtractor:
 
         try:
             if self.is_youtube_url(request.url):
-                return self._extract_youtube(request.url)
+                return self._extract_youtube_from_bronze(request.url, request.youtube_bronze_data)
             else:
                 return await self._extract_html(request.url, request.html_content)
 
@@ -70,21 +70,33 @@ class ContentExtractor:
                 error=str(e),
             )
 
-    def _extract_youtube(self, url: str) -> ExtractionResult:
-        yt_content = extract_youtube_content(url)
+    def _extract_youtube_from_bronze(self, url: str, bronze_data: dict | None) -> ExtractionResult:
+        if not bronze_data:
+            raise YouTubeExtractionError(f"No bronze data provided for YouTube URL: {url}")
 
-        logger.info("extract.youtube_success", url=url, title=yt_content.title)
+        if not bronze_data.get("extraction_success", False):
+            error_message = bronze_data.get("error_message", "Unknown error during bronze extraction")
+            raise YouTubeExtractionError(error_message)
+
+        title = bronze_data.get("title", "Untitled")
+        transcript = bronze_data.get("transcript", "")
+        description = bronze_data.get("description", "")
+        channel = bronze_data.get("channel", "Unknown")
+        duration = bronze_data.get("duration")
+        youtube_metadata = bronze_data.get("youtube_metadata", {})
+
+        logger.info("extract.youtube_from_bronze", url=url, title=title)
 
         return ExtractionResult(
             url=url,
             content_type="youtube",
-            title=yt_content.title,
-            content=yt_content.transcript,
+            title=title,
+            content=transcript,
             metadata={
-                "channel": yt_content.channel,
-                "duration": yt_content.duration,
-                "description": yt_content.description,
-                **yt_content.metadata,
+                "channel": channel,
+                "duration": duration,
+                "description": description,
+                **youtube_metadata,
             },
             success=True,
         )
