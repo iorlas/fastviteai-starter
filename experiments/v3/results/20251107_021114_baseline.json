@@ -1,0 +1,131 @@
+[
+  {
+    "url": "https://www.paulgraham.com/writes.html",
+    "url_hash": "07f54ebfa5f5d08f57c79d359b18ea5215d838c5b4e6f016aaa8c309caaead9f",
+    "title": "Untitled",
+    "expectations": "Should capture Paul Graham's main argument about writing and thinking. Must include his key insights about how writing helps clarify ideas. Should preserve specific examples and anecdotes he uses.",
+    "anti_patterns": "Don't reduce it to generic advice about writing. Avoid losing his unique voice and specific stories.",
+    "summary": {
+      "core_answer": "In a couple of decades, there won't be many people who can write due to the rise of AI writing tools.",
+      "why_this_matters": "This article is valuable for educators, writers, and professionals who rely on writing skills, as it highlights the potential impact of AI on writing abilities and the broader implications for critical thinking. It serves as a warning and a call to action for those who value the cognitive benefits of writing.",
+      "expert_opinion": "The article provides a unique perspective on the future of writing, emphasizing the intrinsic link between writing and thinking. The author's insights are particularly valuable for understanding the long-term societal impacts of AI on cognitive skills and education.",
+      "unique_insights": [
+        "The article presents a contrarian view that the decline in writing skills due to AI will lead to a decline in critical thinking abilities.",
+        "It highlights the historical comparison of physical strength in preindustrial times to the future of writing skills.",
+        "The article provides a novel insight into the potential societal division into 'writes' and 'write-nots,' similar to 'thinks' and 'think-nots.'"
+      ],
+      "classification": {
+        "primary_topic": "#Writing",
+        "related_topics": [
+          "#AI",
+          "#CriticalThinking",
+          "#Education",
+          "#FutureOfWork"
+        ],
+        "content_type": "Opinion",
+        "depth": "Intermediate"
+      },
+      "core_insights": [
+        {
+          "insight": "AI will significantly reduce the number of people who can write, leading to a division between 'writes' and 'write-nots.'",
+          "memory_aid": "Writes and write-nots",
+          "supporting_facts": [
+            "AI tools can now generate written content, reducing the need for individuals to write themselves.",
+            "Historical examples show that skills can become obsolete due to technological advancements, such as the decline of blacksmiths."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "This division could lead to a societal split where critical thinking skills are diminished among those who do not write.",
+          "connections": [
+            "Connects to the idea that writing is closely linked to thinking.",
+            "Relates to the historical comparison of physical strength in preindustrial times."
+          ]
+        },
+        {
+          "insight": "Writing is intrinsically linked to thinking, and the decline in writing skills could lead to a decline in critical thinking.",
+          "memory_aid": "If you're thinking without writing, you only think you're thinking.",
+          "supporting_facts": [
+            "Leslie Lamport's quote emphasizes the importance of writing in the thinking process.",
+            "The article argues that clear thinking is difficult and writing helps facilitate it."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "The decline in writing skills could have broader implications for society's ability to think critically and solve complex problems.",
+          "connections": [
+            "Connects to the potential societal division into 'writes' and 'write-nots.'",
+            "Relates to the idea that AI tools could reduce the need for individuals to write."
+          ]
+        }
+      ],
+      "knowledge_graph_ascii": "AI Tools -> Reduced Need for Writing -> Division into Writes and Write-Nots\nWriting -> Critical Thinking -> Societal Impact\nPreindustrial Strength -> Modern Physical Fitness -> Future of Writing Skills",
+      "people": [
+        {
+          "name": "Leslie Lamport",
+          "context": "Quoted to emphasize the link between writing and thinking: 'If you're thinking without writing, you only think you're thinking.'"
+        },
+        {
+          "name": "Jessica Livingston",
+          "context": "Read drafts of the article."
+        },
+        {
+          "name": "Ben Miller",
+          "context": "Read drafts of the article."
+        },
+        {
+          "name": "Robert Morris",
+          "context": "Read drafts of the article."
+        }
+      ],
+      "organizations": [],
+      "concepts": [
+        {
+          "name": "Writes and Write-Nots",
+          "context": "A societal division where some people can write and others cannot due to the rise of AI writing tools."
+        },
+        {
+          "name": "Writing and Thinking",
+          "context": "The idea that writing is closely linked to the process of thinking and critical thinking."
+        }
+      ],
+      "formulas_data": [],
+      "examples_analogies": [
+        {
+          "name": "Blacksmiths",
+          "context": "An example of a skill that became obsolete due to technological advancements, similar to the potential decline in writing skills."
+        },
+        {
+          "name": "Preindustrial Strength",
+          "context": "An analogy for the future of writing skills, where physical strength was necessary for most jobs in preindustrial times, similar to how writing skills may be necessary for many jobs today."
+        }
+      ],
+      "forward_looking": [
+        "In a couple of decades, there won't be many people who can write due to the rise of AI writing tools."
+      ],
+      "memory_aids": {
+        "key_phrase": "If you're thinking without writing, you only think you're thinking.",
+        "visual_metaphor": "A world divided into 'writes' and 'write-nots,' similar to a world divided into 'thinks' and 'think-nots.'",
+        "mnemonic": null
+      },
+      "discussion_summary": null,
+      "discussion_metrics": null
+    },
+    "judgement": {
+      "score": 6,
+      "reasoning": "The summary captures the essence of the article's argument regarding the impact of AI on writing skills and critical thinking. However, it lacks specific examples and anecdotes that would provide depth and context to Paul Graham's insights. While it presents a coherent overview, it does not fully preserve Graham's unique voice or the nuances of his argument, which diminishes its effectiveness.",
+      "strengths": [
+        "Clearly articulates the main argument about the decline of writing skills due to AI.",
+        "Highlights the societal implications of this decline, such as the division into 'writes' and 'write-nots.'",
+        "Includes relevant quotes and insights that support the core argument."
+      ],
+      "weaknesses": [
+        "Fails to include specific anecdotes or examples from Paul Graham's writing that would enrich the summary.",
+        "Lacks a strong connection to Graham's unique voice and style, making it feel more generic.",
+        "Does not sufficiently emphasize how writing clarifies ideas, which is a key aspect of Graham's argument."
+      ],
+      "meets_expectations": false,
+      "violates_anti_patterns": true
+    },
+    "model": "mistralai/mistral-medium-3.1",
+    "tokens_used": 2276,
+    "latency_ms": 23517,
+    "timestamp": "2025-11-07T02:11:14.797936+00:00"
+  }
+]

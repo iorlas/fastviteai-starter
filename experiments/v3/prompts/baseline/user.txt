@@ -7,8 +7,6 @@ Content:
 
 Provide comprehensive extraction covering:
 - Core answer (one sentence directly answering the title)
-- Why this matters (2-3 sentences on value and audience)
-- Expert opinion (1-3 sentences evaluating quality and impact)
 - Unique insights (novel/contrarian views, standout data)
 - Classification (topics, content type, depth level)
 - Core insights (with memory aids, supporting facts, quantitative data, connections)

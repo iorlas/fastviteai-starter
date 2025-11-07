@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://app.propolis.tech/",
+    "expectations": "should give empty result since the site is not renderable - there is only js",
+    "anti_patterns": "this website is not about bees or honey, it is about a software platform"
+  }
+]

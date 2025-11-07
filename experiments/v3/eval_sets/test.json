@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://www.paulgraham.com/writes.html",
+    "expectations": "Should capture Paul Graham's main argument about writing and thinking. Must include his key insights about how writing helps clarify ideas. Should preserve specific examples and anecdotes he uses.",
+    "anti_patterns": "Don't reduce it to generic advice about writing. Avoid losing his unique voice and specific stories."
+  }
+]

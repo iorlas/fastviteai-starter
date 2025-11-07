@@ -1,216 +1,174 @@
-# V3 Experimentation Framework
+# Summary Evaluation System
 
-CLI-based experimentation for iterative improvement of summarization with full traceability.
+LLM-as-judge evaluation framework for testing and improving summary quality.
 
-## Setup
+## Quick Start
 
-### 1. Extract Test Cases (one-time)
+1. **Create your evaluation set** with URLs and expectations:
 
 ```bash
-cd /Users/iorlas/Projects/my/ailabbrains
-python experiments/v3/extract_test_cases.py
+# Edit eval_sets/bad_links.json or good_links.json
+# Add your URLs with verbal descriptions of what makes a good summary
 ```
 
-This will:
-- Show all extracted content from silver layer
-- Let you select test cases by number
-- Create `test_cases/case_NNN.json` files
-
-### 2. Create Insights Files (manual)
-
-For each test case, create a corresponding `.insights.json` file:
-
-```bash
-# Format: test_cases/case_001.insights.json
+Example eval set format:
+```json
 [
-  {"insight": "...", "vitality": "vital"},
-  {"insight": "...", "vitality": "vital"},
-  {"insight": "...", "vitality": "okay"}
+  {
+    "url": "https://example.com/article",
+    "expectations": "Should explain the core algorithm with specific examples. Must include time complexity and real-world applications.",
+    "anti_patterns": "Don't just list features without explaining why they matter."
+  }
 ]
 ```
 
-See `experiments/v1/eval_dataset/example_002.insights.json` for reference.
-
-## Running Experiments
-
-### Basic Run
+2. **Run evaluation**:
 
 ```bash
-python experiments/v3/run.py \
-  --test-case test_cases/case_001.json \
-  --model "mistralai/mistral-medium-3.1" \
-  --system-prompt prompts/system_baseline.txt \
-  --user-prompt prompts/user_baseline.txt
+# Evaluate with baseline prompts
+uv run python experiments/v3/evaluate.py --eval-set eval_sets/bad_links.json
+
+# Use different prompts
+uv run python experiments/v3/evaluate.py \
+  --eval-set eval_sets/good_links.json \
+  --prompts v2
+
+# Use different model
+uv run python experiments/v3/evaluate.py \
+  --eval-set eval_sets/bad_links.json \
+  --model deepseek/deepseek-chat-v3
+
+# Force regenerate summaries (ignore cache)
+uv run python experiments/v3/evaluate.py \
+  --eval-set eval_sets/bad_links.json \
+  --force
 ```
 
-### With Custom Parameters
+## How It Works
 
+1. **Load eval set** - URLs with expectations
+2. **Generate summaries** - Uses your actual pipeline code (`SummaryGenerator`)
+3. **Judge quality** - LLM evaluates summary against expectations
+4. **Output reports** - Both JSON (for analysis) and Markdown (for reading)
+
+### What Gets Cached
+
+- **Bronze layer** (artifacts/bronze/): Downloaded HTML (never re-downloaded)
+- **Silver extracted content** (artifacts/silver/extracted_content/): Parsed text
+- **Silver summaries** (artifacts/silver/summaries/): Generated summaries
+
+Use `--force` to regenerate summaries even if cached (useful when testing prompt changes).
+
+### Judge Model
+
+Default: `google/gemini-2.0-flash-exp:free` (cheap, fast, good quality)
+
+Override with:
 ```bash
-python experiments/v3/run.py \
-  --test-case test_cases/case_001.json \
-  --model "openai/gpt-4o" \
-  --system-prompt prompts/system_baseline.txt \
-  --user-prompt prompts/user_baseline.txt \
-  --temperature 0.3 \
-  --max-tokens 4000 \
-  --notes "Testing higher temperature"
+uv run python experiments/v3/evaluate.py \
+  --eval-set eval_sets/bad_links.json \
+  --judge-model anthropic/claude-3.5-sonnet
 ```
-
-### Trying Prompt Variations
-
-```bash
-# Create new prompt file
-cp prompts/system_baseline.txt prompts/variations/system_condensed.txt
-# Edit the condensed version...
-
-# Run with new prompt
-python experiments/v3/run.py \
-  --test-case test_cases/case_001.json \
-  --model "mistralai/mistral-medium-3.1" \
-  --system-prompt prompts/variations/system_condensed.txt \
-  --user-prompt prompts/user_baseline.txt
-```
-
-## Evaluating Results
-
-### 1. Review Output
-
-```bash
-# Run saves to: runs/YYYYMMDD_HHMMSS_model-slug.json
-cat runs/20250311_143052_mistral-medium.json | jq .output.structured_summary
-```
-
-### 2. Calculate Completeness
-
-```bash
-python experiments/v3/calculate_completeness.py runs/20250311_143052_mistral-medium.json
-```
-
-This compares the output with ground truth insights and updates the run file with:
-- Which insights were found/missing
-- Vital coverage percentage
-
-### 3. Add Manual Judgement
-
-Edit the run file and add your evaluation:
-
-```json
-{
-  ...
-  "evaluation": {
-    "judgement": {
-      "quality_notes": "Good coverage but missed key formula",
-      "strengths": ["Clear core answer", "Good entity extraction"],
-      "weaknesses": ["Missing team size formula"],
-      "suggestions": ["Emphasize formulas in prompt"]
-    },
-    "completeness": { ... }
-  }
-}
-```
-
-## Iteration Workflow
-
-1. **Run experiment** → creates `runs/{timestamp}_{model}.json`
-2. **Review output** → examine structured_summary
-3. **Calculate completeness** → compare vs insights file
-4. **Add judgement** → manual evaluation notes
-5. **Adjust** → modify prompts/model/params based on findings
-6. **Repeat** → run new experiment with changes
 
 ## Directory Structure
 
 ```
 experiments/v3/
-├── run.py                   # Main runner
-├── extract_test_cases.py    # Setup helper
-├── calculate_completeness.py # Evaluation helper
-├── test_cases/              # Test data + insights
-│   ├── case_001.json
-│   ├── case_001.insights.json
-│   ├── case_002.json
-│   └── case_002.insights.json
-├── runs/                    # All experiment results
-│   ├── 20250311_143052_mistral-medium-3.1.json
-│   └── 20250311_145230_openai_gpt-4o.json
-└── prompts/                 # Prompt templates
-    ├── system_baseline.txt
-    ├── user_baseline.txt
-    └── variations/
-        ├── system_condensed.txt
-        └── user_condensed.txt
+├── evaluate.py              # Main evaluation script
+├── eval_sets/               # Your evaluation datasets
+│   ├── bad_links.json       # URLs with poor summaries
+│   └── good_links.json      # URLs with great summaries
+├── prompts/                 # Prompt variants
+│   ├── baseline/
+│   │   ├── system.txt       # System prompt
+│   │   └── user.txt         # User prompt template
+│   └── v2/                  # (create for experimentation)
+└── results/                 # Evaluation outputs
+    ├── TIMESTAMP_baseline.json  # Full results (machine-readable)
+    └── TIMESTAMP_baseline.md    # Human-readable report
 ```
 
-## Run File Format
+## Creating New Prompt Variants
 
-Each run file contains complete traceability:
+```bash
+# Copy baseline prompts
+cp -r prompts/baseline prompts/v2
 
+# Edit prompts/v2/system.txt and prompts/v2/user.txt
+# Make your changes...
+
+# Test new prompts
+uv run python experiments/v3/evaluate.py \
+  --eval-set eval_sets/bad_links.json \
+  --prompts v2 \
+  --force
+```
+
+## Output Format
+
+### JSON Results
 ```json
-{
-  "timestamp": "2025-03-11T14:30:52Z",
-  "model": "mistralai/mistral-medium-3.1",
-  "config": {
-    "temperature": 0,
-    "max_tokens": 3000,
-    "system_prompt": "...",
-    "user_prompt_template": "...",
-    "notes": ""
-  },
-  "input": {
-    "test_case": "case_001",
+[
+  {
     "url": "...",
     "title": "...",
-    "content": "...",
-    "content_type": "html",
-    "content_length": 7373
-  },
-  "output": {
-    "structured_summary": { /* full KnowledgeGraphSummary */ },
-    "tokens_used": 2847,
-    "latency_ms": 3421
-  },
-  "evaluation": {
-    "judgement": { /* manual evaluation */ },
-    "completeness": {
-      "insights_found": [...],
-      "insights_missing": [...],
-      "vital_coverage_percent": 83.3
-    }
-  },
-  "insights_file": "test_cases/case_001.insights.json"
-}
+    "expectations": "...",
+    "judgement": {
+      "score": 7,
+      "reasoning": "...",
+      "strengths": ["...", "..."],
+      "weaknesses": ["...", "..."],
+      "meets_expectations": true,
+      "violates_anti_patterns": false
+    },
+    "model": "mistralai/mistral-medium-3.1",
+    "tokens_used": 5234,
+    "latency_ms": 1234
+  }
+]
 ```
 
-## Experimentation Dimensions
+### Markdown Report
+Human-readable report with:
+- Summary statistics (avg score, pass rate)
+- Individual results with scores and feedback
+- Strengths and weaknesses for each URL
 
-### 1. Models
+## Workflow: Improving Prompts
 
-Change `--model` parameter:
-- `mistralai/mistral-medium-3.1` (baseline)
-- `openai/gpt-4o`
-- `anthropic/claude-sonnet-4.5`
-- `deepseek/deepseek-r1-0528`
-- `google/gemini-2.5-flash`
-
-### 2. Prompts
-
-Edit files in `prompts/` or create variations:
-- System prompt: Overall instructions
-- User prompt: Input formatting and specific requests
-
-### 3. Schema
-
-To test schema variations, modify the schema in `dagster_project/core/summary_schema.py` or create alternative schemas in `experiments/v3/schemas/`.
-
-### 4. Parameters
-
-- `--temperature`: 0 (deterministic) to 1 (creative)
-- `--max-tokens`: Output length limit
+1. **Gather bad examples** - Add URLs where summaries fail to `eval_sets/bad_links.json`
+2. **Run baseline** - See current performance
+3. **Analyze failures** - Read markdown report, identify patterns
+4. **Iterate on prompts** - Create new prompt variant, test with `--prompts v2 --force`
+5. **Compare results** - Check if scores improved
+6. **Repeat** - Keep iterating until satisfied
 
 ## Tips
 
-- Start with baseline to establish performance floor
-- Change ONE dimension at a time for clear attribution
-- Use `--notes` to document hypotheses
-- Compare runs side-by-side using jq or Python scripts
-- Track what works in evaluation.judgement.suggestions
+- **Start small** - 3-5 URLs per eval set is enough to spot patterns
+- **Be specific** - Good expectations are concrete, not vague
+- **Mix types** - Include different content types (tutorials, research, opinions)
+- **Version prompts** - Use v2, v3, etc. so you can compare
+- **Check JSON** - Use `jq` to analyze results: `cat results/*.json | jq '.[] | {url, score: .judgement.score}'`
+
+## Advanced Usage
+
+### Custom judge prompt
+Edit `evaluate.py` line ~165 to customize judge evaluation criteria.
+
+### Different judge per eval
+Run multiple evaluations with different judge models to get consensus.
+
+### Batch comparison
+```bash
+# Evaluate same set with multiple prompt versions
+for prompts in baseline v2 v3; do
+  uv run python experiments/v3/evaluate.py \
+    --eval-set eval_sets/bad_links.json \
+    --prompts $prompts \
+    --force
+done
+
+# Compare results
+ls -t results/*.md | head -n 3  # View latest 3 reports
+```
