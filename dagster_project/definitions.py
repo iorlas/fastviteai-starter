@@ -2,8 +2,8 @@ from dagster import Definitions
 
 from dagster_project.assets import (
     bronze_discussions,
-    bronze_raw_html,
-    bronze_raw_youtube,
+    bronze_html,
+    bronze_youtube,
     discovered_urls,
     silver_summary,
 )
@@ -14,8 +14,8 @@ from dagster_project.schedules import monitoring_schedule
 
 all_assets = [
     discovered_urls,
-    bronze_raw_html,
-    bronze_raw_youtube,
+    bronze_html,
+    bronze_youtube,
     bronze_discussions,
     silver_summary,
 ]

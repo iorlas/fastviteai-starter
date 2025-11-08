@@ -48,8 +48,8 @@ def compile_summary_input(url: str, artifacts_base_path: str) -> SummaryInput:
 
 
 def _load_bronze_content(base_path: Path, url_hash: str, url: str) -> dict:
-    """Try loading from both raw_html and raw_youtube partitions."""
-    for partition in [BronzeTable.RAW_HTML, BronzeTable.RAW_YOUTUBE]:
+    """Try loading from both html and youtube partitions."""
+    for partition in [BronzeTable.HTML, BronzeTable.YOUTUBE]:
         file_path = base_path / partition / f"{url_hash}.json"
         if file_path.exists():
             return json.loads(file_path.read_text())
@@ -80,7 +80,7 @@ def _load_discussions(base_path: Path, url_hash: str) -> list[dict] | None:
             story_data = json.loads(story_path.read_text())
             stories.append(LobstersStoryFull(**story_data))
 
-        return [s.model_dump() for s in stories]
+        return [s.model_dump(mode="json") for s in stories]
 
     except Exception as e:
         raise ValueError(f"Failed to load discussions for hash {url_hash}: {e}") from e

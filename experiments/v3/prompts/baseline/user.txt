@@ -5,6 +5,8 @@ Title: {title}
 Content:
 {content}
 
+REMINDER: Extract ONLY from the content above. Do NOT use the title to invent information if content is empty or minimal.
+
 Provide comprehensive extraction covering:
 - Core answer (one sentence directly answering the title)
 - Unique insights (novel/contrarian views, standout data)

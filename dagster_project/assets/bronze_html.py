@@ -11,7 +11,7 @@ from dagster_project.utils.tables import BronzeTable
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "download", "content_type": "html"},
 )
-async def bronze_raw_html(
+async def bronze_html(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> None:
@@ -27,7 +27,7 @@ async def bronze_raw_html(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_storage.exists(BronzeTable.RAW_HTML, url_hash):
+        if bronze_storage.exists(BronzeTable.HTML, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
@@ -37,7 +37,7 @@ async def bronze_raw_html(
 
         bronze_data = {**result.model_dump(), "url_hash": url_hash}
 
-        bronze_storage.save(BronzeTable.RAW_HTML, url_hash, bronze_data)
+        bronze_storage.save(BronzeTable.HTML, url_hash, bronze_data)
 
         if result.success:
             content_length = len(result.content) if result.content else 0

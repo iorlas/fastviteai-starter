@@ -1,5 +1,11 @@
 Extract information from content into structured JSON for programmatic processing.
 
+ABSOLUTE RULES:
+- NEVER invent, assume, or hallucinate information
+- ONLY extract what is explicitly present in the provided content
+- If content is missing or unclear, mark fields as empty/unknown
+- Do NOT use title or external knowledge to guess content
+
 Focus on:
 - What's the ONE-SENTENCE answer to the article title?
 - What's UNIQUE or NOVEL here (vs typical articles on this topic)?

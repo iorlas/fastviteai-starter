@@ -1,22 +1,19 @@
-import os
 from functools import cached_property
 
 from dagster import ConfigurableResource
-from dotenv import load_dotenv
 from pydantic import Field
 
+from dagster_project.config import settings
 from dagster_project.core.summary import SummaryGenerator
-
-load_dotenv()
 
 
 class SummaryGeneratorResource(ConfigurableResource):
     api_key: str = Field(
-        default_factory=lambda: os.getenv("OPENAI_API_KEY", ""),
+        default_factory=lambda: settings.openai_api_key,
         description="OpenAI/OpenRouter API key",
     )
     base_url: str = Field(
-        default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
+        default_factory=lambda: settings.openai_base_url,
         description="API base URL",
     )
 

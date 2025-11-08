@@ -66,3 +66,43 @@ async def test_extract_handles_errors():
     assert result.error is not None
     assert "Network error" in result.error
     assert result.title == "Extraction Failed"
+
+
+def test_filter_metadata_excludes_unwanted_fields():
+    """Test that _filter_metadata excludes HTML extraction metadata fields."""
+    raw_metadata = {
+        # Fields to keep
+        "title": "Test Article",
+        "author": "John Doe",
+        "date": "2025-01-01",
+        "sitename": "Example Site",
+        "description": "Test description",
+        "categories": ["tech", "news"],
+        "tags": ["python", "testing"],
+        "url": "https://example.com/article",
+        # Fields to exclude
+        "hostname": "winworldpc.com",
+        "body": "<Element body at 0x10ce7de40>",
+        "commentsbody": "<Element body at 0x10ce7de00>",
+        "raw_text": None,
+        "text": None,
+    }
+
+    filtered = GenericHTMLExtractor._filter_metadata(raw_metadata)
+
+    # Verify kept fields
+    assert filtered["title"] == "Test Article"
+    assert filtered["author"] == "John Doe"
+    assert filtered["date"] == "2025-01-01"
+    assert filtered["sitename"] == "Example Site"
+    assert filtered["description"] == "Test description"
+    assert filtered["categories"] == ["tech", "news"]
+    assert filtered["tags"] == ["python", "testing"]
+    assert filtered["url"] == "https://example.com/article"
+
+    # Verify excluded fields
+    assert "hostname" not in filtered
+    assert "body" not in filtered
+    assert "commentsbody" not in filtered
+    assert "raw_text" not in filtered
+    assert "text" not in filtered

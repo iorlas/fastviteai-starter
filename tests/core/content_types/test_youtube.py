@@ -119,3 +119,91 @@ def test_format_transcript_long_video():
 def test_format_transcript_empty():
     result = YouTubeExtractor._format_transcript([])
     assert result == ""
+
+
+def test_filter_metadata_excludes_format_fields():
+    """Test that _filter_metadata excludes video format and codec fields."""
+    raw_info = {
+        # Fields to keep
+        "id": "test_video_id",
+        "title": "Test Video",
+        "description": "Test description",
+        "channel": "Test Channel",
+        "uploader": "Test Uploader",
+        "duration": 300,
+        "upload_date": "20240101",
+        "view_count": 1000,
+        "like_count": 50,
+        "release_year": 2025,
+        # Fields to exclude - large/verbose
+        "thumbnails": [{"url": "thumb1.jpg"}, {"url": "thumb2.jpg"}],
+        "formats": [{"format_id": "399", "ext": "webm"}],
+        "_format_sort_fields": ["quality", "res"],
+        "automatic_captions": {"en": []},
+        "requested_subtitles": {"en": {}},
+        "requested_formats": [{"format_id": "399+251"}],
+        "subtitles": {"en": []},
+        # Fields to exclude - codec/format details
+        "vcodec": "av01.0.08M.08",
+        "acodec": "opus",
+        "resolution": "1920x1080",
+        "format": "399 - 1920x1080 (1080p)+251 - audio only (medium)",
+        "format_id": "399+251",
+        "format_note": "1080p+medium",
+        "ext": "webm",
+        "protocol": "https+https",
+        # Fields to exclude - technical stream details
+        "tbr": 304.763,
+        "vbr": 173.17,
+        "abr": 131.593,
+        "fps": 30,
+        "width": 1920,
+        "height": 1080,
+        "dynamic_range": "SDR",
+        "stretched_ratio": None,
+        "aspect_ratio": 1.78,
+        "asr": 48000,
+        "audio_channels": 2,
+        "filesize_approx": 14461370,
+    }
+
+    filtered = YouTubeExtractor._filter_metadata(raw_info)
+
+    # Verify kept fields
+    assert filtered["id"] == "test_video_id"
+    assert filtered["title"] == "Test Video"
+    assert filtered["description"] == "Test description"
+    assert filtered["channel"] == "Test Channel"
+    assert filtered["duration"] == 300
+    assert filtered["upload_date"] == "20240101"
+    assert filtered["view_count"] == 1000
+    assert filtered["release_year"] == 2025
+
+    # Verify excluded fields
+    assert "thumbnails" not in filtered
+    assert "formats" not in filtered
+    assert "_format_sort_fields" not in filtered
+    assert "automatic_captions" not in filtered
+    assert "requested_subtitles" not in filtered
+    assert "requested_formats" not in filtered
+    assert "subtitles" not in filtered
+    assert "vcodec" not in filtered
+    assert "acodec" not in filtered
+    assert "resolution" not in filtered
+    assert "format" not in filtered
+    assert "format_id" not in filtered
+    assert "format_note" not in filtered
+    assert "ext" not in filtered
+    assert "protocol" not in filtered
+    assert "tbr" not in filtered
+    assert "vbr" not in filtered
+    assert "abr" not in filtered
+    assert "fps" not in filtered
+    assert "width" not in filtered
+    assert "height" not in filtered
+    assert "dynamic_range" not in filtered
+    assert "stretched_ratio" not in filtered
+    assert "aspect_ratio" not in filtered
+    assert "asr" not in filtered
+    assert "audio_channels" not in filtered
+    assert "filesize_approx" not in filtered

@@ -1,0 +1,145 @@
+[
+  {
+    "url": "https://www.paulgraham.com/writes.html",
+    "url_hash": "07f54ebfa5f5d08f57c79d359b18ea5215d838c5b4e6f016aaa8c309caaead9f",
+    "title": "Untitled",
+    "expectations": "Should capture Paul Graham's main argument about writing and thinking. Must include his key insights about how writing helps clarify ideas. Should preserve specific examples and anecdotes he uses.",
+    "anti_patterns": "Don't reduce it to generic advice about writing. Avoid losing his unique voice and specific stories.",
+    "summary": {
+      "core_answer": "In a couple of decades, there won't be many people who can write due to the rise of AI.",
+      "why_this_matters": "This article highlights the potential decline in writing skills due to AI advancements, which could lead to a significant societal shift in cognitive abilities and thinking processes.",
+      "expert_opinion": "The article provides a unique perspective on the future of writing skills, emphasizing the intrinsic link between writing and thinking, and the potential societal impact of losing these skills.",
+      "unique_insights": [
+        "AI advancements will lead to a world divided into those who can write (and thus think clearly) and those who cannot.",
+        "Writing is intrinsically linked to thinking, and the loss of writing skills could lead to a decline in certain types of cognitive abilities.",
+        "The comparison of writing skills to physical strength in preindustrial times, suggesting that writing will become a choice rather than a necessity."
+      ],
+      "classification": {
+        "primary_topic": "#Writing",
+        "related_topics": [
+          "#AI",
+          "#Cognition",
+          "#SocietalImpact",
+          "#Technology"
+        ],
+        "content_type": "Opinion",
+        "depth": "Intermediate"
+      },
+      "core_insights": [
+        {
+          "insight": "AI advancements will significantly reduce the number of people who can write.",
+          "memory_aid": "AI has blown this world open.",
+          "supporting_facts": [
+            "AI can now write for people, both in school and at work, reducing the need for individuals to develop writing skills.",
+            "The pressure to write has dissipated due to AI, leading to a potential decline in writing abilities."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "This insight highlights the potential societal shift in cognitive abilities and the importance of writing in thinking processes.",
+          "connections": [
+            "The decline in writing skills is linked to the rise of AI.",
+            "Writing is intrinsically linked to thinking, suggesting a potential decline in cognitive abilities."
+          ]
+        },
+        {
+          "insight": "Writing is fundamentally difficult because it requires clear thinking.",
+          "memory_aid": "To write well you have to think clearly, and thinking clearly is hard.",
+          "supporting_facts": [
+            "Many people have trouble writing, as it requires clear thinking, which is inherently difficult.",
+            "The pervasive expectation of writing in many jobs creates enormous pressure, leading to issues like plagiarism."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "This insight underscores the intrinsic difficulty of writing and its importance in various professions.",
+          "connections": [
+            "The difficulty of writing is linked to the pressure to write in many jobs.",
+            "Clear thinking is a prerequisite for good writing."
+          ]
+        },
+        {
+          "insight": "The future will see a division between those who can write and those who cannot, leading to a world of 'thinks' and 'think-nots'.",
+          "memory_aid": "A world divided into writes and write-nots... It will be a world of thinks and think-nots.",
+          "supporting_facts": [
+            "AI advancements will lead to a world where only those who choose to write will retain the skill.",
+            "Writing is linked to thinking, suggesting a potential decline in cognitive abilities for those who do not write."
+          ],
+          "quantitative_data": null,
+          "why_it_matters": "This insight highlights the potential societal impact of the decline in writing skills and the importance of writing in cognitive processes.",
+          "connections": [
+            "The division between 'writes' and 'write-nots' is linked to the rise of AI.",
+            "The decline in writing skills is linked to a potential decline in cognitive abilities."
+          ]
+        }
+      ],
+      "knowledge_graph_ascii": "AI Advancements -> Reduced Need for Writing Skills -> Decline in Writing Abilities\nWriting Skills -> Clear Thinking -> Cognitive Abilities\nAI Advancements -> Division between 'Writes' and 'Write-Nots' -> World of 'Thinks' and 'Think-Nots'",
+      "people": [
+        {
+          "name": "Leslie Lamport",
+          "context": "Quoted to emphasize the link between writing and thinking: 'If you're thinking without writing, you only think you're thinking.'"
+        },
+        {
+          "name": "Jessica Livingston",
+          "context": "Read drafts of the article."
+        },
+        {
+          "name": "Ben Miller",
+          "context": "Read drafts of the article."
+        },
+        {
+          "name": "Robert Morris",
+          "context": "Read drafts of the article."
+        }
+      ],
+      "organizations": [],
+      "concepts": [
+        {
+          "name": "Writing and Thinking",
+          "context": "The article emphasizes that writing is intrinsically linked to thinking, and the loss of writing skills could lead to a decline in certain types of cognitive abilities."
+        },
+        {
+          "name": "AI and Writing",
+          "context": "AI advancements will reduce the need for individuals to develop writing skills, leading to a potential decline in writing abilities."
+        },
+        {
+          "name": "Division between 'Writes' and 'Write-Nots'",
+          "context": "The future will see a division between those who can write and those who cannot, leading to a world of 'thinks' and 'think-nots'."
+        }
+      ],
+      "formulas_data": [],
+      "examples_analogies": [
+        {
+          "name": "Preindustrial Strength",
+          "context": "In preindustrial times, most people's jobs made them strong. Now, if you want to be strong, you work out. Similarly, writing will become a choice rather than a necessity."
+        }
+      ],
+      "forward_looking": [
+        "In a couple of decades, there won't be many people who can write due to the rise of AI."
+      ],
+      "memory_aids": {
+        "key_phrase": "AI has blown this world open.",
+        "visual_metaphor": "A world divided into writes and write-nots, like a world of thinks and think-nots.",
+        "mnemonic": null
+      },
+      "discussion_summary": null,
+      "discussion_metrics": null
+    },
+    "judgement": {
+      "score": 6,
+      "reasoning": "The summary captures the essence of the argument regarding the decline of writing skills due to AI advancements, but it lacks specific examples and anecdotes that would provide depth and context to Paul Graham's insights. While it discusses the societal implications and the intrinsic link between writing and thinking, it does not fully convey Graham's unique voice or the nuances of his argument.",
+      "strengths": [
+        "Clearly articulates the potential decline in writing skills due to AI advancements.",
+        "Highlights the societal implications of losing writing skills and their connection to cognitive abilities.",
+        "Includes unique insights that reflect the article's main themes."
+      ],
+      "weaknesses": [
+        "Fails to include specific examples or anecdotes from Paul Graham's work that would enrich the summary.",
+        "Lacks a strong representation of Graham's unique voice and style, making it feel more generic.",
+        "Does not adequately capture the depth of the argument about writing as a tool for clarifying thoughts."
+      ],
+      "meets_expectations": false,
+      "violates_anti_patterns": true
+    },
+    "model": "mistralai/mistral-medium-3.1",
+    "tokens_used": 2530,
+    "latency_ms": 20424,
+    "timestamp": "2025-11-07T02:34:33.856785+00:00"
+  }
+]

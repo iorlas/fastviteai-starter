@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class BronzeTable(str, Enum):
-    RAW_HTML = "raw_html"
-    RAW_YOUTUBE = "raw_youtube"
+    HTML = "html"
+    YOUTUBE = "youtube"
     DISCUSSIONS = "discussions"
 
 

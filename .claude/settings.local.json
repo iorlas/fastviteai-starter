@@ -132,7 +132,8 @@
       "Bash(sqlite3:*)",
       "Bash(for i in 1 2 3 4 5)",
       "Bash(do echo \"Run $i:\" uv run pytest tests/integration/test_aggregator_resolver.py::test_resolve_url_extracts_hn_external_links -q)",
-      "WebFetch(domain:obendidi.github.io)"
+      "WebFetch(domain:obendidi.github.io)",
+      "Bash(make lint:*)"
     ],
     "deny": [],
     "ask": []

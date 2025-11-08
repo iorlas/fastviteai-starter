@@ -23,6 +23,7 @@ dependencies = [
     "trafilatura>=2.0.0",
     "hishel>=0.0.30",
     "anysqlite>=0.0.5",
+    "pydantic-settings>=2.11.0",
 ]
 
 [dependency-groups]

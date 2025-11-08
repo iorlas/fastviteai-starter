@@ -87,13 +87,25 @@ cp monitoring_list.txt.template monitoring_list.txt
 ```
 
 ### Environment Setup
+All configuration is managed via **pydantic-settings** in `dagster_project/config.py`.
+
 Required `.env` variables (see `.env.example`):
 ```bash
 PROJECT_ROOT=/absolute/path/to/ailabbrains
+DAGSTER_HOME=/path/to/ailabbrains/.dagster
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_MODEL=openai/gpt-4o
-DAGSTER_HOME=/path/to/ailabbrains/.dagster
+ENABLE_SUMMARIZATION=true  # Set to 'false' to disable AI summarization
+```
+
+**Usage**: Import settings from the global config:
+```python
+from dagster_project.config import settings
+
+# Access configuration
+if settings.enable_summarization:
+    model = settings.openai_model
 ```
 
 ## Architecture
@@ -125,14 +137,12 @@ The pipeline uses a **medallion architecture** (Bronze → Silver → Gold) with
 
 ```
 artifacts/
-  bronze/                    # Raw, immutable data (never modified/deleted)
-    raw_html/{url_hash}.json      # Downloaded HTML content
-    raw_youtube/{url_hash}.json   # YouTube video metadata
-    discussions/{url_hash}.json   # HN/Reddit comments
-  silver/                    # Cleaned, transformed data (can be regenerated)
-    extracted_content/{url_hash}.json  # Extracted text/metadata
-    summaries/{url_hash}.json          # AI-generated summaries
-    discussions/{url_hash}.json        # Processed discussion threads
+  bronze/                    # Extracted, immutable data (never modified/deleted)
+    html/{url_hash}.json           # Extracted HTML content
+    youtube/{url_hash}.json        # YouTube video metadata & transcripts
+    discussions/{url_hash}.json    # HN/Lobsters comments
+  silver/                    # AI-generated summaries (can be regenerated)
+    summaries/{url_hash}.json      # AI-generated summaries
 ```
 
 **Key principle**: Bronze layer is append-only cache. Silver layer can be deleted and regenerated.
@@ -196,10 +206,9 @@ dagster_project/
 
   assets/                    # Dagster orchestration (DAG definition)
     discovered_urls.py             # Entry point: read input files, detect aggregators
-    bronze_raw_html.py             # Download HTML content
+    bronze_html.py                 # Extract HTML content
+    bronze_youtube.py              # Extract YouTube transcripts
     bronze_discussions.py          # Fetch discussion threads
-    silver_extracted_content.py    # Extract text from HTML/YouTube
-    silver_discussions.py          # Process comment threads
     silver_summary.py              # Generate AI summaries
 
   jobs/                      # Pipeline definitions
@@ -234,17 +243,15 @@ Two pipelines process content differently:
 **Asset DAG**:
 ```
 discovered_urls
-    ├─> bronze_raw_html ──> silver_extracted_content ─┐
-    └─> bronze_discussions ─> silver_discussions ──────┤
-                                                        ├─> silver_summary
-                                                        ┘
+    ├─> bronze_html ──────────┐
+    ├─> bronze_youtube ────────┤
+    └─> bronze_discussions ────┼─> silver_summary
 ```
 
 **Data flow**:
 - `discovered_urls`: Detects content type (HTML/YouTube), aggregators, normalizes URLs
-- Bronze assets: Download raw content (HTML, YouTube metadata, discussion threads)
-- Silver extraction: Extract clean text/metadata
-- Silver summary: Generate AI summaries using extracted content + discussions
+- Bronze assets: Extract content (HTML text, YouTube transcripts, discussion threads)
+- Silver summary: Generate AI summaries from bronze extracted content + discussions
 
 ### Key Architectural Principles
 1. **Immutable bronze layer**: Never modify/delete; acts as source-of-truth cache

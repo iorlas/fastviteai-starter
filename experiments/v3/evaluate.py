@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from url_normalize import url_normalize
 
-from dagster_project.core.summarizer import SummaryGenerator, SummaryRequest
+from dagster_project.core.summary import SummaryGenerator, SummaryInput
 from dagster_project.resources.storage import Storage
 from dagster_project.utils.tables import SilverTable
 from dagster_project.utils.url_utils import compute_url_hash as compute_url_hash_util
@@ -92,13 +92,12 @@ def generate_summary(
     logger.info("summary.generating", url=url, title=title)
 
     result = generator.generate(
-        SummaryRequest(
+        SummaryInput(
             content=content,
             title=title,
             content_type=content_type,
             url=url,
             discussions=None,
-            discussion_metadata=None,
         )
     )
 

@@ -53,7 +53,7 @@ class YouTubeExtractor:
                 title=title,
                 content=transcript,
                 metadata=metadata,
-                content_metadata=dict(info),
+                content_metadata=self._filter_metadata(info),
                 success=True,
             )
 
@@ -98,6 +98,45 @@ class YouTubeExtractor:
                 success=False,
                 error=f"Error extracting content from {url}: {e}",
             )
+
+    @staticmethod
+    def _filter_metadata(info: dict) -> dict:
+        """Filter out unnecessary video format and technical metadata fields."""
+        excluded_fields = {
+            # Large/verbose metadata
+            "thumbnails",
+            "formats",
+            "_format_sort_fields",
+            "automatic_captions",
+            "requested_subtitles",
+            "requested_formats",
+            "subtitles",
+            # Video/audio codec details
+            "vcodec",
+            "acodec",
+            "resolution",
+            # Format-specific fields
+            "format",
+            "format_id",
+            "format_note",
+            "ext",
+            "protocol",
+            # Technical stream details
+            "tbr",
+            "vbr",
+            "abr",
+            "fps",
+            "width",
+            "height",
+            "dynamic_range",
+            "stretched_ratio",
+            "aspect_ratio",
+            "asr",
+            "audio_channels",
+            "filesize_approx",
+        }
+
+        return {k: v for k, v in info.items() if k not in excluded_fields}
 
     @staticmethod
     def _fetch_video_info(url: str) -> dict:
@@ -150,9 +189,6 @@ class YouTubeExtractor:
             return None
 
         except (NoTranscriptFound, TranscriptsDisabled):
-            return None
-        except Exception as e:
-            logger.warning("youtube_transcript.unexpected_error", video_id=video_id, error=str(e), error_type=type(e).__name__)
             return None
 
     @staticmethod

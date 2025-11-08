@@ -2,13 +2,14 @@ from datetime import UTC, datetime
 
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.config import settings
 from dagster_project.core.summary import compile_summary_input
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.tables import SilverTable
 
 
 @asset(
-    deps=["bronze_raw_html", "bronze_raw_youtube", "bronze_discussions"],
+    deps=["bronze_html", "bronze_youtube", "bronze_discussions"],
     required_resource_keys={"summary_generator", "bronze_storage", "silver_storage"},
     compute_kind="python",
     group_name="silver_layer",
@@ -18,6 +19,10 @@ async def silver_summary(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> None:
+    if not settings.enable_summarization:
+        context.log.info("Summarization disabled via ENABLE_SUMMARIZATION environment variable")
+        return None
+
     bronze_storage = context.resources.bronze_storage
     silver_storage = context.resources.silver_storage
     summary_generator = context.resources.summary_generator

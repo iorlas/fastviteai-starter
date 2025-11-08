@@ -31,7 +31,7 @@ def sample_youtube_url():
 def create_html_content(bronze_dir: Path, url: str, success: bool = True, content: str = "Test content"):
     """Helper to create HTML bronze content."""
     url_hash = compute_url_hash(url)
-    raw_html_dir = bronze_dir / "raw_html"
+    raw_html_dir = bronze_dir / "html"
     raw_html_dir.mkdir(exist_ok=True)
 
     data = {
@@ -53,7 +53,7 @@ def create_html_content(bronze_dir: Path, url: str, success: bool = True, conten
 def create_youtube_content(bronze_dir: Path, url: str, success: bool = True):
     """Helper to create YouTube bronze content."""
     url_hash = compute_url_hash(url)
-    raw_youtube_dir = bronze_dir / "raw_youtube"
+    raw_youtube_dir = bronze_dir / "youtube"
     raw_youtube_dir.mkdir(exist_ok=True)
 
     data = {

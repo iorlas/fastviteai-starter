@@ -11,7 +11,7 @@ from dagster_project.utils.tables import BronzeTable
     group_name="bronze_layer",
     tags={"layer": "bronze", "source": "youtube_api", "content_type": "youtube"},
 )
-async def bronze_raw_youtube(
+async def bronze_youtube(
     context: AssetExecutionContext,
     discovered_urls: list[dict],
 ) -> None:
@@ -27,7 +27,7 @@ async def bronze_raw_youtube(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_storage.exists(BronzeTable.RAW_YOUTUBE, url_hash):
+        if bronze_storage.exists(BronzeTable.YOUTUBE, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
             continue
@@ -38,7 +38,7 @@ async def bronze_raw_youtube(
 
         bronze_data = {**result.model_dump(), "url_hash": url_hash}
 
-        bronze_storage.save(BronzeTable.RAW_YOUTUBE, url_hash, bronze_data)
+        bronze_storage.save(BronzeTable.YOUTUBE, url_hash, bronze_data)
 
         if result.success:
             context.log.info(f"✓ Extracted: {result.title}")

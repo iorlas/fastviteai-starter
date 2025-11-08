@@ -5,8 +5,8 @@ manual_urls_pipeline = define_asset_job(
     description="Process URLs from manual_links.txt: discovery → bronze → silver → summary",
     selection=AssetSelection.assets(
         "discovered_urls",
-        "bronze_raw_html",
-        "bronze_raw_youtube",
+        "bronze_html",
+        "bronze_youtube",
         "bronze_discussions",
         "silver_summary",
     ),
@@ -27,8 +27,8 @@ watchers_pipeline = define_asset_job(
     description="Process URLs from monitoring_list.txt via watchers: discovery → bronze → silver → summary",
     selection=AssetSelection.assets(
         "discovered_urls",
-        "bronze_raw_html",
-        "bronze_raw_youtube",
+        "bronze_html",
+        "bronze_youtube",
         "bronze_discussions",
         "silver_summary",
     ),
