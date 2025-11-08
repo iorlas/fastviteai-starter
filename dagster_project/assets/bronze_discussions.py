@@ -4,7 +4,7 @@ from dagster import AssetExecutionContext, asset
 
 from dagster_project.core.discussions.hn_client import HackerNewsClient
 from dagster_project.core.discussions.lobsters_client import LobstersClient
-from dagster_project.core.discussions.models import DiscussionLink, DiscussionMetadata
+from dagster_project.core.discussions.shared_models import DiscussionLink, DiscussionMetadata
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.tables import BronzeTable
 

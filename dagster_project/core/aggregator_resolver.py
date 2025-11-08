@@ -5,7 +5,7 @@ from dagster_project.core.aggregators.detector import is_aggregator_url
 from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 from dagster_project.core.discussions.hn_client import HackerNewsClient
 from dagster_project.core.discussions.lobsters_client import LobstersClient
-from dagster_project.core.discussions.models import DiscussionLink
+from dagster_project.core.discussions.shared_models import DiscussionLink
 
 logger = structlog.get_logger()
 

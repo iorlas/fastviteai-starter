@@ -6,12 +6,8 @@ from hishel.httpx import AsyncCacheClient
 
 from dagster_project.core.cache.hishel_cache import get_async_cache_client
 from dagster_project.core.discussions.base import DiscussionPlatformHandler
-from dagster_project.core.discussions.models import (
-    DiscussionLink,
-    ExtractionResult,
-    HNSearchResponse,
-    HNStoryFull,
-)
+from dagster_project.core.discussions.hn_models import HNSearchResponse, HNStoryFull
+from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 logger = structlog.get_logger()
 

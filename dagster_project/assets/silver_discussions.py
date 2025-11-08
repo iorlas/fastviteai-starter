@@ -2,11 +2,9 @@ from datetime import UTC, datetime
 
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.core.discussions.hn_models import HNStoryFull
 from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
-from dagster_project.core.discussions.models import (
-    DiscussionMetadata,
-    HNStoryFull,
-)
+from dagster_project.core.discussions.shared_models import DiscussionMetadata
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.tables import BronzeTable, SilverTable
 

@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
 from dagster_project.core.discussions.base import DiscussionPlatformHandler
 from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
-from dagster_project.core.discussions.models import DiscussionLink, ExtractionResult
+from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 logger = structlog.get_logger()
 

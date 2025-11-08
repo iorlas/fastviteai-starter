@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from dagster_project.core.discussions.models import DiscussionLink, ExtractionResult
+from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 
 class DiscussionPlatformHandler(ABC):

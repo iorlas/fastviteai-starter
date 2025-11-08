@@ -1,20 +1,6 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    pass
-
-
-class DiscussionLink(BaseModel):
-    type: Literal["hackernews", "lobsters"]
-    url: str
-
-
-class ExtractionResult(BaseModel):
-    article_url: str
-    title: str | None
 
 
 class HNComment(BaseModel):
@@ -72,24 +58,3 @@ class HNSearchResponse(BaseModel):
     processing_time_ms: int = Field(alias="processingTimeMS")
 
     model_config = {"populate_by_name": True}
-
-
-class DiscussionMetadata(BaseModel):
-    url: str
-    total_stories: int
-    platforms: list[str]
-    hn_story_ids: list[int] = Field(default_factory=list)
-    lobsters_story_ids: list[str] = Field(default_factory=list)
-    discussion_links: list[DiscussionLink] = Field(default_factory=list)
-    discovered_at: datetime
-    cache_ttl_hours: int = 24
-
-
-def _get_discussion_story_union():
-    """Lazy union type to avoid circular import."""
-    from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
-
-    return HNStoryFull | LobstersStoryFull
-
-
-DiscussionStory = _get_discussion_story_union()
