@@ -12,6 +12,11 @@ class DiscussionLink(BaseModel):
     url: str
 
 
+class ExtractionResult(BaseModel):
+    article_url: str
+    title: str | None
+
+
 class HNComment(BaseModel):
     id: int
     author: str | None = None

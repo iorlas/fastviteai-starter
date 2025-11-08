@@ -98,6 +98,26 @@ DAGSTER_HOME=/path/to/ailabbrains/.dagster
 
 ## Architecture
 
+### Integration Unit Boundary Principle
+**Code organization follows external service boundaries, not internal usage patterns.**
+
+When integrating with external services, organize code by **integration boundary** (the external system), not by **usage pattern** (how we use it internally). A single external service = single client class with all capabilities.
+
+**Example**: `HackerNewsClient` (in `core/discussions/hn_client.py`) handles BOTH:
+- Article URL extraction via HTML scraping (`extract_article_url()`)
+- Discussion fetching via Algolia API (`search_by_url()`, `fetch_story()`)
+
+**Why not split by usage pattern?**
+- **Shared operational boundary**: Rate limits, monitoring, error handling, and caching operate at the service level, not the usage level
+- **Concentrated domain knowledge**: HN URL structure, API quirks, error patterns all live in one place
+- **Simpler mental model**: One import for all HN operations - no deciding between "extractor" vs "client"
+- **Unified configuration**: Single timeout, cache client, retry logic shared across all HN operations
+- **Easier testing**: Mock one service, not multiple facades
+
+**Applied to**: `HackerNewsClient`, `LobstersClient` (both in `core/discussions/`)
+
+**Anti-pattern**: Splitting `HackerNewsExtractor` (aggregator extraction) and `HackerNewsClient` (discussion fetching) fragments what is logically one integration point.
+
 ### Medallion Data Architecture
 The pipeline uses a **medallion architecture** (Bronze → Silver → Gold) with immutable bronze layer:
 
@@ -157,12 +177,11 @@ dagster_project/
       html_extractor.py           # HTML content extraction
       youtube_extractor.py        # YouTube content extraction
       watchers.py                 # RSS/feed monitoring
-    aggregators/                  # Content aggregator interfaces (HN, Lobsters)
-      base.py                     # Aggregator protocol
-      hackernews.py               # HackerNews client
-      detector.py                 # Detect if URL is aggregator
-    discussions/                  # Discussion thread processing
-      hn_client.py                # HN API client
+    aggregators/                  # Aggregator URL detection
+      detector.py                 # Detect if URL is aggregator (HN, Lobsters)
+    discussions/                  # Platform integrations (extraction + discussion threads)
+      hn_client.py                # HackerNews client (extraction + discussions)
+      lobsters_client.py          # Lobsters client (extraction + discussions)
       comment_processor.py        # Comment thread flattening
     cache/                        # HTTP caching layer
       http_cache.py               # Cache-aware HTTP client

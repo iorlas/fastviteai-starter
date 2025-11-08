@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from dagster_project.core.discussions.models import DiscussionLink
+from dagster_project.core.discussions.models import DiscussionLink, ExtractionResult
 
 
 class DiscussionPlatformHandler(ABC):
@@ -8,6 +8,11 @@ class DiscussionPlatformHandler(ABC):
 
     Handlers return data only - no file I/O. Asset handles orchestration and persistence.
     """
+
+    @abstractmethod
+    async def extract_article_url(self, aggregator_url: str) -> ExtractionResult:
+        """Extract the linked article URL from aggregator discussion page."""
+        ...
 
     @abstractmethod
     async def search_by_url(self, url: str) -> list[str]:

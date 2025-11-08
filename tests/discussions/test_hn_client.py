@@ -1,12 +1,12 @@
 import pytest
 
-from dagster_project.core.discussions.hn_client import HNClient
+from dagster_project.core.discussions.hn_client import HackerNewsClient
 
 
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_search_by_url_finds_stories():
-    async with HNClient() as client:
+    async with HackerNewsClient() as client:
         url = "https://blog.samaltman.com/what-i-wish-someone-had-told-me"
         discussion_urls = await client.search_by_url(url)
 
@@ -19,7 +19,7 @@ async def test_search_by_url_finds_stories():
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_fetch_story_with_comments():
-    async with HNClient() as client:
+    async with HackerNewsClient() as client:
         story_id = 8863
         story = await client.fetch_story_with_comments(story_id)
 
@@ -31,7 +31,7 @@ async def test_fetch_story_with_comments():
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_search_no_results():
-    async with HNClient() as client:
+    async with HackerNewsClient() as client:
         url = "https://nonexistent-domain-12345.com/article"
         stories = await client.search_by_url(url)
 
@@ -42,6 +42,6 @@ async def test_search_no_results():
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_client_context_manager():
-    async with HNClient(timeout=10) as client:
+    async with HackerNewsClient(timeout=10) as client:
         assert client.client is not None
         assert client.timeout == 10

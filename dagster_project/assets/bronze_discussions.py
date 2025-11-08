@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from dagster import AssetExecutionContext, asset
 
-from dagster_project.core.discussions.hn_client import HNClient
+from dagster_project.core.discussions.hn_client import HackerNewsClient
 from dagster_project.core.discussions.lobsters_client import LobstersClient
 from dagster_project.core.discussions.models import DiscussionLink, DiscussionMetadata
 from dagster_project.utils.asset_utils import Stats
@@ -13,7 +13,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
     stats = Stats(total=len(discovered_urls))
     total_stories = 0
 
-    async with HNClient() as hn, LobstersClient() as lobsters:
+    async with HackerNewsClient() as hn, LobstersClient() as lobsters:
         for url_data in discovered_urls:
             url = url_data["url"]
             url_hash = url_data["url_hash"]

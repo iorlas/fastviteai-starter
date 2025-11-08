@@ -1,12 +1,14 @@
 from urllib.parse import urlparse
 
 import structlog
+from bs4 import BeautifulSoup
 from hishel.httpx import AsyncCacheClient
 
 from dagster_project.core.cache.hishel_cache import get_async_cache_client
 from dagster_project.core.discussions.base import DiscussionPlatformHandler
 from dagster_project.core.discussions.models import (
     DiscussionLink,
+    ExtractionResult,
     HNSearchResponse,
     HNStoryFull,
 )
@@ -14,11 +16,49 @@ from dagster_project.core.discussions.models import (
 logger = structlog.get_logger()
 
 
-class HNClient(DiscussionPlatformHandler):
+class HackerNewsClient(DiscussionPlatformHandler):
     def __init__(self, timeout: int = 30, cache_client: AsyncCacheClient | None = None):
         self.algolia_base = "https://hn.algolia.com/api/v1"
         self.timeout = timeout
         self.client = cache_client or get_async_cache_client(timeout=timeout)
+
+    async def extract_article_url(self, hn_url: str) -> ExtractionResult:
+        logger.info("hn_extraction_start", url=hn_url)
+
+        try:
+            response = await self.client.get(hn_url)
+            response.raise_for_status()
+            html_content = response.text
+
+            soup = BeautifulSoup(html_content, "html.parser")
+
+            titleline = soup.find("span", class_="titleline")
+            if not titleline:
+                raise ValueError("Could not find titleline element in HN page")
+
+            link = titleline.find("a")
+            if not link or not link.get("href"):
+                raise ValueError("Could not find article link in titleline")
+
+            article_url = link["href"]
+            title = link.get_text(strip=True)
+
+            if article_url.startswith("item?"):
+                logger.info("hn_self_post_detected", hn_url=hn_url, title=title, type="self_post")
+                return ExtractionResult(article_url=hn_url, title=title)
+
+            logger.info(
+                "hn_extraction_success",
+                hn_url=hn_url,
+                article_url=article_url,
+                title=title,
+            )
+
+            return ExtractionResult(article_url=article_url, title=title)
+
+        except Exception as e:
+            logger.error("hn_extraction_failed", url=hn_url, error=str(e))
+            raise
 
     async def close(self):
         await self.client.aclose()
