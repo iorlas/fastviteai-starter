@@ -55,14 +55,10 @@ async def _process_discovered_url(
         "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
     }
 
-    if resolution_result.was_aggregator:
-        url_data["original_url"] = resolution_result.original_url
-        url_data["aggregator_type"] = resolution_result.aggregator_type
-        url_data["aggregator_title"] = resolution_result.title
-
-        context.log.info(
-            f"Aggregator resolved: {resolution_result.aggregator_type} '{resolution_result.title}' -> {canonical_url} (source: {source})"
-        )
+    if resolution_result.discussion_links:
+        aggregator_type = resolution_result.discussion_links[0].type
+        aggregator_url = resolution_result.discussion_links[0].url
+        context.log.info(f"Aggregator resolved: {aggregator_type} {aggregator_url} -> {canonical_url} (source: {source})")
     else:
         context.log.info(f"URL added: {canonical_url} (source: {source})")
 

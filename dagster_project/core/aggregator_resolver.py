@@ -12,10 +12,6 @@ logger = structlog.get_logger()
 
 class URLResolutionResult(BaseModel):
     resolved_url: str
-    original_url: str
-    was_aggregator: bool
-    aggregator_type: str | None
-    title: str | None = None
     discussion_links: list[DiscussionLink] = Field(default_factory=list)
 
 
@@ -29,12 +25,7 @@ class AggregatorResolver:
         is_agg, agg_type = is_aggregator_url(url)
 
         if not is_agg:
-            return URLResolutionResult(
-                resolved_url=url,
-                original_url=url,
-                was_aggregator=False,
-                aggregator_type=None,
-            )
+            return URLResolutionResult(resolved_url=url)
 
         logger.info("aggregator.detected", url=url, aggregator_type=agg_type)
 
@@ -53,10 +44,6 @@ class AggregatorResolver:
 
             return URLResolutionResult(
                 resolved_url=result.article_url,
-                original_url=url,
-                was_aggregator=True,
-                aggregator_type=agg_type,
-                title=result.title,
                 discussion_links=[discussion_link],
             )
 
@@ -75,10 +62,6 @@ class AggregatorResolver:
 
             return URLResolutionResult(
                 resolved_url=result.article_url,
-                original_url=url,
-                was_aggregator=True,
-                aggregator_type=agg_type,
-                title=result.title,
                 discussion_links=[discussion_link],
             )
 

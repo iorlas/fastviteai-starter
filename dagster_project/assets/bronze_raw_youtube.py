@@ -9,7 +9,6 @@ from dagster_project.core.extractors.youtube_extractor import (
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.content_type import ContentType
 from dagster_project.utils.tables import BronzeTable
-from dagster_project.utils.url_utils import extract_aggregator_info
 
 
 @asset(
@@ -38,8 +37,6 @@ def bronze_raw_youtube(
             stats.cached += 1
             continue
 
-        aggregator_info = extract_aggregator_info(url_data)
-
         context.log.info(f"Extracting YouTube content: {url}")
 
         try:
@@ -55,10 +52,6 @@ def bronze_raw_youtube(
                 "channel": yt_content.channel,
                 "duration": yt_content.duration,
                 "youtube_metadata": yt_content.metadata,
-                "aggregator_metadata": {
-                    "was_aggregator": bool(aggregator_info),
-                    **aggregator_info,
-                },
                 "extraction_success": True,
                 "error_message": None,
                 "created_at": datetime.now(UTC).isoformat(),
@@ -82,10 +75,6 @@ def bronze_raw_youtube(
                 "channel": "",
                 "duration": None,
                 "youtube_metadata": {},
-                "aggregator_metadata": {
-                    "was_aggregator": bool(aggregator_info),
-                    **aggregator_info,
-                },
                 "extraction_success": False,
                 "error_message": str(e),
                 "created_at": datetime.now(UTC).isoformat(),
