@@ -1,17 +1,27 @@
 import re
+from typing import Literal
+from urllib.parse import urlparse
 
 import structlog
 from bs4 import BeautifulSoup
 
 from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
-from dagster_project.core.discussions.base import DiscussionPlatformHandler
 from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 logger = structlog.get_logger()
 
 
-class LobstersClient(DiscussionPlatformHandler):
+class LobstersClient:
+    @classmethod
+    def platform_name(cls) -> Literal["lobsters"]:
+        return "lobsters"
+
+    @classmethod
+    def can_handle(cls, url: str) -> bool:
+        parsed = urlparse(url)
+        return "lobste.rs" in parsed.netloc and "/s/" in parsed.path
+
     def __init__(
         self,
         cache_client: AsyncCacheClient | None = None,
@@ -79,7 +89,6 @@ class LobstersClient(DiscussionPlatformHandler):
         return discussion_urls
 
     async def fetch_story(self, discussion_url: str, story_id: str | None = None) -> LobstersStoryFull:
-        """Fetch full Lobsters story with comments."""
         if story_id is None:
             story_id = self.extract_story_id(discussion_url)
         return await self.fetch_story_with_comments(story_id)
@@ -94,19 +103,18 @@ class LobstersClient(DiscussionPlatformHandler):
         data = response.json()
 
         story = LobstersStoryFull(**data)
+        story.comment_count = self._count_comments(story.comments)
 
-        comment_count = self._count_comments(story.comments)
         logger.info(
             "lobsters_story_fetched",
             short_id=short_id,
-            comments=comment_count,
+            comments=story.comment_count,
             score=story.score,
         )
 
         return story
 
     def extract_story_id(self, discussion_url: str) -> str:
-        """Extract short_id from Lobsters URL."""
         short_id = self.extract_short_id_from_url(discussion_url)
         if not short_id:
             msg = f"Could not extract story ID from {discussion_url}"
@@ -114,7 +122,6 @@ class LobstersClient(DiscussionPlatformHandler):
         return short_id
 
     def build_discussion_link(self, story_id: str) -> DiscussionLink:
-        """Build DiscussionLink for Lobsters story."""
         return DiscussionLink(type="lobsters", url=f"https://lobste.rs/s/{story_id}")
 
     def _count_comments(self, comments: list) -> int:

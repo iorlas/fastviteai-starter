@@ -1,3 +1,4 @@
+from typing import Literal
 from urllib.parse import urlparse
 
 import structlog
@@ -5,14 +6,22 @@ from bs4 import BeautifulSoup
 from hishel.httpx import AsyncCacheClient
 
 from dagster_project.core.cache.hishel_cache import get_async_cache_client
-from dagster_project.core.discussions.base import DiscussionPlatformHandler
 from dagster_project.core.discussions.hn_models import HNSearchResponse, HNStoryFull
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 logger = structlog.get_logger()
 
 
-class HackerNewsClient(DiscussionPlatformHandler):
+class HackerNewsClient:
+    @classmethod
+    def platform_name(cls) -> Literal["hackernews"]:
+        return "hackernews"
+
+    @classmethod
+    def can_handle(cls, url: str) -> bool:
+        parsed = urlparse(url)
+        return "news.ycombinator.com" in parsed.netloc and "/item" in parsed.path
+
     def __init__(self, timeout: int = 30, cache_client: AsyncCacheClient | None = None):
         self.algolia_base = "https://hn.algolia.com/api/v1"
         self.timeout = timeout
@@ -60,7 +69,6 @@ class HackerNewsClient(DiscussionPlatformHandler):
         await self.client.aclose()
 
     async def search_by_url(self, url: str) -> list[str]:
-        """Search HN for discussions of URL, return discussion URLs."""
         domain = urlparse(url).netloc or url
 
         logger.info("searching_hn_discussions", url=url, domain=domain)
@@ -89,7 +97,6 @@ class HackerNewsClient(DiscussionPlatformHandler):
         return [f"https://news.ycombinator.com/item?id={s.story_id}" for s in search_response.hits]
 
     async def fetch_story(self, discussion_url: str, story_id: int | None = None) -> HNStoryFull:
-        """Fetch full HN story with comments."""
         if story_id is None:
             story_id = self.extract_story_id(discussion_url)
         return await self.fetch_story_with_comments(story_id)
@@ -102,23 +109,21 @@ class HackerNewsClient(DiscussionPlatformHandler):
 
         data = response.json()
         story = HNStoryFull(**data)
+        story.comment_count = self._count_comments(story.children)
 
-        comment_count = self._count_comments(story.children)
         logger.info(
             "hn_story_fetched",
             story_id=story_id,
-            comments=comment_count,
+            comments=story.comment_count,
             points=story.points,
         )
 
         return story
 
     def extract_story_id(self, discussion_url: str) -> int:
-        """Extract story ID from HN URL."""
         return int(discussion_url.split("id=")[1].split("&")[0])
 
     def build_discussion_link(self, story_id: int) -> DiscussionLink:
-        """Build DiscussionLink for HN story."""
         return DiscussionLink(type="hackernews", url=f"https://news.ycombinator.com/item?id={story_id}")
 
     def _count_comments(self, comments: list) -> int:

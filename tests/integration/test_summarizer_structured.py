@@ -4,18 +4,18 @@ import pytest
 from openai import OpenAI
 from pydantic import ValidationError
 
-from dagster_project.core.summarizer import (
-    DEFAULT_SYSTEM_PROMPT,
-    DEFAULT_USER_PROMPT_TEMPLATE,
-    SummaryGenerator,
-    SummaryRequest,
-)
-from dagster_project.core.summary_schema import (
+from dagster_project.core.summary import (
     Classification,
     CoreInsight,
     Entity,
     KnowledgeGraphSummary,
     MemoryAids,
+    SummaryGenerator,
+    SummaryInput,
+)
+from dagster_project.core.summary.summarizer import (
+    DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_USER_PROMPT_TEMPLATE,
 )
 
 
@@ -91,7 +91,7 @@ def test_summary_generator_structured_extraction(mock_openai_client):
         max_tokens=3000,
     )
 
-    request = SummaryRequest(
+    request = SummaryInput(
         content=(
             "Content about microservices and team organization. "
             "This article discusses how small autonomous teams can build and deploy services independently, "
@@ -129,7 +129,7 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
         max_tokens=3000,
     )
 
-    request = SummaryRequest(
+    request = SummaryInput(
         content=(
             "Test content for validating the baseline prompt structure "
             "and ensuring all required parameters are passed correctly to the OpenAI API during summarization."
@@ -216,7 +216,7 @@ def test_summary_generator_retries_on_validation_error():
         max_tokens=4096,
     )
 
-    request = SummaryRequest(
+    request = SummaryInput(
         content=(
             "Test content for validating the retry mechanism when validation errors occur. "
             "This ensures the summarizer can recover from transient failures."
@@ -250,7 +250,7 @@ def test_summary_generator_fails_after_max_retries():
         max_tokens=4096,
     )
 
-    request = SummaryRequest(
+    request = SummaryInput(
         content=(
             "Test content for validating that the summarizer fails gracefully "
             "after exhausting all retry attempts when validation errors persist."

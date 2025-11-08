@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import structlog
-from hishel import AsyncSqliteStorage, CacheOptions, SpecificationPolicy
+from hishel import AsyncSqliteStorage, FilterPolicy
+from hishel._policies import BaseFilter, Response
 from hishel.httpx import AsyncCacheClient
 
 logger = structlog.get_logger()
@@ -10,15 +11,28 @@ DEFAULT_CACHE_DIR = Path("artifacts/cache/http_responses")
 DEFAULT_TTL = 3600  # 1 hour
 
 
+class StatusCodeFilter(BaseFilter[Response]):
+    """Filter that prevents caching of 403 and 5xx error responses."""
+
+    def needs_body(self) -> bool:
+        return False
+
+    def apply(self, response: Response, body: bytes | None) -> bool:
+        """Return True if response should be cached, False otherwise."""
+        status_code = response.status_code
+        # Only cache successful responses (2xx) and redirects (301, 308)
+        # Explicitly reject 403 and 5xx errors
+        if status_code == 403 or (status_code >= 500 and status_code < 600):
+            return False
+        # Cache 2xx and permanent redirects
+        return 200 <= status_code < 300 or status_code in (301, 308)
+
+
 def get_async_cache_client(
     cache_dir: Path | None = None,
     ttl: int = DEFAULT_TTL,
     timeout: int = 30,
 ) -> AsyncCacheClient:
-    """Get configured async cache client with caching enabled.
-
-    Caches ALL responses for the specified TTL using Hishel with SQLite storage.
-    """
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
 
@@ -30,8 +44,8 @@ def get_async_cache_client(
         refresh_ttl_on_access=False,
     )
 
-    cache_options = CacheOptions(allow_stale=True)
-    policy = SpecificationPolicy(cache_options=cache_options)
+    status_filter = StatusCodeFilter()
+    policy = FilterPolicy(response_filters=[status_filter])
 
     return AsyncCacheClient(
         storage=storage,

@@ -1,35 +1,21 @@
-from abc import ABC, abstractmethod
+from typing import Protocol
 
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 
 
-class DiscussionPlatformHandler(ABC):
-    """Abstract base class for platform-specific discussion handling.
+class DiscussionPlatformHandler(Protocol):
+    @classmethod
+    def platform_name(cls) -> str: ...
 
-    Handlers return data only - no file I/O. Asset handles orchestration and persistence.
-    """
+    @classmethod
+    def can_handle(cls, url: str) -> bool: ...
 
-    @abstractmethod
-    async def extract_article_url(self, aggregator_url: str) -> ExtractionResult:
-        """Extract the linked article URL from aggregator discussion page."""
-        ...
+    async def extract_article_url(self, aggregator_url: str) -> ExtractionResult: ...
 
-    @abstractmethod
-    async def search_by_url(self, url: str) -> list[str]:
-        """Search for discussions of URL, return discussion URLs."""
-        ...
+    async def search_by_url(self, url: str) -> list[str]: ...
 
-    @abstractmethod
-    async def fetch_story(self, discussion_url: str, story_id: str | int | None = None):
-        """Fetch full story with comments. Returns HNStoryFull or LobstersStoryFull."""
-        ...
+    async def fetch_story(self, discussion_url: str, story_id: str | int | None = None): ...
 
-    @abstractmethod
-    def extract_story_id(self, discussion_url: str) -> str | int:
-        """Extract story ID from discussion URL."""
-        ...
+    def extract_story_id(self, discussion_url: str) -> str | int: ...
 
-    @abstractmethod
-    def build_discussion_link(self, story_id: str | int) -> DiscussionLink:
-        """Build DiscussionLink from story ID."""
-        ...
+    def build_discussion_link(self, story_id: str | int) -> DiscussionLink: ...

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dagster_project.core.summary_schema import KnowledgeGraphSummary
+from dagster_project.core.summary import KnowledgeGraphSummary
 
 st.set_page_config(
     page_title="Knowledge Feed",

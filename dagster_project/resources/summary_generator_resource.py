@@ -5,7 +5,7 @@ from dagster import ConfigurableResource
 from dotenv import load_dotenv
 from pydantic import Field
 
-from dagster_project.core.summarizer import SummaryGenerator
+from dagster_project.core.summary import SummaryGenerator
 
 load_dotenv()
 

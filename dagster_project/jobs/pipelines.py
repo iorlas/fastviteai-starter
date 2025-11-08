@@ -8,8 +8,6 @@ manual_urls_pipeline = define_asset_job(
         "bronze_raw_html",
         "bronze_raw_youtube",
         "bronze_discussions",
-        "silver_extracted_content",
-        "silver_discussions",
         "silver_summary",
     ),
     config=RunConfig(
@@ -32,8 +30,6 @@ watchers_pipeline = define_asset_job(
         "bronze_raw_html",
         "bronze_raw_youtube",
         "bronze_discussions",
-        "silver_extracted_content",
-        "silver_discussions",
         "silver_summary",
     ),
     config=RunConfig(

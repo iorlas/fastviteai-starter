@@ -5,8 +5,6 @@ from dagster_project.assets import (
     bronze_raw_html,
     bronze_raw_youtube,
     discovered_urls,
-    silver_discussions,
-    silver_extracted_content,
     silver_summary,
 )
 from dagster_project.jobs import manual_urls_pipeline, watchers_pipeline
@@ -19,8 +17,6 @@ all_assets = [
     bronze_raw_html,
     bronze_raw_youtube,
     bronze_discussions,
-    silver_extracted_content,
-    silver_discussions,
     silver_summary,
 ]
 

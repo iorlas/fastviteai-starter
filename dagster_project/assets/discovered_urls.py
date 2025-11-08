@@ -5,8 +5,8 @@ from pydantic import Field
 from url_normalize import url_normalize
 
 from dagster_project.core.aggregator_resolver import resolve_url
+from dagster_project.core.content_types.youtube import YouTubeExtractor
 from dagster_project.core.extractors.watchers import RSSWatcher, RSSWatcherError
-from dagster_project.utils.content_type import detect_content_type
 from dagster_project.utils.paths import MANUAL_LINKS_FILE, MONITORING_LINKS_FILE
 from dagster_project.utils.url_utils import compute_url_hash
 
@@ -32,6 +32,14 @@ def read_links_from_file(file_path: Path) -> list[str]:
     return links
 
 
+def _detect_content_type(url: str) -> str:
+    """Detect content type using extractor matching logic."""
+    youtube_extractor = YouTubeExtractor()
+    if youtube_extractor.matches(url):
+        return "youtube"
+    return "html"
+
+
 async def _process_discovered_url(
     url: str,
     source: str,
@@ -39,9 +47,9 @@ async def _process_discovered_url(
     discovered_list: list[dict],
     context: AssetExecutionContext,
 ) -> bool:
-    resolution_result = await resolve_url(url)
-    normalized = url_normalize(resolution_result.resolved_url.strip())
-    canonical_url = normalized if normalized else resolution_result.resolved_url.strip()
+    resolved_url, discussion_link = await resolve_url(url)
+    normalized = url_normalize(resolved_url.strip())
+    canonical_url = normalized if normalized else resolved_url.strip()
     url_hash = compute_url_hash(canonical_url)
 
     if url_hash in seen_hashes:
@@ -50,14 +58,14 @@ async def _process_discovered_url(
     url_data = {
         "url": canonical_url,
         "url_hash": url_hash,
-        "content_type": detect_content_type(canonical_url).value,
+        "content_type": _detect_content_type(canonical_url),
         "source": source,
-        "discussion_links": [link.model_dump() for link in resolution_result.discussion_links],
+        "discussion_links": [discussion_link.model_dump()] if discussion_link else [],
     }
 
-    if resolution_result.discussion_links:
-        aggregator_type = resolution_result.discussion_links[0].type
-        aggregator_url = resolution_result.discussion_links[0].url
+    if discussion_link:
+        aggregator_type = discussion_link.type
+        aggregator_url = discussion_link.url
         context.log.info(f"Aggregator resolved: {aggregator_type} {aggregator_url} -> {canonical_url} (source: {source})")
     else:
         context.log.info(f"URL added: {canonical_url} (source: {source})")

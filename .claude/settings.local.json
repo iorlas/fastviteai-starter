@@ -128,7 +128,11 @@
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show c31cab3:dagster_project/assets/bronze_discussions.py)",
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains log --oneline -1 c31cab3)",
       "Bash(git -C /Users/iorlas/Projects/my/ailabbrains show c31cab3^:dagster_project/resources/bronze_io_manager.py)",
-      "Bash(make test:*)"
+      "Bash(make test:*)",
+      "Bash(sqlite3:*)",
+      "Bash(for i in 1 2 3 4 5)",
+      "Bash(do echo \"Run $i:\" uv run pytest tests/integration/test_aggregator_resolver.py::test_resolve_url_extracts_hn_external_links -q)",
+      "WebFetch(domain:obendidi.github.io)"
     ],
     "deny": [],
     "ask": []

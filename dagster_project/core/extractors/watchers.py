@@ -1,10 +1,4 @@
-from typing import Protocol
-
 import feedparser
-
-
-class Watcher(Protocol):
-    def fetch_links(self, source_url: str) -> list[str]: ...
 
 
 class RSSWatcherError(Exception):

@@ -6,8 +6,7 @@
     },
     "enabledMcpjsonServers": [
         "sequential-thinking",
-        "context7",
-        "playwright"
+        "context7"
     ],
     "enableAllProjectMcpServers": true
 }

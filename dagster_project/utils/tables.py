@@ -8,6 +8,4 @@ class BronzeTable(str, Enum):
 
 
 class SilverTable(str, Enum):
-    EXTRACTED_CONTENT = "extracted_content"
     SUMMARIES = "summaries"
-    DISCUSSIONS = "discussions"

@@ -37,15 +37,9 @@ class HNStoryFull(BaseModel):
     created_at: datetime
     created_at_i: int
     children: list[HNComment] = Field(default_factory=list)
-
-    def count_total_comments(self) -> int:
-        """Count all nested comments recursively."""
-        from dagster_project.utils.discussion_utils import count_comments_recursive
-
-        return count_comments_recursive(self.children)
+    comment_count: int = 0
 
     def get_comments(self) -> list[HNComment]:
-        """Get comment list (for polymorphic access)."""
         return self.children
 
 

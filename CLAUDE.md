@@ -116,6 +116,8 @@ When integrating with external services, organize code by **integration boundary
 
 **Applied to**: `HackerNewsClient`, `LobstersClient` (both in `core/discussions/`)
 
+**Handler responsibility boundary**: `DiscussionPlatformHandler` implementations return data only - no file I/O operations. Assets handle orchestration and persistence, keeping handlers focused on external service integration.
+
 **Anti-pattern**: Splitting `HackerNewsExtractor` (aggregator extraction) and `HackerNewsClient` (discussion fetching) fragments what is logically one integration point.
 
 ### Medallion Data Architecture

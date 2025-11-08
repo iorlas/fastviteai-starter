@@ -5,7 +5,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-from dagster_project.core.summary_schema import KnowledgeGraphSummary
+from dagster_project.core.summary.schema import KnowledgeGraphSummary
 
 logger = structlog.get_logger()
 
@@ -50,13 +50,12 @@ numbers, examples with specific details)
 - Memory aids (key phrases with full context, visual metaphors, mnemonics)"""
 
 
-class SummaryRequest(BaseModel):
+class SummaryInput(BaseModel):
     content: str
     title: str
     content_type: str
     url: str
     discussions: list[dict] | None = None
-    discussion_metadata: dict | None = None
 
 
 class SummaryResult(BaseModel):
@@ -88,7 +87,7 @@ class SummaryGenerator:
         self.max_retries = max_retries
         self._retry_attempt = 0
 
-    def generate(self, request: SummaryRequest) -> SummaryResult:
+    def generate(self, request: SummaryInput) -> SummaryResult:
         content_length = len(request.content.strip())
 
         if content_length < 100:
@@ -112,7 +111,7 @@ class SummaryGenerator:
         retry=retry_if_exception_type(ValidationError),
         reraise=True,
     )
-    def _generate_with_retry(self, request: SummaryRequest) -> SummaryResult:
+    def _generate_with_retry(self, request: SummaryInput) -> SummaryResult:
         self._retry_attempt += 1
 
         if self._retry_attempt > 1:
@@ -168,7 +167,9 @@ class SummaryGenerator:
             latency_ms=latency_ms,
         )
 
-    def _create_prompt(self, request: SummaryRequest) -> list[dict[str, str]]:
+    def _create_prompt(self, request: SummaryInput) -> list[dict[str, str]]:
+        import json
+
         system_message = {"role": "system", "content": self.system_prompt}
 
         user_content = self.user_prompt_template.format(
@@ -177,41 +178,10 @@ class SummaryGenerator:
             content=request.content,
         )
 
-        if request.discussions and request.discussion_metadata:
-            discussion_section = self._format_discussions(request.discussions, request.discussion_metadata)
-            user_content += f"\n\n{discussion_section}"
+        if request.discussions:
+            discussions_json = json.dumps(request.discussions, indent=2)
+            user_content += f"\n\nDiscussions:\n{discussions_json}"
 
         user_message = {"role": "user", "content": user_content}
 
         return [system_message, user_message]
-
-    def _format_discussions(self, discussions: list[dict], metadata: dict) -> str:
-        total_comments = metadata.get("total_comments", 0)
-        platforms = ", ".join(metadata.get("platforms", []))
-
-        discussion_text = f"""
-## Community Discussions
-
-Found {total_comments} comments across {platforms}.
-
-Top Comments (weighted by votes, depth, and quality):
-"""
-
-        for idx, comment in enumerate(discussions[:20], 1):
-            author = comment.get("author", "Unknown")
-            text = comment.get("text", "")
-            points = comment.get("points")
-            depth = comment.get("depth", 0)
-
-            points_str = f" ({points} points)" if points else ""
-            depth_str = f" [depth {depth}]" if depth > 0 else ""
-
-            discussion_text += f"\n{idx}. {author}{points_str}{depth_str}:\n{text}\n"
-
-        discussion_text += """
-Based on these discussions, include in your response:
-- discussion_summary: Overall sentiment, key themes, top opinions, debate points, expert perspectives
-- discussion_metrics: Total stories, comments, platforms, avg quality score
-"""
-
-        return discussion_text
