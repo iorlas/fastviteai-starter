@@ -92,7 +92,11 @@ def test_summary_generator_structured_extraction(mock_openai_client):
     )
 
     request = SummaryRequest(
-        content="Content about microservices and team organization.",
+        content=(
+            "Content about microservices and team organization. "
+            "This article discusses how small autonomous teams can build and deploy services independently, "
+            "enabling faster iteration and reduced coordination overhead."
+        ),
         title="Microservices Architecture Guide",
         content_type="article",
         url="https://example.com/microservices",
@@ -126,7 +130,10 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
     )
 
     request = SummaryRequest(
-        content="Test content",
+        content=(
+            "Test content for validating the baseline prompt structure "
+            "and ensuring all required parameters are passed correctly to the OpenAI API during summarization."
+        ),
         title="Test Title",
         content_type="article",
         url="https://example.com/test",
@@ -210,7 +217,10 @@ def test_summary_generator_retries_on_validation_error():
     )
 
     request = SummaryRequest(
-        content="Test content",
+        content=(
+            "Test content for validating the retry mechanism when validation errors occur. "
+            "This ensures the summarizer can recover from transient failures."
+        ),
         title="Test",
         content_type="article",
         url="https://example.com",
@@ -241,7 +251,10 @@ def test_summary_generator_fails_after_max_retries():
     )
 
     request = SummaryRequest(
-        content="Test content",
+        content=(
+            "Test content for validating that the summarizer fails gracefully "
+            "after exhausting all retry attempts when validation errors persist."
+        ),
         title="Test",
         content_type="article",
         url="https://example.com",

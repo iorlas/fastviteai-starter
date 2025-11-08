@@ -30,11 +30,6 @@ async def silver_extracted_content(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if silver_storage.exists(SilverTable.EXTRACTED_CONTENT, url_hash):
-            context.log.info(f"Cache hit: {url}")
-            stats.cached += 1
-            continue
-
         content_type = url_data["content_type"]
 
         if content_type == ContentType.YOUTUBE.value:

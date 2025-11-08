@@ -8,14 +8,12 @@ from dagster_project.core.discussions.hn_client import HNClient
 async def test_search_by_url_finds_stories():
     async with HNClient() as client:
         url = "https://blog.samaltman.com/what-i-wish-someone-had-told-me"
-        stories = await client.search_by_url(url)
+        discussion_urls = await client.search_by_url(url)
 
-        assert isinstance(stories, list)
-        if stories:
-            assert stories[0].url is not None
-            assert stories[0].story_id > 0
-            assert stories[0].title
-            assert stories[0].author
+        assert isinstance(discussion_urls, list)
+        if discussion_urls:
+            assert isinstance(discussion_urls[0], str)
+            assert "news.ycombinator.com/item?id=" in discussion_urls[0]
 
 
 @pytest.mark.asyncio

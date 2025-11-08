@@ -2,8 +2,6 @@ from datetime import UTC, datetime
 
 from dagster import AssetExecutionContext, asset
 
-from dagster_project.core.discussions.handlers.hackernews import HNHandler
-from dagster_project.core.discussions.handlers.lobsters import LobstersHandler
 from dagster_project.core.discussions.hn_client import HNClient
 from dagster_project.core.discussions.lobsters_client import LobstersClient
 from dagster_project.core.discussions.models import DiscussionLink, DiscussionMetadata
@@ -15,10 +13,7 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
     stats = Stats(total=len(discovered_urls))
     total_stories = 0
 
-    async with HNClient() as hn_client, LobstersClient() as lobsters_client:
-        hn_handler = HNHandler(hn_client)
-        lobsters_handler = LobstersHandler(lobsters_client)
-
+    async with HNClient() as hn, LobstersClient() as lobsters:
         for url_data in discovered_urls:
             url = url_data["url"]
             url_hash = url_data["url_hash"]
@@ -36,8 +31,8 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
             try:
                 all_discussion_urls = {link.url for link in pre_saved_links}
 
-                hn_urls = await hn_handler.search_by_url(url)
-                lobsters_urls = await lobsters_handler.search_by_url(url)
+                hn_urls = await hn.search_by_url(url)
+                lobsters_urls = await lobsters.search_by_url(url)
                 all_discussion_urls.update(hn_urls)
                 all_discussion_urls.update(lobsters_urls)
 
@@ -54,9 +49,9 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
 
                 for disc_url in all_discussion_urls:
                     if "news.ycombinator.com" in disc_url:
-                        story_id = hn_handler.extract_story_id(disc_url)
+                        story_id = hn.extract_story_id(disc_url)
                         if story_id not in hn_story_ids:
-                            story_full = await hn_handler.fetch_story(disc_url, story_id)
+                            story_full = await hn.fetch_story(disc_url, story_id)
                             story_data = {
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
@@ -65,9 +60,9 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                             hn_story_ids.append(story_id)
 
                     elif "lobste.rs" in disc_url:
-                        story_id = lobsters_handler.extract_story_id(disc_url)
+                        story_id = lobsters.extract_story_id(disc_url)
                         if story_id not in lobsters_story_ids:
-                            story_full = await lobsters_handler.fetch_story(disc_url, story_id)
+                            story_full = await lobsters.fetch_story(disc_url, story_id)
                             story_data = {
                                 **story_full.model_dump(),
                                 "created_at": datetime.now(UTC).isoformat(),
@@ -81,8 +76,8 @@ async def _fetch_discussions(discovered_urls: list[dict], storage, progress_call
                 if lobsters_story_ids:
                     platforms.append("lobsters")
 
-                final_discussion_links = [hn_handler.build_discussion_link(sid) for sid in hn_story_ids] + [
-                    lobsters_handler.build_discussion_link(sid) for sid in lobsters_story_ids
+                final_discussion_links = [hn.build_discussion_link(sid) for sid in hn_story_ids] + [
+                    lobsters.build_discussion_link(sid) for sid in lobsters_story_ids
                 ]
 
                 metadata = DiscussionMetadata(

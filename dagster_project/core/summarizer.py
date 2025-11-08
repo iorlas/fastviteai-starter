@@ -89,6 +89,20 @@ class SummaryGenerator:
         self._retry_attempt = 0
 
     def generate(self, request: SummaryRequest) -> SummaryResult:
+        content_length = len(request.content.strip())
+
+        if content_length < 100:
+            logger.warning(
+                "summarize.empty_content",
+                url=request.url,
+                title=request.title,
+                content_length=content_length,
+            )
+            raise ValueError(
+                f"Content too short ({content_length} chars) - likely a JS-only site or failed extraction. "
+                "Cannot generate meaningful summary from empty/minimal content."
+            )
+
         self._retry_attempt = 0
         return self._generate_with_retry(request)
 

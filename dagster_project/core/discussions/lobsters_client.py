@@ -4,12 +4,14 @@ import structlog
 from bs4 import BeautifulSoup
 
 from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
+from dagster_project.core.discussions.base import DiscussionPlatformHandler
 from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
+from dagster_project.core.discussions.models import DiscussionLink
 
 logger = structlog.get_logger()
 
 
-class LobstersClient:
+class LobstersClient(DiscussionPlatformHandler):
     def __init__(
         self,
         cache_client: AsyncCacheClient | None = None,
@@ -46,6 +48,12 @@ class LobstersClient:
 
         return discussion_urls
 
+    async def fetch_story(self, discussion_url: str, story_id: str | None = None) -> LobstersStoryFull:
+        """Fetch full Lobsters story with comments."""
+        if story_id is None:
+            story_id = self.extract_story_id(discussion_url)
+        return await self.fetch_story_with_comments(story_id)
+
     async def fetch_story_with_comments(self, short_id: str) -> LobstersStoryFull:
         logger.info("fetching_lobsters_story_comments", short_id=short_id)
 
@@ -66,6 +74,18 @@ class LobstersClient:
         )
 
         return story
+
+    def extract_story_id(self, discussion_url: str) -> str:
+        """Extract short_id from Lobsters URL."""
+        short_id = self.extract_short_id_from_url(discussion_url)
+        if not short_id:
+            msg = f"Could not extract story ID from {discussion_url}"
+            raise ValueError(msg)
+        return short_id
+
+    def build_discussion_link(self, story_id: str) -> DiscussionLink:
+        """Build DiscussionLink for Lobsters story."""
+        return DiscussionLink(type="lobsters", url=f"https://lobste.rs/s/{story_id}")
 
     def _count_comments(self, comments: list) -> int:
         count = len(comments)

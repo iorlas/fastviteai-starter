@@ -33,11 +33,6 @@ async def silver_discussions(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if silver_storage.exists(SilverTable.DISCUSSIONS, url_hash):
-            context.log.info(f"Cache hit: {url}")
-            stats.cached += 1
-            continue
-
         if not bronze_storage.exists(BronzeTable.DISCUSSIONS, "metadata", sub_partition=url_hash):
             context.log.info(f"No discussions in bronze: {url}")
             stats.cached += 1

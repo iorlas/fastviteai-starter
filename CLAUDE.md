@@ -115,6 +115,35 @@ artifacts/
 
 **Key principle**: Bronze layer is append-only cache. Silver layer can be deleted and regenerated.
 
+### Caching Strategy
+The pipeline implements **multi-layer caching** with different strategies per layer:
+
+**HTTP Cache Layer** (via AsyncCacheClient/Hishel):
+- Caches raw HTTP responses (GET requests only)
+- TTL: 1 hour (3600 seconds)
+- Location: `artifacts/cache/http_responses/http_cache.db`
+- Prevents redundant external API calls and network requests
+
+**Bronze Layer Caching**:
+- All bronze assets check for existing data before downloading
+- Immutable by design - once written, never modified
+- Cache check is **always required** to prevent duplicate file writes
+- Protects external APIs from repeated calls (HN, Lobsters, HTML downloads)
+
+**Silver Layer Caching** (selective strategy):
+- **Cheap operations** (extraction, discussion parsing): **No cache checks**
+  - `silver_extracted_content`: Always regenerates from bronze (CPU cost acceptable)
+  - `silver_discussions`: Always re-processes discussions (trivial JSON parsing)
+  - Rationale: Deterministic operations with negligible cost; simpler code
+
+- **Expensive operations** (AI summarization): **Cache checks required**
+  - `silver_summary`: **MUST check cache** to prevent wasteful OpenAI API calls
+  - Cost: ~$0.005 per article (~$15/month for 3k articles)
+  - Non-deterministic and expensive - cache is critical
+  - See comment in `assets/silver_summary.py` for details
+
+**Philosophy**: Cache at the layer where it provides maximum value. HTTP cache prevents network waste, bronze cache protects immutability, silver cache only for operations where regeneration cost is significant.
+
 ### Layered Architecture Pattern
 Clean separation of concerns following **framework-agnostic core**:
 

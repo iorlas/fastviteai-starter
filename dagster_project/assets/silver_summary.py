@@ -28,6 +28,9 @@ async def silver_summary(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
+        # CRITICAL: Keep this cache check to prevent wasteful OpenAI API calls ($$$)
+        # Unlike other silver assets, summarization is expensive (~$0.005/article)
+        # and non-deterministic. Other silver assets regenerate cheaply from bronze.
         if silver_storage.exists(SilverTable.SUMMARIES, url_hash):
             context.log.info(f"Cache hit: {url}")
             stats.cached += 1
