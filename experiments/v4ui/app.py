@@ -26,19 +26,13 @@ from dagster_project.config import settings
 from dagster_project.core.content_types.generic_html import GenericHTMLExtractor
 from dagster_project.core.content_types.youtube import YouTubeExtractor
 from dagster_project.core.summary.input_compiler import SummaryInput
-from dagster_project.core.summary.schema import KnowledgeGraphSummary, RawTextSummary, SimpleSummary
-from dagster_project.core.summary.summarizer import SummaryGenerator
-
-# Load default prompts
-SYSTEM_PROMPT_PATH = PROJECT_ROOT / "experiments/v3/prompts/baseline/system.txt"
-USER_PROMPT_PATH = PROJECT_ROOT / "experiments/v3/prompts/baseline/user.txt"
-
-DEFAULT_SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text() if SYSTEM_PROMPT_PATH.exists() else ""
-DEFAULT_USER_PROMPT = USER_PROMPT_PATH.read_text() if USER_PROMPT_PATH.exists() else ""
+from dagster_project.core.summary.schema import ArticleAnalysis, KnowledgeGraphSummary, RawTextSummary, SimpleSummary
+from dagster_project.core.summary.summarizer import DEFAULT_SYSTEM_PROMPT, SummaryGenerator
 
 # Schema options for evaluation
 SCHEMA_OPTIONS = {
     "Knowledge Graph (comprehensive)": KnowledgeGraphSummary,
+    "Article Analysis (triage + signals)": ArticleAnalysis,
     "Simple (lightweight)": SimpleSummary,
     "Raw Text (minimal)": RawTextSummary,
 }
@@ -113,7 +107,6 @@ async def extract_content(url: str) -> tuple[str, str, str]:
 async def generate_summary_async(
     url: str,
     system_prompt: str,
-    user_prompt_template: str,
     model: str,
     response_schema: type,
 ) -> dict:
@@ -136,19 +129,11 @@ async def generate_summary_async(
         openai_client=client,
         model=model,
         system_prompt=system_prompt,
-        user_prompt_template=user_prompt_template,
         response_schema=response_schema,
     )
 
     # Generate summary
     result = generator.generate(summary_input)
-
-    # Format the actual user prompt that was sent
-    actual_user_prompt = user_prompt_template.format(
-        content_type=("video transcript" if content_type == "youtube" else "article"),
-        title=title,
-        content=content,
-    )
 
     return {
         "title": title,
@@ -159,7 +144,6 @@ async def generate_summary_async(
         "latency_ms": result.latency_ms,
         "model": result.model,
         "system_prompt_used": system_prompt,
-        "user_prompt_used": actual_user_prompt[:1000] + "..." if len(actual_user_prompt) > 1000 else actual_user_prompt,
     }
 
 
@@ -212,20 +196,9 @@ def main():
         system_prompt = st.text_area(
             "System Prompt",
             value=DEFAULT_SYSTEM_PROMPT,
-            height=200,
+            height=300,
             label_visibility="collapsed",
-        )
-
-        st.divider()
-
-        # User prompt template
-        st.subheader("User Prompt Template")
-        user_prompt_template = st.text_area(
-            "User Prompt Template",
-            value=DEFAULT_USER_PROMPT,
-            height=200,
-            label_visibility="collapsed",
-            help="Use {content_type}, {title}, {content} as placeholders",
+            help="Instructions for extraction. User content is automatically formatted as XML: <content> and <discussions> blocks",
         )
 
     # Main content area
@@ -254,7 +227,6 @@ def main():
                     generate_summary_async(
                         url=url,
                         system_prompt=system_prompt,
-                        user_prompt_template=user_prompt_template,
                         model=model,
                         response_schema=selected_schema,
                     )
@@ -278,12 +250,10 @@ def main():
                     # Log file saved indicator
                     st.success(f"✓ Execution logged to: {log_path.name}")
 
-                    # Show prompts actually used
-                    with st.expander("Prompts Used (for debugging)", expanded=False):
-                        st.markdown("**System Prompt:**")
+                    # Show system prompt used
+                    with st.expander("System Prompt Used (for debugging)", expanded=False):
                         st.code(result["system_prompt_used"], language=None)
-                        st.markdown("**User Prompt (preview):**")
-                        st.code(result["user_prompt_used"], language=None)
+                        st.caption("Note: User content is automatically formatted as XML with <content> and <discussions> blocks")
 
                     # Extracted content
                     st.subheader("Extracted Content")

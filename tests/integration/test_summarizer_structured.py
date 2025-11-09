@@ -13,10 +13,7 @@ from dagster_project.core.summary import (
     SummaryGenerator,
     SummaryInput,
 )
-from dagster_project.core.summary.summarizer import (
-    DEFAULT_SYSTEM_PROMPT,
-    DEFAULT_USER_PROMPT_TEMPLATE,
-)
+from dagster_project.core.summary.summarizer import DEFAULT_SYSTEM_PROMPT
 
 
 @pytest.fixture
@@ -85,7 +82,6 @@ def test_summary_generator_structured_extraction(mock_openai_client):
         openai_client=mock_openai_client,
         model="mistralai/mistral-medium-3.1",
         system_prompt=DEFAULT_SYSTEM_PROMPT,
-        user_prompt_template=DEFAULT_USER_PROMPT_TEMPLATE,
         response_schema=KnowledgeGraphSummary,
         temperature=0,
         max_tokens=3000,
@@ -123,7 +119,6 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
         openai_client=mock_openai_client,
         model="mistralai/mistral-medium-3.1",
         system_prompt=DEFAULT_SYSTEM_PROMPT,
-        user_prompt_template=DEFAULT_USER_PROMPT_TEMPLATE,
         response_schema=KnowledgeGraphSummary,
         temperature=0,
         max_tokens=3000,
@@ -159,7 +154,11 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
     assert messages[1]["role"] == "user"
     assert "Test Title" in messages[1]["content"]
     assert "Test content" in messages[1]["content"]
-    assert "Provide comprehensive extraction" in messages[1]["content"]
+    # Check for XML structure
+    assert "<content>" in messages[1]["content"]
+    assert "</content>" in messages[1]["content"]
+    assert "URL: https://example.com/test" in messages[1]["content"]
+    assert "Type: article" in messages[1]["content"]
 
 
 @pytest.mark.integration

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -91,3 +93,71 @@ class SimpleSummary(BaseModel):
 
 class RawTextSummary(BaseModel):
     summary: str = Field(description="Unstructured summary text")
+
+
+### NEW
+
+
+class Triage(BaseModel):
+    action: Literal["skip", "read", "dive"]
+    confidence: int = Field(ge=0, le=100)
+    why: str = Field(description="One reason, expert-style (max 80 chars)")
+
+
+class Article(BaseModel):
+    type: Literal["tutorial", "opinion", "research", "news", "tool", "experience"]
+    novelty: Literal["new", "incremental", "rehash"]
+    depth: int = Field(ge=1, le=5)
+    has_technical_depth: bool
+
+    tldr: str = Field(description="Bottom line. What's the actual insight? (max 150 chars)")
+
+    key_points: list[str] = Field(
+        description="Max 5 concrete takeaways. Numbers, approaches, tradeoffs. Use arrows (→), not prose. Each max 100 chars."
+    )
+
+    tags: list[str] = Field(description="Max 10 specific technical tags")
+
+    semantic_summary: str = Field(description="Technical density for vector search (max 300 chars)")
+
+
+class Signals(BaseModel):
+    new_info: bool
+    controversial: bool
+    actionable: bool
+    impact: Literal["none", "niche", "significant"]
+
+
+class LLMTake(BaseModel):
+    """Your technical assessment"""
+
+    verdict: Literal["solid", "flawed", "shallow", "excellent"]
+
+    what_works: list[str] = Field(description="Max 2 strengths. Be specific. Each max 80 chars.")
+
+    what_fails: list[str] = Field(description="Max 2 problems. Be direct. Each max 80 chars.")
+
+    bottom_line: str = Field(description="Expert verdict. Worth the time? (max 120 chars)")
+
+
+class CommunityTake(BaseModel):
+    """What people found"""
+
+    consensus: Literal["validates", "split", "refutes"]
+    quality: Literal["low", "med", "high"]
+
+    experts_found: list[str] = Field(default_factory=list, description="Max 2. Format: 'username: their take (one line, max 100 chars)'")
+
+    key_corrections: list[str] = Field(default_factory=list, description="Max 3 technical issues raised. Be specific. Each max 100 chars.")
+
+    added_context: list[str] = Field(default_factory=list, description="Max 2. Important info article missed. Each max 100 chars.")
+
+    community_verdict: str = Field(description="What community concluded (max 120 chars)")
+
+
+class ArticleAnalysis(BaseModel):
+    triage: Triage
+    article: Article
+    signals: Signals
+    llm: LLMTake
+    community: CommunityTake

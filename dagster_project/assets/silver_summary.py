@@ -43,9 +43,7 @@ async def silver_summary(
             summary_input = compile_summary_input(url, bronze_storage.base_dir)
 
             if summary_input.discussions:
-                num_stories = len(summary_input.discussions)
-                total_comments = sum(d.get("comment_count", 0) for d in summary_input.discussions)
-                context.log.info(f"Loaded {num_stories} discussion(s) with {total_comments} total comments")
+                context.log.info("Loaded discussions for this URL")
 
             context.log.info(f"Summarizing: {summary_input.title[:80]}...")
 

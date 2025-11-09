@@ -155,14 +155,12 @@ def test_compile_summary_input_with_discussions(temp_bronze_dir, sample_html_url
     result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
 
     assert result.discussions is not None
-    assert len(result.discussions) == 2
-    # Discussion objects with labeled fields
-    assert result.discussions[0]["id"] == 12345
-    assert result.discussions[0]["author"] == "test_user"
-    assert result.discussions[0]["points"] == 100
-    assert result.discussions[1]["id"] == "abc123"
-    assert result.discussions[1]["author"] == "test_user"
-    assert result.discussions[1]["points"] == 50
+    assert isinstance(result.discussions, str)
+    # Check formatted text structure
+    assert "Discussion 1:" in result.discussions
+    assert "Story by test_user (100 points)" in result.discussions
+    assert "Discussion 2:" in result.discussions
+    assert "Story by test_user (50 points)" in result.discussions
 
 
 def test_compile_summary_input_missing_bronze_content(temp_bronze_dir, sample_html_url):
@@ -272,28 +270,19 @@ def test_slim_model_filters_unnecessary_fields(temp_bronze_dir, sample_html_url)
     result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
 
     assert result.discussions is not None
-    assert len(result.discussions) == 1
+    assert isinstance(result.discussions, str)
 
-    # Discussion: object with labeled fields
-    discussion = result.discussions[0]
-    assert isinstance(discussion, dict)
-    assert discussion["id"] == 12345
-    assert discussion["author"] == "story_author"
-    assert discussion["points"] == 100
-    assert "children" in discussion
-    assert len(discussion["children"]) == 1
+    # Check formatted text structure with story metadata
+    assert "Discussion 1:" in result.discussions
+    assert "Story by story_author (100 points)" in result.discussions
 
-    # Parent comment: array [author, text, children]
-    parent_comment = discussion["children"][0]
-    assert isinstance(parent_comment, list)
-    assert len(parent_comment) == 3  # author, text and children
-    assert parent_comment[0] == "user1"  # author
-    assert parent_comment[1] == "Parent comment"  # text
-    assert isinstance(parent_comment[2], list)  # children array
+    # Check comments are formatted with tab indentation
+    assert "user1: Parent comment" in result.discussions
+    assert "\tuser2: Child comment" in result.discussions
 
-    # Child comment: array [author, text] (no children)
-    child_comment = parent_comment[2][0]
-    assert isinstance(child_comment, list)
-    assert len(child_comment) == 2  # author and text, no children
-    assert child_comment[0] == "user2"  # author
-    assert child_comment[1] == "Child comment"  # text
+    # Verify nested structure: child is indented more than parent
+    lines = result.discussions.split("\n")
+    parent_line = next(line for line in lines if "user1: Parent comment" in line)
+    child_line = next(line for line in lines if "user2: Child comment" in line)
+    assert parent_line.count("\t") == 0  # No indent for parent
+    assert child_line.count("\t") == 1  # One tab for child

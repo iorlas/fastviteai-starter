@@ -16,7 +16,7 @@ def _clean_html(text: str) -> str:
     # Decode HTML entities (&#x27; -> ', &quot; -> ", etc.)
     text = html.unescape(text)
     # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r"<[^>]+>", "", text)
     return text.strip()
 
 
@@ -35,13 +35,14 @@ def compile_summary_input(url: str, artifacts_base_path: str) -> SummaryInput:
     content_type = extracted_content.get("content_type", "unknown")
 
     discussions_data = _load_discussions(base_path, url_hash)
+    discussions_text = _format_discussion_as_text(discussions_data) if discussions_data else None
 
     return SummaryInput(
         content=content,
         title=title,
         content_type=content_type,
         url=url,
-        discussions=discussions_data,
+        discussions=discussions_text,
     )
 
 
@@ -54,7 +55,9 @@ def _load_bronze_content(base_path: Path, url_hash: str, url: str) -> dict:
     raise ValueError(f"No bronze content found for {url} (hash: {url_hash})")
 
 
-def _slim_comment(comment_data: dict, text_field: str = "text", author_field: str = "author", id_field: str = "id", points_field: str = "points") -> list | None:
+def _slim_comment(
+    comment_data: dict, text_field: str = "text", author_field: str = "author", id_field: str = "id", points_field: str = "points"
+) -> list | None:
     """Convert comment to minimal array: [author, text, ?children].
 
     Strips HTML and removes ID/points for compactness while keeping author context.
@@ -79,6 +82,70 @@ def _slim_comment(comment_data: dict, text_field: str = "text", author_field: st
             result.append(slim_children)
 
     return result
+
+
+def _format_comment_thread(comments: list, indent_level: int = 0) -> str:
+    """Recursively format comment threads with tab indentation.
+
+    Args:
+        comments: List of comment arrays [author, text, ?children]
+        indent_level: Current indentation depth (0 = no indent)
+
+    Returns:
+        Formatted comment thread as string
+    """
+    lines = []
+    tabs = "\t" * indent_level
+
+    for comment in comments:
+        if not comment or len(comment) < 2:
+            continue
+
+        author, text = comment[0], comment[1]
+        lines.append(f"{tabs}{author}: {text}")
+
+        # Recursively format children if present
+        if len(comment) > 2 and comment[2]:
+            children_text = _format_comment_thread(comment[2], indent_level + 1)
+            if children_text:
+                lines.append(children_text)
+
+    return "\n".join(lines)
+
+
+def _format_discussion_as_text(discussions: list[dict]) -> str:
+    """Convert discussion threads to plain text format.
+
+    Args:
+        discussions: List of discussion dicts with {id, author, points, children}
+
+    Returns:
+        Formatted discussions as plain text with tab-indented replies
+    """
+    if not discussions:
+        return ""
+
+    formatted_discussions = []
+
+    for idx, discussion in enumerate(discussions, 1):
+        lines = []
+
+        # Header with story metadata
+        author = discussion.get("author", "unknown")
+        points = discussion.get("points", 0)
+        lines.append(f"Discussion {idx}:")
+        lines.append(f"Story by {author} ({points} points)")
+        lines.append("")
+
+        # Format comment threads
+        if children := discussion.get("children"):
+            comment_text = _format_comment_thread(children)
+            if comment_text:
+                lines.append(comment_text)
+
+        formatted_discussions.append("\n".join(lines))
+
+    return "\n\n".join(formatted_discussions)
 
 
 def _load_discussions(base_path: Path, url_hash: str) -> list[dict] | None:
@@ -129,7 +196,16 @@ def _load_discussions(base_path: Path, url_hash: str) -> list[dict] | None:
                 }
 
                 if story.comments:
-                    slim_children = [_slim_comment(c.model_dump(), text_field="comment_plain", author_field="commenting_user", id_field="short_id", points_field="score") for c in story.comments]
+                    slim_children = [
+                        _slim_comment(
+                            c.model_dump(),
+                            text_field="comment_plain",
+                            author_field="commenting_user",
+                            id_field="short_id",
+                            points_field="score",
+                        )
+                        for c in story.comments
+                    ]
                     slim_children = [c for c in slim_children if c is not None]
                     if slim_children:
                         discussion["children"] = slim_children

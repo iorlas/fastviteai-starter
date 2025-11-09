@@ -11,43 +11,34 @@ logger = structlog.get_logger()
 
 DEFAULT_MODEL = "mistralai/mistral-medium-3.1"
 
-DEFAULT_SYSTEM_PROMPT = """Extract information from content into structured JSON \
-for programmatic processing.
+DEFAULT_SYSTEM_PROMPT = """You're an expert analyst talking to another expert. Be dense, technical, direct.
 
-Focus on:
-- What's the ONE-SENTENCE answer to the article title?
-- What's UNIQUE or NOVEL here (vs typical articles on this topic)?
-- How do concepts CONNECT (visual relationships)?
-- What aids MEMORY (sticky phrases, metaphors)?
+ANALYZE:
+- <content>: Article/video
+- <discussions>: HN/Lobsters threads
 
-CRITICAL: Capture ALL details, including:
-- Full context around quotes (who said it, when, why - not just the quote)
-- Exact numbers and team sizes (e.g., "4 people" not just "small teams")
-- Supporting examples with specific details and numbers
-- Forward-looking statements (future posts, upcoming work, tooling plans)
-- Exact formulas and quantitative data
-- Historical comparisons and lessons learned \
-(e.g., how SOA failed, what went wrong with predecessors)
-- Cautionary tales and warnings about pitfalls
-- Contrarian examples that illustrate principles"""
+OUTPUT: Two independent takes
+1. YOUR assessment (llm)
+2. COMMUNITY assessment (community)
 
-DEFAULT_USER_PROMPT_TEMPLATE = """Extract structured information from this {content_type}:
+STYLE:
+- Arrows over words: "X → Y", "problem → solution"
+- Numbers always: "2s → 200ms", "team of 4", "100K req/day"
+- Direct phrases: "Missing error handling" (not "doesn't discuss")
+- Concrete terms: "B-tree indexes" (not "indexing strategies")
+- No fluff: skip "interesting", "nice", "good"
 
-Title: {title}
+EXAMPLES:
+Good: "Partial indexes → 100x speedup, 3x write penalty"
+Bad: "The article discusses how partial indexes improve performance"
 
-Content:
-{content}
+Good: "Ignores connection pooling"
+Bad: "The article doesn't cover connection pooling considerations"
 
-Provide comprehensive extraction covering:
-- Core answer (one sentence directly answering the title)
-- Unique insights (novel/contrarian views, standout data)
-- Classification (topics, content type, depth level)
-- Core insights (with memory aids, supporting facts, quantitative data, connections)
-- Knowledge graph ASCII (visual relationships with arrows and hierarchies)
-- Entities (people with full quote context, organizations, concepts, formulas with exact \
-numbers, examples with specific details)
-- Forward-looking statements (future posts, planned content)
-- Memory aids (key phrases with full context, visual metaphors, mnemonics)"""
+For tags: specific tech (redis-clustering, not caching)
+For semantic_summary: pack concepts densely
+
+Respect all field constraints. Cut every unnecessary word."""
 
 
 class SummaryInput(BaseModel):
@@ -55,7 +46,7 @@ class SummaryInput(BaseModel):
     title: str
     content_type: str
     url: str
-    discussions: list[dict] | None = None  # Dicts with children as positional arrays
+    discussions: str | None = None  # Formatted plain text with tab-indented replies
 
 
 class SummaryResult[T: BaseModel](BaseModel):
@@ -71,7 +62,6 @@ class SummaryGenerator[T: BaseModel]:
         openai_client: OpenAI,
         model: str = DEFAULT_MODEL,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-        user_prompt_template: str = DEFAULT_USER_PROMPT_TEMPLATE,
         response_schema: type[T] = KnowledgeGraphSummary,
         temperature: float = 0,
         max_tokens: int = 8192,
@@ -80,7 +70,6 @@ class SummaryGenerator[T: BaseModel]:
         self.client = openai_client
         self.model = model
         self.system_prompt = system_prompt
-        self.user_prompt_template = user_prompt_template
         self.response_schema = response_schema
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -168,20 +157,32 @@ class SummaryGenerator[T: BaseModel]:
         )
 
     def _create_prompt(self, request: SummaryInput) -> list[dict[str, str]]:
-        import json
-
         system_message = {"role": "system", "content": self.system_prompt}
 
-        user_content = self.user_prompt_template.format(
-            content_type=("video transcript" if request.content_type == "youtube" else "article"),
-            title=request.title,
-            content=request.content,
-        )
+        content_type_label = "video transcript" if request.content_type == "youtube" else "article"
+
+        # Build user content with XML structure
+        user_content_parts = [
+            "<content>",
+            f"Title: {request.title}",
+            f"URL: {request.url}",
+            f"Type: {content_type_label}",
+            "",
+            request.content,
+            "</content>",
+        ]
 
         if request.discussions:
-            discussions_json = json.dumps(request.discussions, indent=2)
-            user_content += f"\n\nDiscussions:\n{discussions_json}"
+            user_content_parts.extend(
+                [
+                    "",
+                    "<discussions>",
+                    request.discussions,
+                    "</discussions>",
+                ]
+            )
 
+        user_content = "\n".join(user_content_parts)
         user_message = {"role": "user", "content": user_content}
 
         return [system_message, user_message]
