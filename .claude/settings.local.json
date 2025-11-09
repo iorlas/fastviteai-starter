@@ -173,7 +173,8 @@
       "Bash(do echo \"=== $svc ===\")",
       "Bash(docker inspect:*)",
       "Bash(make docker-prod-build:*)",
-      "Bash(make docker-prod-up:*)"
+      "Bash(make docker-prod-up:*)",
+      "Bash(docker-compose:*)"
     ],
     "deny": [],
     "ask": []
