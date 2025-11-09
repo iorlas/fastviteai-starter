@@ -55,24 +55,24 @@ class SummaryInput(BaseModel):
     title: str
     content_type: str
     url: str
-    discussions: list[dict] | None = None
+    discussions: list[dict] | None = None  # Dicts with children as positional arrays
 
 
-class SummaryResult(BaseModel):
-    structured_summary: KnowledgeGraphSummary
+class SummaryResult[T: BaseModel](BaseModel):
+    structured_summary: T
     model: str
     tokens_used: int
     latency_ms: int
 
 
-class SummaryGenerator:
+class SummaryGenerator[T: BaseModel]:
     def __init__(
         self,
         openai_client: OpenAI,
         model: str = DEFAULT_MODEL,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
         user_prompt_template: str = DEFAULT_USER_PROMPT_TEMPLATE,
-        response_schema: type[BaseModel] = KnowledgeGraphSummary,
+        response_schema: type[T] = KnowledgeGraphSummary,
         temperature: float = 0,
         max_tokens: int = 8192,
         max_retries: int = 2,
@@ -87,7 +87,7 @@ class SummaryGenerator:
         self.max_retries = max_retries
         self._retry_attempt = 0
 
-    def generate(self, request: SummaryInput) -> SummaryResult:
+    def generate(self, request: SummaryInput) -> SummaryResult[T]:
         content_length = len(request.content.strip())
 
         if content_length < 100:
@@ -111,7 +111,7 @@ class SummaryGenerator:
         retry=retry_if_exception_type(ValidationError),
         reraise=True,
     )
-    def _generate_with_retry(self, request: SummaryInput) -> SummaryResult:
+    def _generate_with_retry(self, request: SummaryInput) -> SummaryResult[T]:
         self._retry_attempt += 1
 
         if self._retry_attempt > 1:

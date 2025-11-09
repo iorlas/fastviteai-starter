@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -104,6 +105,7 @@ class LobstersClient:
 
         story = LobstersStoryFull(**data)
         story.comment_count = self._count_comments(story.comments)
+        story.fetched_at = datetime.now(UTC)
 
         logger.info(
             "lobsters_story_fetched",

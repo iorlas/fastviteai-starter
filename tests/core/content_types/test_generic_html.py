@@ -69,7 +69,6 @@ async def test_extract_handles_errors():
 
 
 def test_filter_metadata_excludes_unwanted_fields():
-    """Test that _filter_metadata excludes HTML extraction metadata fields."""
     raw_metadata = {
         # Fields to keep
         "title": "Test Article",

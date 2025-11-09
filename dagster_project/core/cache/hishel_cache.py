@@ -8,17 +8,14 @@ from hishel.httpx import AsyncCacheClient
 logger = structlog.get_logger()
 
 DEFAULT_CACHE_DIR = Path("artifacts/cache/http_responses")
-DEFAULT_TTL = 3600  # 1 hour
+DEFAULT_TTL = 86400  # 24 hours
 
 
 class StatusCodeFilter(BaseFilter[Response]):
-    """Filter that prevents caching of 403 and 5xx error responses."""
-
     def needs_body(self) -> bool:
         return False
 
     def apply(self, response: Response, body: bytes | None) -> bool:
-        """Return True if response should be cached, False otherwise."""
         status_code = response.status_code
         # Only cache successful responses (2xx) and redirects (301, 308)
         # Explicitly reject 403 and 5xx errors
@@ -32,6 +29,7 @@ def get_async_cache_client(
     cache_dir: Path | None = None,
     ttl: int = DEFAULT_TTL,
     timeout: int = 30,
+    proxy: str | None = None,
 ) -> AsyncCacheClient:
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
@@ -47,9 +45,14 @@ def get_async_cache_client(
     status_filter = StatusCodeFilter()
     policy = FilterPolicy(response_filters=[status_filter])
 
-    return AsyncCacheClient(
-        storage=storage,
-        policy=policy,
-        timeout=timeout,
-        follow_redirects=True,
-    )
+    client_kwargs = {
+        "storage": storage,
+        "policy": policy,
+        "timeout": timeout,
+        "follow_redirects": True,
+    }
+
+    if proxy:
+        client_kwargs["proxies"] = proxy
+
+    return AsyncCacheClient(**client_kwargs)

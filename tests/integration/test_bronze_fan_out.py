@@ -4,7 +4,6 @@ from dagster_project.core.content_types.youtube import YouTubeExtractor
 
 
 def _detect_content_type(url: str) -> str:
-    """Helper function to detect content type for routing tests."""
     youtube_extractor = YouTubeExtractor()
     if youtube_extractor.matches(url):
         return "youtube"
@@ -13,7 +12,6 @@ def _detect_content_type(url: str) -> str:
 
 @pytest.mark.integration
 def test_discovered_urls_routing_by_type():
-    """Test that URLs are correctly routed by content type."""
     test_urls = [
         {"url": "https://youtube.com/watch?v=123", "url_hash": "yt_hash_1"},
         {"url": "https://example.com/article", "url_hash": "html_hash_1"},
@@ -31,7 +29,6 @@ def test_discovered_urls_routing_by_type():
 
 @pytest.mark.integration
 def test_no_url_processed_by_multiple_bronze_assets():
-    """Test that each URL is processed by exactly one bronze asset."""
     test_urls = [
         {"url": "https://youtube.com/watch?v=123", "url_hash": "yt_1"},
         {"url": "https://example.com", "url_hash": "html_1"},
@@ -48,7 +45,6 @@ def test_no_url_processed_by_multiple_bronze_assets():
 
 @pytest.mark.integration
 def test_bronze_asset_filtering():
-    """Test that bronze assets correctly filter URLs by content type."""
     all_urls = [
         {"url": "https://youtube.com/watch?v=1", "url_hash": "yt_1"},
         {"url": "https://youtube.com/watch?v=2", "url_hash": "yt_2"},

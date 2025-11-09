@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -110,6 +111,7 @@ class HackerNewsClient:
         data = response.json()
         story = HNStoryFull(**data)
         story.comment_count = self._count_comments(story.children)
+        story.fetched_at = datetime.now(UTC)
 
         logger.info(
             "hn_story_fetched",

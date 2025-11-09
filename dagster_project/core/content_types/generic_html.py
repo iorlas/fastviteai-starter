@@ -17,7 +17,6 @@ class GenericHTMLExtractor:
 
     @staticmethod
     def _filter_metadata(metadata: dict) -> dict:
-        """Filter out unnecessary HTML extraction metadata fields."""
         excluded_fields = {
             "hostname",
             "body",

@@ -1,0 +1,16 @@
+# Browser automation artifacts
+screenshots/
+traces/
+videos/
+
+# Output files
+*.txt
+transcripts/
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Playwright state
+.auth/

@@ -39,5 +39,10 @@ class Settings(BaseSettings):
         description="Enable/disable AI summarization",
     )
 
+    http_proxy: str | None = Field(
+        default=None,
+        description="HTTP/HTTPS/SOCKS5 proxy URL for all HTTP operations (e.g., http://proxy:port or socks5://proxy:port)",
+    )
+
 
 settings = Settings()

@@ -48,6 +48,7 @@ class LobstersStoryFull(BaseModel):
     comments_url: str
     comments: list[LobstersComment] = Field(default_factory=list)
     comment_count: int = 0
+    fetched_at: datetime | None = None
 
     def get_comments(self) -> list[LobstersComment]:
         return self.comments

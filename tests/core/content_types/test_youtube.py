@@ -74,7 +74,6 @@ async def test_extract_no_transcript(mock_youtube_info):
 
 
 def test_format_transcript():
-    """Test short video (<1 hour) with minute-based grouping."""
     mock_entry_1 = Mock()
     mock_entry_1.text = "Hello world"
     mock_entry_1.start = 0.0
@@ -94,7 +93,6 @@ def test_format_transcript():
 
 
 def test_format_transcript_long_video():
-    """Test long video (>= 1 hour) with hour:minute format."""
     mock_entry_1 = Mock()
     mock_entry_1.text = "Introduction"
     mock_entry_1.start = 0.0
@@ -122,7 +120,6 @@ def test_format_transcript_empty():
 
 
 def test_filter_metadata_excludes_format_fields():
-    """Test that _filter_metadata excludes video format and codec fields."""
     raw_info = {
         # Fields to keep
         "id": "test_video_id",
@@ -207,3 +204,70 @@ def test_filter_metadata_excludes_format_fields():
     assert "asr" not in filtered
     assert "audio_channels" not in filtered
     assert "filesize_approx" not in filtered
+
+
+def test_extractor_proxy_configuration():
+    proxy_url = "http://proxy.example.com:8080"
+    extractor = YouTubeExtractor(proxy=proxy_url)
+
+    assert extractor.proxy == proxy_url
+
+
+def test_extractor_no_proxy_by_default():
+    extractor = YouTubeExtractor()
+
+    assert extractor.proxy is None
+
+
+@pytest.mark.asyncio
+async def test_proxy_passed_to_yt_dlp(mock_youtube_info):
+    proxy_url = "http://proxy.example.com:8080"
+    extractor = YouTubeExtractor(proxy=proxy_url)
+
+    with patch("yt_dlp.YoutubeDL") as mock_ydl:
+        mock_instance = Mock()
+        mock_instance.__enter__ = Mock(return_value=mock_instance)
+        mock_instance.__exit__ = Mock(return_value=False)
+        mock_instance.extract_info = Mock(return_value=mock_youtube_info)
+        mock_ydl.return_value = mock_instance
+
+        # Call _fetch_video_info which should configure yt_dlp with proxy
+        extractor._fetch_video_info("https://www.youtube.com/watch?v=test")
+
+        # Verify yt_dlp was called with proxy in options
+        call_args = mock_ydl.call_args
+        ydl_opts = call_args[0][0]
+        assert ydl_opts["proxy"] == proxy_url
+
+
+@pytest.mark.asyncio
+async def test_proxy_passed_to_transcript_api(mock_youtube_info):
+    proxy_url = "http://proxy.example.com:8080"
+    extractor = YouTubeExtractor(proxy=proxy_url)
+
+    with (
+        patch("requests.Session") as mock_session_class,
+        patch("dagster_project.core.content_types.youtube.YouTubeTranscriptApi") as mock_api_class,
+    ):
+        mock_session = Mock()
+        mock_session_class.return_value = mock_session
+
+        mock_api = Mock()
+        mock_api_class.return_value = mock_api
+
+        # Mock transcript list
+        mock_transcript_list = Mock()
+        mock_transcript = Mock()
+        mock_transcript.fetch = Mock(return_value=[])
+        mock_transcript_list.find_manually_created_transcript = Mock(return_value=mock_transcript)
+        mock_api.list = Mock(return_value=mock_transcript_list)
+
+        # Call _extract_transcript
+        extractor._extract_transcript(mock_youtube_info)
+
+        # Verify Session was created and proxy was set
+        mock_session_class.assert_called_once()
+        assert mock_session.proxies == {"http": proxy_url, "https": proxy_url}
+
+        # Verify YouTubeTranscriptApi was called with the session
+        mock_api_class.assert_called_once_with(http_client=mock_session)

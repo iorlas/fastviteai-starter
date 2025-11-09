@@ -10,7 +10,6 @@ from dagster_project.utils.url_utils import compute_url_hash
 
 @pytest.fixture
 def temp_bronze_dir(tmp_path):
-    """Create a temporary bronze artifacts directory."""
     bronze_dir = tmp_path / "bronze"
     bronze_dir.mkdir()
     return bronze_dir
@@ -18,18 +17,15 @@ def temp_bronze_dir(tmp_path):
 
 @pytest.fixture
 def sample_html_url():
-    """Sample HTML URL for testing."""
     return "https://example.com/article"
 
 
 @pytest.fixture
 def sample_youtube_url():
-    """Sample YouTube URL for testing."""
     return "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 
 def create_html_content(bronze_dir: Path, url: str, success: bool = True, content: str = "Test content"):
-    """Helper to create HTML bronze content."""
     url_hash = compute_url_hash(url)
     raw_html_dir = bronze_dir / "html"
     raw_html_dir.mkdir(exist_ok=True)
@@ -51,7 +47,6 @@ def create_html_content(bronze_dir: Path, url: str, success: bool = True, conten
 
 
 def create_youtube_content(bronze_dir: Path, url: str, success: bool = True):
-    """Helper to create YouTube bronze content."""
     url_hash = compute_url_hash(url)
     raw_youtube_dir = bronze_dir / "youtube"
     raw_youtube_dir.mkdir(exist_ok=True)
@@ -73,7 +68,6 @@ def create_youtube_content(bronze_dir: Path, url: str, success: bool = True):
 
 
 def create_discussions(bronze_dir: Path, url: str):
-    """Helper to create discussion bronze content."""
     url_hash = compute_url_hash(url)
     discussions_dir = bronze_dir / "discussions" / url_hash
     discussions_dir.mkdir(parents=True, exist_ok=True)
@@ -131,7 +125,6 @@ def create_discussions(bronze_dir: Path, url: str):
 
 
 def test_compile_summary_input_html_success(temp_bronze_dir, sample_html_url):
-    """Test successful compilation with HTML content."""
     create_html_content(temp_bronze_dir, sample_html_url)
 
     result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
@@ -144,7 +137,6 @@ def test_compile_summary_input_html_success(temp_bronze_dir, sample_html_url):
 
 
 def test_compile_summary_input_youtube_success(temp_bronze_dir, sample_youtube_url):
-    """Test successful compilation with YouTube content."""
     create_youtube_content(temp_bronze_dir, sample_youtube_url)
 
     result = compile_summary_input(sample_youtube_url, str(temp_bronze_dir))
@@ -157,7 +149,6 @@ def test_compile_summary_input_youtube_success(temp_bronze_dir, sample_youtube_u
 
 
 def test_compile_summary_input_with_discussions(temp_bronze_dir, sample_html_url):
-    """Test compilation with discussions present."""
     create_html_content(temp_bronze_dir, sample_html_url)
     create_discussions(temp_bronze_dir, sample_html_url)
 
@@ -165,18 +156,21 @@ def test_compile_summary_input_with_discussions(temp_bronze_dir, sample_html_url
 
     assert result.discussions is not None
     assert len(result.discussions) == 2
-    assert result.discussions[0]["story_id"] == 12345
-    assert result.discussions[1]["short_id"] == "abc123"
+    # Discussion objects with labeled fields
+    assert result.discussions[0]["id"] == 12345
+    assert result.discussions[0]["author"] == "test_user"
+    assert result.discussions[0]["points"] == 100
+    assert result.discussions[1]["id"] == "abc123"
+    assert result.discussions[1]["author"] == "test_user"
+    assert result.discussions[1]["points"] == 50
 
 
 def test_compile_summary_input_missing_bronze_content(temp_bronze_dir, sample_html_url):
-    """Test exception when bronze content doesn't exist."""
     with pytest.raises(ValueError, match="No bronze content found"):
         compile_summary_input(sample_html_url, str(temp_bronze_dir))
 
 
 def test_compile_summary_input_failed_extraction(temp_bronze_dir, sample_html_url):
-    """Test exception when extraction failed."""
     create_html_content(temp_bronze_dir, sample_html_url, success=False)
 
     with pytest.raises(ValueError, match="Extraction failed"):
@@ -184,7 +178,6 @@ def test_compile_summary_input_failed_extraction(temp_bronze_dir, sample_html_ur
 
 
 def test_compile_summary_input_without_discussions(temp_bronze_dir, sample_html_url):
-    """Test compilation without discussions (discussions=None)."""
     create_html_content(temp_bronze_dir, sample_html_url)
 
     result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
@@ -193,7 +186,6 @@ def test_compile_summary_input_without_discussions(temp_bronze_dir, sample_html_
 
 
 def test_compile_summary_input_discussion_loading_error(temp_bronze_dir, sample_html_url):
-    """Test exception when discussion loading fails (corrupted data)."""
     create_html_content(temp_bronze_dir, sample_html_url)
 
     url_hash = compute_url_hash(sample_html_url)
@@ -205,3 +197,103 @@ def test_compile_summary_input_discussion_loading_error(temp_bronze_dir, sample_
 
     with pytest.raises(ValueError, match="Failed to load discussions"):
         compile_summary_input(sample_html_url, str(temp_bronze_dir))
+
+
+def test_slim_model_filters_unnecessary_fields(temp_bronze_dir, sample_html_url):
+    create_html_content(temp_bronze_dir, sample_html_url)
+
+    url_hash = compute_url_hash(sample_html_url)
+    discussions_dir = temp_bronze_dir / "discussions" / url_hash
+    discussions_dir.mkdir(parents=True, exist_ok=True)
+
+    metadata = {
+        "url": sample_html_url,
+        "total_stories": 1,
+        "platforms": ["hackernews"],
+        "hn_story_ids": [12345],
+        "lobsters_story_ids": [],
+        "discussion_links": [{"type": "hackernews", "url": "https://news.ycombinator.com/item?id=12345"}],
+        "discovered_at": datetime.now(UTC).isoformat(),
+        "cache_ttl_hours": 24,
+    }
+    metadata_path = discussions_dir / "metadata.json"
+    metadata_path.write_text(json.dumps(metadata))
+
+    hn_story = {
+        "id": 12345,
+        "story_id": 12345,
+        "title": "Test Story",
+        "url": sample_html_url,
+        "author": "story_author",
+        "points": 100,
+        "created_at": datetime.now(UTC).isoformat(),
+        "created_at_i": 1234567890,
+        "comment_count": 3,
+        "children": [
+            {
+                "id": 1,
+                "author": "user1",
+                "text": "Parent comment",
+                "parent_id": 12345,
+                "story_id": 12345,
+                "points": 10,
+                "created_at": datetime.now(UTC).isoformat(),
+                "created_at_i": 1234567891,
+                "children": [
+                    {
+                        "id": 2,
+                        "author": "user2",
+                        "text": "Child comment",
+                        "parent_id": 1,
+                        "story_id": 12345,
+                        "points": 5,
+                        "created_at": datetime.now(UTC).isoformat(),
+                        "created_at_i": 1234567892,
+                        "children": [],
+                    }
+                ],
+            },
+            {
+                "id": 3,
+                "author": None,
+                "text": None,
+                "parent_id": 12345,
+                "story_id": 12345,
+                "points": 0,
+                "created_at": datetime.now(UTC).isoformat(),
+                "created_at_i": 1234567893,
+                "children": [],
+            },
+        ],
+    }
+    hn_story_path = discussions_dir / "12345.json"
+    hn_story_path.write_text(json.dumps(hn_story))
+
+    result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
+
+    assert result.discussions is not None
+    assert len(result.discussions) == 1
+
+    # Discussion: object with labeled fields
+    discussion = result.discussions[0]
+    assert isinstance(discussion, dict)
+    assert discussion["id"] == 12345
+    assert discussion["author"] == "story_author"
+    assert discussion["points"] == 100
+    assert "children" in discussion
+    assert len(discussion["children"]) == 1
+
+    # Parent comment: array [author, text, children]
+    parent_comment = discussion["children"][0]
+    assert isinstance(parent_comment, list)
+    assert len(parent_comment) == 3  # author, text and children
+    assert parent_comment[0] == "user1"  # author
+    assert parent_comment[1] == "Parent comment"  # text
+    assert isinstance(parent_comment[2], list)  # children array
+
+    # Child comment: array [author, text] (no children)
+    child_comment = parent_comment[2][0]
+    assert isinstance(child_comment, list)
+    assert len(child_comment) == 2  # author and text, no children
+    assert child_comment[0] == "user2"  # author
+    assert child_comment[1] == "Child comment"  # text

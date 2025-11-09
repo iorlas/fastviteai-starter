@@ -1,0 +1,6 @@
+# Execution logs
+runs/
+
+# Local test outputs
+*.json
+test_*.py

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import structlog
 import yt_dlp
+from requests import Session
 from youtube_transcript_api import (
     NoTranscriptFound,
     TranscriptsDisabled,
@@ -22,6 +23,9 @@ class YouTubeExtractionError(Exception):
 
 class YouTubeExtractor:
     YOUTUBE_DOMAINS = {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}
+
+    def __init__(self, proxy: str | None = None):
+        self.proxy = proxy
 
     def matches(self, url: str) -> bool:
         parsed = urlparse(url)
@@ -101,7 +105,6 @@ class YouTubeExtractor:
 
     @staticmethod
     def _filter_metadata(info: dict) -> dict:
-        """Filter out unnecessary video format and technical metadata fields."""
         excluded_fields = {
             # Large/verbose metadata
             "thumbnails",
@@ -138,8 +141,7 @@ class YouTubeExtractor:
 
         return {k: v for k, v in info.items() if k not in excluded_fields}
 
-    @staticmethod
-    def _fetch_video_info(url: str) -> dict:
+    def _fetch_video_info(self, url: str) -> dict:
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
@@ -150,20 +152,33 @@ class YouTubeExtractor:
             "skip_download": True,
         }
 
+        # Add proxy if configured
+        if self.proxy:
+            ydl_opts["proxy"] = self.proxy
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             if not info:
                 raise YouTubeExtractionError(f"Failed to extract info from {url}")
             return info
 
-    @staticmethod
-    def _extract_transcript(info: dict) -> str | None:
+    def _extract_transcript(self, info: dict) -> str | None:
         video_id = info.get("id")
         if not video_id:
             return None
 
         try:
-            ytt_api = YouTubeTranscriptApi()
+            # Configure proxy using requests Session (supports HTTP, HTTPS, and SOCKS5)
+            if self.proxy:
+                http_client = Session()
+                http_client.proxies = {
+                    "http": self.proxy,
+                    "https": self.proxy,
+                }
+                ytt_api = YouTubeTranscriptApi(http_client=http_client)
+            else:
+                ytt_api = YouTubeTranscriptApi()
+
             transcript_list = ytt_api.list(video_id)
 
             try:

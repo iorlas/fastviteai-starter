@@ -1,5 +1,6 @@
 from dagster import AssetExecutionContext, asset
 
+from dagster_project.config import settings
 from dagster_project.core.content_types.youtube import YouTubeExtractor
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.tables import BronzeTable
@@ -16,7 +17,7 @@ async def bronze_youtube(
     discovered_urls: list[dict],
 ) -> None:
     bronze_storage = context.resources.bronze_storage
-    extractor = YouTubeExtractor()
+    extractor = YouTubeExtractor(proxy=settings.http_proxy)
 
     youtube_urls = [u for u in discovered_urls if u["content_type"] == "youtube"]
 

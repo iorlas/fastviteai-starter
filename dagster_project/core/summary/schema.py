@@ -80,3 +80,14 @@ class KnowledgeGraphSummary(BaseModel):
         None,
         description="Metrics about discussion activity across platforms",
     )
+
+
+class SimpleSummary(BaseModel):
+    core_answer: str = Field(description="One clear sentence directly answering the article title")
+    key_points: list[str] = Field(description="List of key takeaways (3-7 points)")
+    topics: list[str] = Field(description="Main topics as hashtags")
+    tags: list[str] = Field(description="Content classification tags")
+
+
+class RawTextSummary(BaseModel):
+    summary: str = Field(description="Unstructured summary text")

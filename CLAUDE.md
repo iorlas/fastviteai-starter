@@ -97,6 +97,7 @@ OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_MODEL=openai/gpt-4o
 ENABLE_SUMMARIZATION=true  # Set to 'false' to disable AI summarization
+HTTP_PROXY=  # Optional: http://proxy:port or socks5://proxy:port for all HTTP operations
 ```
 
 **Usage**: Import settings from the global config:
@@ -152,15 +153,22 @@ The pipeline implements **multi-layer caching** with different strategies per la
 
 **HTTP Cache Layer** (via AsyncCacheClient/Hishel):
 - Caches raw HTTP responses (GET requests only)
-- TTL: 1 hour (3600 seconds)
+- TTL: 24 hours (86400 seconds)
 - Location: `artifacts/cache/http_responses/http_cache.db`
 - Prevents redundant external API calls and network requests
+- Supports proxy configuration via `HTTP_PROXY` environment variable
 
 **Bronze Layer Caching**:
 - All bronze assets check for existing data before downloading
 - Immutable by design - once written, never modified
 - Cache check is **always required** to prevent duplicate file writes
 - Protects external APIs from repeated calls (HN, Lobsters, HTML downloads)
+
+**YouTube Caching** (special case):
+- yt_dlp and youtube_transcript_api bypass the HTTP cache layer (use their own HTTP clients)
+- Bronze layer caching provides primary protection against re-fetching
+- Proxy configuration encapsulated in `YouTubeExtractor` class for both yt_dlp and youtube_transcript_api
+- Acceptable by design - bronze cache is sufficient for YouTube operations
 
 **Silver Layer Caching** (selective strategy):
 - **Cheap operations** (extraction, discussion parsing): **No cache checks**
@@ -283,9 +291,6 @@ tests/
 - `@pytest.mark.integration` - Integration tests (may hit external APIs in controlled manner)
 - `@pytest.mark.unit` - Pure unit tests
 - `@pytest.mark.contract` - External API contract verification
-
-## Known Limitations
-- **YouTube transcripts**: Currently uses video description instead of actual transcripts. Transcript extraction is stubbed in `core/extractors/youtube_extractor.py:_extract_transcript()`
 
 ## Experiments Directory
 `experiments/v3/` contains prompt engineering experiments:

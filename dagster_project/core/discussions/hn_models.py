@@ -38,6 +38,7 @@ class HNStoryFull(BaseModel):
     created_at_i: int
     children: list[HNComment] = Field(default_factory=list)
     comment_count: int = 0
+    fetched_at: datetime | None = None
 
     def get_comments(self) -> list[HNComment]:
         return self.children
