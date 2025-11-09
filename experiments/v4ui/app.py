@@ -23,8 +23,10 @@ import streamlit as st
 from openai import OpenAI
 
 from dagster_project.config import settings
+from dagster_project.core.cache.hishel_cache import get_async_cache_client
 from dagster_project.core.content_types.generic_html import GenericHTMLExtractor
 from dagster_project.core.content_types.youtube import YouTubeExtractor
+from dagster_project.core.discussions.hn_client import HackerNewsClient
 from dagster_project.core.summary.input_compiler import SummaryInput
 from dagster_project.core.summary.schema import ArticleAnalysis, KnowledgeGraphSummary, RawTextSummary, SimpleSummary
 from dagster_project.core.summary.summarizer import DEFAULT_SYSTEM_PROMPT, SummaryGenerator
@@ -104,6 +106,82 @@ async def extract_content(url: str) -> tuple[str, str, str]:
     return result.title, result.content, result.content_type
 
 
+def count_comments(comments: list) -> int:
+    """Count total comments recursively."""
+    if not comments:
+        return 0
+    count = len(comments)
+    for comment in comments:
+        if isinstance(comment, dict) and "children" in comment:
+            count += count_comments(comment["children"])
+        elif isinstance(comment, list) and len(comment) > 2:
+            count += count_comments(comment[2])  # slim format: [author, text, children]
+    return count
+
+
+def get_comment_preview(comments: list, max_count: int = 3) -> list[dict]:
+    """Get first N comments for preview (flattened)."""
+    preview = []
+
+    def extract_comments(comment_list: list, current_depth: int = 0):
+        if len(preview) >= max_count:
+            return
+        for comment in comment_list:
+            if len(preview) >= max_count:
+                return
+            if isinstance(comment, dict):
+                preview.append({
+                    "author": comment.get("author", "unknown"),
+                    "text": (comment.get("text") or "")[:200] + "...",
+                    "depth": current_depth,
+                })
+                if "children" in comment and comment["children"]:
+                    extract_comments(comment["children"], current_depth + 1)
+            elif isinstance(comment, list) and len(comment) >= 2:
+                # Slim format: [author, text, ?children]
+                preview.append({
+                    "author": comment[0],
+                    "text": comment[1][:200] + "...",
+                    "depth": current_depth,
+                })
+                if len(comment) > 2 and comment[2]:
+                    extract_comments(comment[2], current_depth + 1)
+
+    extract_comments(comment_list)
+    return preview
+
+
+async def fetch_discussions_for_url(url: str) -> tuple[int, list[dict] | None]:
+    """Fetch discussions for URL from HN or Lobsters if available.
+
+    Returns:
+        Tuple of (total_comments_count, preview_list)
+    """
+    cache_client = get_async_cache_client()
+    hn_client = HackerNewsClient(cache_client=cache_client)
+
+    # Search HackerNews
+    try:
+        story_urls = await hn_client.search_by_url(url)
+        if story_urls:
+            story_url = story_urls[0]
+            story = await hn_client.fetch_story(story_url)
+
+            # Convert to simple dict structure
+            comments_data = [c.model_dump() for c in story.children] if story.children else []
+            total_count = count_comments(comments_data)
+            preview = get_comment_preview(comments_data)
+
+            await hn_client.close()
+            return total_count, preview
+    except Exception:
+        pass
+    finally:
+        await hn_client.close()
+
+    return 0, None
+
+
 async def generate_summary_async(
     url: str,
     system_prompt: str,
@@ -114,13 +192,16 @@ async def generate_summary_async(
     # Extract content
     title, content, content_type = await extract_content(url)
 
-    # Create summary input
+    # Fetch discussions if available (for display only - summary uses file-based discussions)
+    discussions_count, discussions_preview = await fetch_discussions_for_url(url)
+
+    # Create summary input (discussions=None for now since we're doing live fetching)
     summary_input = SummaryInput(
         content=content,
         title=title,
         content_type=content_type,
         url=url,
-        discussions=None,  # No discussions in this simple UI
+        discussions=None,  # Would need to fetch from bronze layer in production
     )
 
     # Initialize OpenAI client and generator
@@ -144,6 +225,8 @@ async def generate_summary_async(
         "latency_ms": result.latency_ms,
         "model": result.model,
         "system_prompt_used": system_prompt,
+        "discussions_count": discussions_count,
+        "discussions_preview": discussions_preview,
     }
 
 
@@ -158,15 +241,11 @@ def main():
     with st.sidebar:
         st.header("Configuration")
 
-        # Model selection
-        default_model_index = 0
-        if settings.openai_model in MODEL_OPTIONS:
-            default_model_index = MODEL_OPTIONS.index(settings.openai_model)
-
+        # Model selection (default to Mistral)
         model_choice = st.selectbox(
             "Model",
             options=MODEL_OPTIONS,
-            index=default_model_index,
+            index=0,  # Default to mistralai/mistral-medium-3.1
             help="Select a model or choose 'Custom' to enter your own",
         )
 
@@ -180,11 +259,11 @@ def main():
         else:
             model = model_choice
 
-        # Schema selection
+        # Schema selection (default to Article Analysis)
         schema_name = st.selectbox(
             "Response Schema",
             options=list(SCHEMA_OPTIONS.keys()),
-            index=0,
+            index=1,  # Default to Article Analysis
             help="Choose the output structure - add new schemas in schema.py",
         )
         selected_schema = SCHEMA_OPTIONS[schema_name]
@@ -239,16 +318,25 @@ def main():
                 with output_placeholder.container():
                     # Metadata
                     st.subheader("Metadata")
-                    meta_col1, meta_col2, meta_col3 = st.columns(3)
+                    meta_col1, meta_col2, meta_col3, meta_col4 = st.columns(4)
                     with meta_col1:
                         st.metric("Content Type", result["content_type"])
                     with meta_col2:
                         st.metric("Tokens Used", f"{result['tokens_used']:,}")
                     with meta_col3:
                         st.metric("Latency", f"{result['latency_ms']:,} ms")
+                    with meta_col4:
+                        st.metric("Discussions", result["discussions_count"])
 
                     # Log file saved indicator
                     st.success(f"✓ Execution logged to: {log_path.name}")
+
+                    # Discussions preview
+                    if result["discussions_count"] > 0 and result["discussions_preview"]:
+                        st.subheader("Discussions")
+                        st.markdown(f"**Found {result['discussions_count']} comments**")
+                        with st.expander("Preview (first 3 comments)", expanded=False):
+                            st.json(result["discussions_preview"])
 
                     # Show system prompt used
                     with st.expander("System Prompt Used (for debugging)", expanded=False):

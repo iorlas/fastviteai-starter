@@ -157,7 +157,17 @@
       "Bash(timeout 90 uv run:*)",
       "Bash(/tmp/test_socks5_parallel.sh)",
       "WebFetch(domain:news.ycombinator.com)",
-      "Bash(/tmp/test_http_parallel.sh)"
+      "Bash(/tmp/test_http_parallel.sh)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose up:*)",
+      "WebFetch(domain:docs.temporal.io)",
+      "WebFetch(domain:community.temporal.io)",
+      "WebFetch(domain:python.temporal.io)",
+      "Bash(docker-compose build:*)"
     ],
     "deny": [],
     "ask": []

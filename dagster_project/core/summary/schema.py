@@ -109,15 +109,11 @@ class Article(BaseModel):
     novelty: Literal["new", "incremental", "rehash"]
     depth: int = Field(ge=1, le=5)
     has_technical_depth: bool
-
     tldr: str = Field(description="Bottom line. What's the actual insight? (max 150 chars)")
-
     key_points: list[str] = Field(
         description="Max 5 concrete takeaways. Numbers, approaches, tradeoffs. Use arrows (→), not prose. Each max 100 chars."
     )
-
     tags: list[str] = Field(description="Max 10 specific technical tags")
-
     semantic_summary: str = Field(description="Technical density for vector search (max 300 chars)")
 
 
@@ -132,11 +128,8 @@ class LLMTake(BaseModel):
     """Your technical assessment"""
 
     verdict: Literal["solid", "flawed", "shallow", "excellent"]
-
     what_works: list[str] = Field(description="Max 2 strengths. Be specific. Each max 80 chars.")
-
     what_fails: list[str] = Field(description="Max 2 problems. Be direct. Each max 80 chars.")
-
     bottom_line: str = Field(description="Expert verdict. Worth the time? (max 120 chars)")
 
 
@@ -145,19 +138,29 @@ class CommunityTake(BaseModel):
 
     consensus: Literal["validates", "split", "refutes"]
     quality: Literal["low", "med", "high"]
-
     experts_found: list[str] = Field(default_factory=list, description="Max 2. Format: 'username: their take (one line, max 100 chars)'")
-
     key_corrections: list[str] = Field(default_factory=list, description="Max 3 technical issues raised. Be specific. Each max 100 chars.")
-
     added_context: list[str] = Field(default_factory=list, description="Max 2. Important info article missed. Each max 100 chars.")
-
     community_verdict: str = Field(description="What community concluded (max 120 chars)")
+
+
+class SignalQuality(BaseModel):
+    """Meta-analysis of information quality"""
+
+    signal_to_noise: Literal["high", "medium", "low"]
+    noise_factors: list[Literal["marketing_fluff", "obvious_points", "off_topic_discussion", "low_quality_comments", "no_new_info"]] = (
+        Field(default_factory=list, description="Why it's noisy")
+    )
+    signal_factors: list[
+        Literal["concrete_numbers", "novel_approach", "expert_insights", "production_data", "contrarian_valid", "technical_depth"]
+    ] = Field(default_factory=list, description="Why it's valuable")
+    recommend_skip_if_busy: bool = Field(description="If time-constrained, can safely skip?")
 
 
 class ArticleAnalysis(BaseModel):
     triage: Triage
     article: Article
     signals: Signals
+    signal_quality: SignalQuality  # Add this
     llm: LLMTake
     community: CommunityTake

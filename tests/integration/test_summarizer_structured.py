@@ -147,9 +147,9 @@ def test_summary_generator_uses_baseline_prompt(mock_openai_client):
     messages = call_args.kwargs["messages"]
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
-    assert "Extract information from content" in messages[0]["content"]
-    assert "CRITICAL: Capture ALL details" in messages[0]["content"]
-    assert "ONE-SENTENCE answer" in messages[0]["content"]
+    assert "You're an expert analyst" in messages[0]["content"]
+    assert "ANALYZE:" in messages[0]["content"]
+    assert "OUTPUT: Two independent takes" in messages[0]["content"]
 
     assert messages[1]["role"] == "user"
     assert "Test Title" in messages[1]["content"]

@@ -246,7 +246,7 @@ async def test_proxy_passed_to_transcript_api(mock_youtube_info):
     extractor = YouTubeExtractor(proxy=proxy_url)
 
     with (
-        patch("requests.Session") as mock_session_class,
+        patch("dagster_project.core.content_types.youtube.Session") as mock_session_class,
         patch("dagster_project.core.content_types.youtube.YouTubeTranscriptApi") as mock_api_class,
     ):
         mock_session = Mock()
