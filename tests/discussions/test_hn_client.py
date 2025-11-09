@@ -23,9 +23,15 @@ async def test_fetch_story_with_comments():
         story_id = 8863
         story = await client.fetch_story_with_comments(story_id)
 
-        assert story.story_id == story_id
+        # Verify UnifiedDiscussion structure (BaseModel - use attribute access)
+        assert story.id == str(story_id)
+        assert story.platform == "hackernews"
         assert story.title
-        assert isinstance(story.children, list)
+        assert story.author
+        assert isinstance(story.points, int)
+        assert isinstance(story.comments, list)
+        assert story.discussion_url
+        assert story.comment_count
 
 
 @pytest.mark.asyncio

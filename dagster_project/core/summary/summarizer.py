@@ -41,12 +41,24 @@ For semantic_summary: pack concepts densely
 Respect all field constraints. Cut every unnecessary word."""
 
 
+class DiscussionMetadata(BaseModel):
+    """Metadata for a single discussion thread."""
+
+    platform: str  # "hackernews" or "lobsters"
+    url: str
+    title: str
+    points: int
+    comment_count: int
+
+
 class SummaryInput(BaseModel):
     content: str
     title: str
     content_type: str
     url: str
     discussions: str | None = None  # Formatted plain text with tab-indented replies
+    discussions_count: int | None = None  # Number of discussion threads (for debugging)
+    discussions_metadata: list[DiscussionMetadata] | None = None  # Discussion links and metadata for UI
 
 
 class SummaryResult[T: BaseModel](BaseModel):

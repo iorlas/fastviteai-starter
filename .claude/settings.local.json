@@ -174,7 +174,11 @@
       "Bash(docker inspect:*)",
       "Bash(make docker-prod-build:*)",
       "Bash(make docker-prod-up:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(for f in artifacts/bronze/discussions/39a7d20827e58cd01e247f8f0eee49f314954ab0eb36255621733af78fbbfa73/*.json)",
+      "Bash(do if [ '$(basename $f)' != metadata.json ])",
+      "Bash(then jq -r .comment_count $f 2)",
+      "Bash(/dev/null fi done)"
     ],
     "deny": [],
     "ask": []

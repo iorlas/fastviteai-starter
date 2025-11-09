@@ -89,36 +89,36 @@ def create_discussions(bronze_dir: Path, url: str):
     metadata_path = discussions_dir / "metadata.json"
     metadata_path.write_text(json.dumps(metadata))
 
+    # UnifiedDiscussion format for HN
     hn_story = {
-        "id": 12345,
-        "story_id": 12345,
+        "platform": "hackernews",
+        "id": "12345",
+        "discussion_url": "https://news.ycombinator.com/item?id=12345",
+        "article_url": url,
         "title": "Test HN Story",
-        "url": url,
         "author": "test_user",
         "points": 100,
-        "created_at": datetime.now(UTC).isoformat(),
-        "created_at_i": 1234567890,
-        "children": [],
         "comment_count": 0,
+        "created_at": datetime.now(UTC).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
+        "comments": [],
     }
     hn_story_path = discussions_dir / "12345.json"
     hn_story_path.write_text(json.dumps(hn_story))
 
+    # UnifiedDiscussion format for Lobsters
     lobsters_story = {
-        "short_id": "abc123",
+        "platform": "lobsters",
+        "id": "abc123",
+        "discussion_url": "https://lobste.rs/s/abc123",
+        "article_url": url,
         "title": "Test Lobsters Story",
-        "url": url,
-        "score": 50,
-        "created_at": datetime.now(UTC).isoformat(),
-        "submitter_user": "test_user",
-        "user_is_author": False,
-        "tags": ["programming"],
-        "description": "Test description",
-        "description_plain": "Test description",
-        "short_id_url": "https://lobste.rs/s/abc123",
-        "comments_url": "https://lobste.rs/s/abc123/comments",
-        "comments": [],
+        "author": "test_user",
+        "points": 50,
         "comment_count": 0,
+        "created_at": datetime.now(UTC).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
+        "comments": [],
     }
     lobsters_story_path = discussions_dir / "abc123.json"
     lobsters_story_path.write_text(json.dumps(lobsters_story))
@@ -156,11 +156,19 @@ def test_compile_summary_input_with_discussions(temp_bronze_dir, sample_html_url
 
     assert result.discussions is not None
     assert isinstance(result.discussions, str)
+    assert result.discussions_count == 2
     # Check formatted text structure
     assert "Discussion 1:" in result.discussions
     assert "Story by test_user (100 points)" in result.discussions
     assert "Discussion 2:" in result.discussions
     assert "Story by test_user (50 points)" in result.discussions
+    # Check metadata - order not guaranteed with glob
+    assert result.discussions_metadata is not None
+    assert len(result.discussions_metadata) == 2
+    platforms = {m.platform for m in result.discussions_metadata}
+    assert platforms == {"hackernews", "lobsters"}
+    points = {m.points for m in result.discussions_metadata}
+    assert points == {100, 50}
 
 
 def test_compile_summary_input_missing_bronze_content(temp_bronze_dir, sample_html_url):
@@ -181,6 +189,8 @@ def test_compile_summary_input_without_discussions(temp_bronze_dir, sample_html_
     result = compile_summary_input(sample_html_url, str(temp_bronze_dir))
 
     assert result.discussions is None
+    assert result.discussions_count is None
+    assert result.discussions_metadata is None
 
 
 def test_compile_summary_input_discussion_loading_error(temp_bronze_dir, sample_html_url):
@@ -190,8 +200,9 @@ def test_compile_summary_input_discussion_loading_error(temp_bronze_dir, sample_
     discussions_dir = temp_bronze_dir / "discussions" / url_hash
     discussions_dir.mkdir(parents=True, exist_ok=True)
 
-    metadata_path = discussions_dir / "metadata.json"
-    metadata_path.write_text("invalid json {")
+    # Create invalid JSON in a discussion file (not metadata)
+    discussion_path = discussions_dir / "12345.json"
+    discussion_path.write_text("invalid json {")
 
     with pytest.raises(ValueError, match="Failed to load discussions"):
         compile_summary_input(sample_html_url, str(temp_bronze_dir))
@@ -204,62 +215,42 @@ def test_slim_model_filters_unnecessary_fields(temp_bronze_dir, sample_html_url)
     discussions_dir = temp_bronze_dir / "discussions" / url_hash
     discussions_dir.mkdir(parents=True, exist_ok=True)
 
-    metadata = {
-        "url": sample_html_url,
-        "total_stories": 1,
-        "platforms": ["hackernews"],
-        "hn_story_ids": [12345],
-        "lobsters_story_ids": [],
-        "discussion_links": [{"type": "hackernews", "url": "https://news.ycombinator.com/item?id=12345"}],
-        "discovered_at": datetime.now(UTC).isoformat(),
-        "cache_ttl_hours": 24,
-    }
-    metadata_path = discussions_dir / "metadata.json"
-    metadata_path.write_text(json.dumps(metadata))
-
+    # UnifiedDiscussion format
     hn_story = {
-        "id": 12345,
-        "story_id": 12345,
+        "platform": "hackernews",
+        "id": "12345",
+        "discussion_url": "https://news.ycombinator.com/item?id=12345",
+        "article_url": sample_html_url,
         "title": "Test Story",
-        "url": sample_html_url,
         "author": "story_author",
         "points": 100,
-        "created_at": datetime.now(UTC).isoformat(),
-        "created_at_i": 1234567890,
         "comment_count": 3,
-        "children": [
+        "created_at": datetime.now(UTC).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
+        "comments": [
             {
-                "id": 1,
+                "id": "1",
                 "author": "user1",
                 "text": "Parent comment",
-                "parent_id": 12345,
-                "story_id": 12345,
                 "points": 10,
                 "created_at": datetime.now(UTC).isoformat(),
-                "created_at_i": 1234567891,
                 "children": [
                     {
-                        "id": 2,
+                        "id": "2",
                         "author": "user2",
                         "text": "Child comment",
-                        "parent_id": 1,
-                        "story_id": 12345,
                         "points": 5,
                         "created_at": datetime.now(UTC).isoformat(),
-                        "created_at_i": 1234567892,
                         "children": [],
                     }
                 ],
             },
             {
-                "id": 3,
+                "id": "3",
                 "author": None,
                 "text": None,
-                "parent_id": 12345,
-                "story_id": 12345,
                 "points": 0,
                 "created_at": datetime.now(UTC).isoformat(),
-                "created_at_i": 1234567893,
                 "children": [],
             },
         ],

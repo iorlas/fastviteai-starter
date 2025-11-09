@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup
 from hishel.httpx import AsyncCacheClient
 
 from dagster_project.core.cache.hishel_cache import get_async_cache_client
-from dagster_project.core.discussions.hn_models import HNSearchResponse, HNStoryFull
+from dagster_project.core.discussions.hn_models import HNSearchResponse
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
+from dagster_project.core.discussions.unified_models import UnifiedDiscussion
 
 logger = structlog.get_logger()
 
@@ -97,21 +98,44 @@ class HackerNewsClient:
 
         return [f"https://news.ycombinator.com/item?id={s.story_id}" for s in search_response.hits]
 
-    async def fetch_story(self, discussion_url: str, story_id: int | None = None) -> HNStoryFull:
+    async def fetch_story(self, discussion_url: str, story_id: int | None = None) -> UnifiedDiscussion:
         if story_id is None:
             story_id = self.extract_story_id(discussion_url)
-        return await self.fetch_story_with_comments(story_id)
+        return await self.fetch_story_with_comments(story_id, discussion_url)
 
-    async def fetch_story_with_comments(self, story_id: int) -> HNStoryFull:
+    async def fetch_story_with_comments(self, story_id: int, discussion_url: str | None = None) -> UnifiedDiscussion:
         logger.info("fetching_hn_story_comments", story_id=story_id)
 
         response = await self.client.get(f"{self.algolia_base}/items/{story_id}")
         response.raise_for_status()
 
         data = response.json()
-        story = HNStoryFull(**data)
-        story.comment_count = self._count_comments(story.children)
-        story.fetched_at = datetime.now(UTC)
+
+        # Manual validation of required fields
+        required_fields = ["id", "author", "title", "points"]
+        missing_fields = [f for f in required_fields if f not in data]
+        if missing_fields:
+            raise ValueError(f"Invalid HN API response for story {story_id}: missing fields {missing_fields}")
+
+        # Build unified discussion structure (raw data with int IDs)
+        comments = data.get("children", [])
+
+        if discussion_url is None:
+            discussion_url = f"https://news.ycombinator.com/item?id={story_id}"
+
+        # Let Pydantic BaseModel handle type coercion (int→str for IDs) and auto-calculate comment_count
+        story = UnifiedDiscussion(
+            platform="hackernews",
+            id=data.get("story_id", data["id"]),  # Auto-coerces int → str
+            discussion_url=discussion_url,
+            article_url=data.get("url"),
+            title=data["title"],
+            author=data["author"],
+            points=data["points"],
+            created_at=data.get("created_at", ""),
+            fetched_at=datetime.now(UTC).isoformat(),
+            comments=comments,  # Pydantic handles nested coercion + auto-calculates comment_count
+        )
 
         logger.info(
             "hn_story_fetched",
@@ -127,13 +151,6 @@ class HackerNewsClient:
 
     def build_discussion_link(self, story_id: int) -> DiscussionLink:
         return DiscussionLink(type="hackernews", url=f"https://news.ycombinator.com/item?id={story_id}")
-
-    def _count_comments(self, comments: list) -> int:
-        count = len(comments)
-        for comment in comments:
-            if hasattr(comment, "children") and comment.children:
-                count += self._count_comments(comment.children)
-        return count
 
     async def __aenter__(self):
         return self

@@ -23,11 +23,7 @@ import streamlit as st
 from openai import OpenAI
 
 from dagster_project.config import settings
-from dagster_project.core.cache.hishel_cache import get_async_cache_client
-from dagster_project.core.content_types.generic_html import GenericHTMLExtractor
-from dagster_project.core.content_types.youtube import YouTubeExtractor
-from dagster_project.core.discussions.hn_client import HackerNewsClient
-from dagster_project.core.summary.input_compiler import SummaryInput
+from dagster_project.core.summary.input_compiler import compile_summary_input
 from dagster_project.core.summary.schema import ArticleAnalysis, KnowledgeGraphSummary, RawTextSummary, SimpleSummary
 from dagster_project.core.summary.summarizer import DEFAULT_SYSTEM_PROMPT, SummaryGenerator
 
@@ -88,121 +84,16 @@ def save_execution_log(
     return filepath
 
 
-async def extract_content(url: str) -> tuple[str, str, str]:
-    """Extract content from URL (HTML or YouTube)."""
-    # Detect content type
-    is_youtube = "youtube.com" in url or "youtu.be" in url
-
-    if is_youtube:
-        extractor = YouTubeExtractor()
-        result = await extractor.extract(url)
-    else:
-        extractor = GenericHTMLExtractor()
-        result = await extractor.extract(url)
-
-    if not result.success:
-        raise ValueError(f"Extraction failed: {result.error}")
-
-    return result.title, result.content, result.content_type
-
-
-def count_comments(comments: list) -> int:
-    """Count total comments recursively."""
-    if not comments:
-        return 0
-    count = len(comments)
-    for comment in comments:
-        if isinstance(comment, dict) and "children" in comment:
-            count += count_comments(comment["children"])
-        elif isinstance(comment, list) and len(comment) > 2:
-            count += count_comments(comment[2])  # slim format: [author, text, children]
-    return count
-
-
-def get_comment_preview(comments: list, max_count: int = 3) -> list[dict]:
-    """Get first N comments for preview (flattened)."""
-    preview = []
-
-    def extract_comments(comment_list: list, current_depth: int = 0):
-        if len(preview) >= max_count:
-            return
-        for comment in comment_list:
-            if len(preview) >= max_count:
-                return
-            if isinstance(comment, dict):
-                preview.append({
-                    "author": comment.get("author", "unknown"),
-                    "text": (comment.get("text") or "")[:200] + "...",
-                    "depth": current_depth,
-                })
-                if "children" in comment and comment["children"]:
-                    extract_comments(comment["children"], current_depth + 1)
-            elif isinstance(comment, list) and len(comment) >= 2:
-                # Slim format: [author, text, ?children]
-                preview.append({
-                    "author": comment[0],
-                    "text": comment[1][:200] + "...",
-                    "depth": current_depth,
-                })
-                if len(comment) > 2 and comment[2]:
-                    extract_comments(comment[2], current_depth + 1)
-
-    extract_comments(comment_list)
-    return preview
-
-
-async def fetch_discussions_for_url(url: str) -> tuple[int, list[dict] | None]:
-    """Fetch discussions for URL from HN or Lobsters if available.
-
-    Returns:
-        Tuple of (total_comments_count, preview_list)
-    """
-    cache_client = get_async_cache_client()
-    hn_client = HackerNewsClient(cache_client=cache_client)
-
-    # Search HackerNews
-    try:
-        story_urls = await hn_client.search_by_url(url)
-        if story_urls:
-            story_url = story_urls[0]
-            story = await hn_client.fetch_story(story_url)
-
-            # Convert to simple dict structure
-            comments_data = [c.model_dump() for c in story.children] if story.children else []
-            total_count = count_comments(comments_data)
-            preview = get_comment_preview(comments_data)
-
-            await hn_client.close()
-            return total_count, preview
-    except Exception:
-        pass
-    finally:
-        await hn_client.close()
-
-    return 0, None
-
-
 async def generate_summary_async(
     url: str,
     system_prompt: str,
     model: str,
     response_schema: type,
 ) -> dict:
-    """Extract content and generate summary."""
-    # Extract content
-    title, content, content_type = await extract_content(url)
-
-    # Fetch discussions if available (for display only - summary uses file-based discussions)
-    discussions_count, discussions_preview = await fetch_discussions_for_url(url)
-
-    # Create summary input (discussions=None for now since we're doing live fetching)
-    summary_input = SummaryInput(
-        content=content,
-        title=title,
-        content_type=content_type,
-        url=url,
-        discussions=None,  # Would need to fetch from bronze layer in production
-    )
+    """Extract content and generate summary using bronze layer data."""
+    # Use input compiler to load content and discussions from bronze layer
+    bronze_path = PROJECT_ROOT / settings.artifacts_path / "bronze"
+    summary_input = compile_summary_input(url, str(bronze_path))
 
     # Initialize OpenAI client and generator
     client = initialize_openai_client()
@@ -217,16 +108,17 @@ async def generate_summary_async(
     result = generator.generate(summary_input)
 
     return {
-        "title": title,
-        "content_preview": content[:500] + "..." if len(content) > 500 else content,
-        "content_type": content_type,
+        "title": summary_input.title,
+        "content_preview": summary_input.content[:500] + "..." if len(summary_input.content) > 500 else summary_input.content,
+        "content_type": summary_input.content_type,
         "summary": result.structured_summary.model_dump(),
         "tokens_used": result.tokens_used,
         "latency_ms": result.latency_ms,
         "model": result.model,
         "system_prompt_used": system_prompt,
-        "discussions_count": discussions_count,
-        "discussions_preview": discussions_preview,
+        "discussions_count": summary_input.discussions_count or 0,
+        "discussions_text": summary_input.discussions,
+        "discussions_metadata": [d.model_dump() for d in summary_input.discussions_metadata] if summary_input.discussions_metadata else None,
     }
 
 
@@ -331,12 +223,23 @@ def main():
                     # Log file saved indicator
                     st.success(f"✓ Execution logged to: {log_path.name}")
 
-                    # Discussions preview
-                    if result["discussions_count"] > 0 and result["discussions_preview"]:
+                    # Discussions display
+                    if result["discussions_count"] > 0 and result["discussions_metadata"]:
                         st.subheader("Discussions")
-                        st.markdown(f"**Found {result['discussions_count']} comments**")
-                        with st.expander("Preview (first 3 comments)", expanded=False):
-                            st.json(result["discussions_preview"])
+                        st.markdown(f"**Found {result['discussions_count']} discussion threads**")
+
+                        # Display discussion links
+                        for disc in result["discussions_metadata"]:
+                            platform_emoji = "🔶" if disc["platform"] == "hackernews" else "🦞"
+                            st.markdown(
+                                f"{platform_emoji} **[{disc['title']}]({disc['url']})** "
+                                f"• {disc['points']} pts • {disc['comment_count']} comments"
+                            )
+
+                        # Full discussion text
+                        if result["discussions_text"]:
+                            with st.expander("View formatted discussion text (sent to LLM)", expanded=False):
+                                st.text(result["discussions_text"])
 
                     # Show system prompt used
                     with st.expander("System Prompt Used (for debugging)", expanded=False):

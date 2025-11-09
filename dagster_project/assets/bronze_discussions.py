@@ -22,13 +22,9 @@ async def _process_url_discussions(url_data: dict, clients: list, storage, progr
 
     result = await fetch_discussions_for_url(url, clients, pre_saved_links)
 
-    # Save HN stories
-    for story_id, story in result.hn_stories:
-        storage.save(BronzeTable.DISCUSSIONS, story_id, story.model_dump(), sub_partition=url_hash)
-
-    # Save Lobsters stories
-    for story_id, story in result.lobsters_stories:
-        storage.save(BronzeTable.DISCUSSIONS, story_id, story.model_dump(), sub_partition=url_hash)
+    # Save all unified discussions
+    for discussion in result.discussions:
+        storage.save(BronzeTable.DISCUSSIONS, discussion.id, discussion.model_dump(), sub_partition=url_hash)
 
     metadata = DiscussionMetadata(
         url=url,
@@ -38,17 +34,8 @@ async def _process_url_discussions(url_data: dict, clients: list, storage, progr
 
     storage.save(BronzeTable.DISCUSSIONS, "metadata", metadata.model_dump(), sub_partition=url_hash)
 
-    hn_count = len(result.hn_stories)
-    lobsters_count = len(result.lobsters_stories)
-    total_stories = hn_count + lobsters_count
-
-    counts = []
-    if hn_count:
-        counts.append(f"HN: {hn_count}")
-    if lobsters_count:
-        counts.append(f"Lobsters: {lobsters_count}")
-
-    progress_callback(f"✓ Saved {total_stories} discussion(s) ({', '.join(counts)})")
+    total_stories = len(result.discussions)
+    progress_callback(f"✓ Saved {total_stories} discussion(s)")
 
     return total_stories
 

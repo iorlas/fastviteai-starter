@@ -36,7 +36,7 @@ docker-dev-build:
 
 # Start development services (detached)
 docker-dev-up:
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d --build --remove-orphans
 
 # Stop development services
 docker-dev-down:
@@ -74,7 +74,7 @@ docker-prod-build:
 
 # Start production services (detached)
 docker-prod-up:
-	docker compose -f docker-compose.prod.yml up -d
+	docker compose -f docker-compose.prod.yml up -d  --build --remove-orphans
 
 # Stop production services
 docker-prod-down:

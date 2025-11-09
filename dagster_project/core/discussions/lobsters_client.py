@@ -7,8 +7,8 @@ import structlog
 from bs4 import BeautifulSoup
 
 from dagster_project.core.cache.hishel_cache import AsyncCacheClient, get_async_cache_client
-from dagster_project.core.discussions.lobsters_models import LobstersStoryFull
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
+from dagster_project.core.discussions.unified_models import UnifiedDiscussion
 
 logger = structlog.get_logger()
 
@@ -89,12 +89,12 @@ class LobstersClient:
 
         return discussion_urls
 
-    async def fetch_story(self, discussion_url: str, story_id: str | None = None) -> LobstersStoryFull:
+    async def fetch_story(self, discussion_url: str, story_id: str | None = None) -> UnifiedDiscussion:
         if story_id is None:
             story_id = self.extract_story_id(discussion_url)
-        return await self.fetch_story_with_comments(story_id)
+        return await self.fetch_story_with_comments(story_id, discussion_url)
 
-    async def fetch_story_with_comments(self, short_id: str) -> LobstersStoryFull:
+    async def fetch_story_with_comments(self, short_id: str, discussion_url: str | None = None) -> UnifiedDiscussion:
         logger.info("fetching_lobsters_story_comments", short_id=short_id)
 
         story_url = f"{self.base_url}/s/{short_id}.json"
@@ -103,15 +103,38 @@ class LobstersClient:
         response.raise_for_status()
         data = response.json()
 
-        story = LobstersStoryFull(**data)
-        story.comment_count = self._count_comments(story.comments)
-        story.fetched_at = datetime.now(UTC)
+        # Manual validation of required fields
+        required_fields = ["short_id", "submitter_user", "title", "score"]
+        missing_fields = [f for f in required_fields if f not in data]
+        if missing_fields:
+            raise ValueError(f"Invalid Lobsters API response for story {short_id}: missing fields {missing_fields}")
+
+        # Build unified discussion structure (map Lobsters fields to unified names)
+        raw_comments = data.get("comments", [])
+        normalized_comments = self._normalize_comments(raw_comments)
+
+        if discussion_url is None:
+            discussion_url = f"https://lobste.rs/s/{short_id}"
+
+        # Let Pydantic BaseModel handle type coercion and auto-calculate comment_count
+        story = UnifiedDiscussion(
+            platform="lobsters",
+            id=data["short_id"],
+            discussion_url=discussion_url,
+            article_url=data.get("url"),
+            title=data["title"],
+            author=data["submitter_user"],  # Map to unified field name
+            points=data["score"],  # Map to unified field name
+            created_at=data.get("created_at", ""),
+            fetched_at=datetime.now(UTC).isoformat(),
+            comments=normalized_comments,  # Normalized: short_id → id, auto-calculates comment_count
+        )
 
         logger.info(
             "lobsters_story_fetched",
             short_id=short_id,
             comments=story.comment_count,
-            score=story.score,
+            points=story.points,
         )
 
         return story
@@ -126,12 +149,28 @@ class LobstersClient:
     def build_discussion_link(self, story_id: str) -> DiscussionLink:
         return DiscussionLink(type="lobsters", url=f"https://lobste.rs/s/{story_id}")
 
-    def _count_comments(self, comments: list) -> int:
-        count = len(comments)
+    def _normalize_comments(self, comments: list) -> list:
+        """Normalize Lobsters comment structure to unified format.
+
+        Lobsters uses 'short_id' field, UnifiedComment expects 'id'.
+        """
+        normalized = []
         for comment in comments:
-            if hasattr(comment, "children") and comment.children:
-                count += self._count_comments(comment.children)
-        return count
+            if not isinstance(comment, dict):
+                continue
+
+            # Copy comment and rename short_id → id
+            normalized_comment = comment.copy()
+            if "short_id" in normalized_comment:
+                normalized_comment["id"] = normalized_comment.pop("short_id")
+
+            # Recursively normalize children
+            if "children" in normalized_comment and normalized_comment["children"]:
+                normalized_comment["children"] = self._normalize_comments(normalized_comment["children"])
+
+            normalized.append(normalized_comment)
+
+        return normalized
 
     @staticmethod
     def extract_short_id_from_url(url: str) -> str | None:

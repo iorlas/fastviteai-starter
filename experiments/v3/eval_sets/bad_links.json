@@ -1,7 +1,0 @@
-[
-  {
-    "url": "https://app.propolis.tech/",
-    "expectations": "Should detect that content is empty (JS-only site) and raise an error instead of hallucinating content. Should NOT invent information based on the title 'Propolis'.",
-    "anti_patterns": "Do NOT hallucinate content about bees, honey, or propolis (the bee product). This is a software platform website, not about nature/beekeeping."
-  }
-]
