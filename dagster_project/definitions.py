@@ -11,6 +11,7 @@ from dagster_project.jobs import manual_urls_pipeline, watchers_pipeline
 from dagster_project.resources.storage import Storage
 from dagster_project.resources.summary_generator_resource import summary_generator_resource
 from dagster_project.schedules import monitoring_schedule
+from dagster_project.utils.paths import get_bronze_path, get_silver_path
 
 all_assets = [
     discovered_urls,
@@ -31,7 +32,7 @@ defs = Definitions(
     ],
     resources={
         "summary_generator": summary_generator_resource,
-        "bronze_storage": Storage(base_dir="artifacts/bronze"),
-        "silver_storage": Storage(base_dir="artifacts/silver"),
+        "bronze_storage": Storage(base_dir=str(get_bronze_path())),
+        "silver_storage": Storage(base_dir=str(get_silver_path())),
     },
 )

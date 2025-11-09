@@ -78,26 +78,120 @@ uv run pytest -m contract      # Contract tests (external API verification)
 uv run dagster dev             # UI at http://localhost:3000
 
 # Add links to process
-echo "https://example.com" >> manual_links.txt     # Manual processing
-echo "https://news.site/rss" >> monitoring_list.txt # Monitoring (RSS/direct URLs)
+echo "https://example.com" >> artifacts/inputs/manual_links.txt     # Manual processing
+echo "https://news.site/rss" >> artifacts/inputs/monitoring_list.txt # Monitoring (RSS/direct URLs)
 
 # Create input files from templates if missing
-cp manual_links.txt.template manual_links.txt
-cp monitoring_list.txt.template monitoring_list.txt
+cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
+cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
 ```
+
+### Docker Deployment
+
+**Two deployment modes:**
+- **Development** (`docker-compose.dev.yml`): Config hot-reload via volume mounts
+- **Production** (`docker-compose.prod.yml`): Immutable config baked into image
+
+```bash
+# Prerequisites: Create .env file and input files
+cp .env.example .env                    # Configure environment variables
+mkdir -p artifacts/inputs
+cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
+cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
+
+# Development deployment (with config hot-reload)
+make docker-dev-build                   # Build development images
+make docker-dev-up                      # Start services (UI at http://localhost:3000)
+make docker-dev-logs                    # View logs
+make docker-dev-restart                 # Restart after config changes
+make docker-dev-down                    # Stop services
+
+# Production deployment (immutable config)
+make docker-prod-build                  # Build production images
+make docker-prod-up                     # Start services (UI at http://localhost:3000)
+make docker-prod-logs                   # View logs
+make docker-prod-restart                # Restart services
+make docker-prod-down                   # Stop services
+
+# Development workflow (works with both modes)
+make docker-shell                       # Open shell in webserver container
+make docker-exec CMD="uv run pytest"   # Run commands in container
+make docker-status                      # Check service status
+
+# Clean up (removes volumes)
+make docker-dev-clean                   # Development cleanup
+make docker-prod-clean                  # Production cleanup
+
+# Backwards compatible commands (default to development)
+make docker-build                       # Same as docker-dev-build
+make docker-up                          # Same as docker-dev-up
+make docker-down                        # Same as docker-dev-down
+```
+
+**Docker Architecture:**
+- `dagster-webserver`: Dagster UI and GraphQL API (port 3000) - runs `dagster-webserver` in production mode
+- `dagster-daemon`: Background scheduler for automated pipelines - runs `dagster-daemon run`
+- `dagster-postgresql`: PostgreSQL 16 database for Dagster storage (runs, events, schedules)
+- **Instance configuration**: `dagster.yaml` and `workspace.yaml` define storage backends, code locations, and daemon configuration
+
+**Volume Mounts (differs by deployment mode):**
+
+Development (`docker-compose.dev.yml`):
+  - `./artifacts:/app/artifacts` - persistent data storage
+  - `./dagster.yaml:/app/.dagster/dagster.yaml:ro` - config hot-reload (read-only)
+  - `./workspace.yaml:/app/workspace.yaml:ro` - workspace hot-reload (read-only)
+  - `dagster-postgresql-data:/var/lib/postgresql/data` - PostgreSQL storage
+
+Production (`docker-compose.prod.yml`):
+  - `./artifacts:/app/artifacts` - persistent data storage
+  - `dagster-postgresql-data:/var/lib/postgresql/data` - PostgreSQL storage
+  - Config files baked into image (no volume mounts for dagster.yaml/workspace.yaml)
+
+**Deployment Strategy:**
+Both modes use production-optimized images with pre-built dependencies. Code is baked into the image (no source code volume mount), ensuring fast startup. The `.venv` directory is built during image creation, not at container startup.
+
+**Development Workflow:**
+For local development with source code hot-reload, use `uv run dagster dev` directly on your host machine, not Docker.
 
 ### Environment Setup
 All configuration is managed via **pydantic-settings** in `dagster_project/config.py`.
 
 Required `.env` variables (see `.env.example`):
 ```bash
-PROJECT_ROOT=/absolute/path/to/ailabbrains
-DAGSTER_HOME=/path/to/ailabbrains/.dagster
+# Artifacts
+ARTIFACTS_PATH=artifacts  # Directory for all persistent data (inputs, bronze, silver, cache)
+
+# OpenAI/OpenRouter
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_MODEL=openai/gpt-4o
+
+# Feature Flags
 ENABLE_SUMMARIZATION=true  # Set to 'false' to disable AI summarization
+
+# PostgreSQL (for Docker deployment)
+POSTGRES_USER=dagster
+POSTGRES_PASSWORD=dagster
+POSTGRES_DB=dagster
+
+# Network
 HTTP_PROXY=  # Optional: http://proxy:port or socks5://proxy:port for all HTTP operations
+```
+
+**ARTIFACTS_PATH Structure:**
+```
+artifacts/
+  inputs/
+    manual_links.txt      # Manual URL submissions
+    monitoring_list.txt   # RSS feeds and monitoring sources
+  bronze/
+    html/                 # Extracted HTML content
+    youtube/              # YouTube transcripts
+    discussions/          # Discussion threads
+  silver/
+    summaries/            # AI-generated summaries
+  cache/
+    http_responses/       # HTTP cache database
 ```
 
 **Usage**: Import settings from the global config:
@@ -107,6 +201,9 @@ from dagster_project.config import settings
 # Access configuration
 if settings.enable_summarization:
     model = settings.openai_model
+
+# Access paths
+from dagster_project.utils.paths import ARTIFACTS_PATH, get_bronze_path
 ```
 
 ## Architecture

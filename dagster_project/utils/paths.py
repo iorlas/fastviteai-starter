@@ -2,15 +2,19 @@ from pathlib import Path
 
 from dagster_project.config import settings
 
-PROJECT_ROOT = settings.project_root
+ARTIFACTS_PATH = settings.artifacts_path
 
-MANUAL_LINKS_FILE = PROJECT_ROOT / "manual_links.txt"
-MONITORING_LINKS_FILE = PROJECT_ROOT / "monitoring_list.txt"
+MANUAL_LINKS_FILE = ARTIFACTS_PATH / "inputs" / "manual_links.txt"
+MONITORING_LINKS_FILE = ARTIFACTS_PATH / "inputs" / "monitoring_list.txt"
 
 
 def get_bronze_path() -> Path:
-    return PROJECT_ROOT / "artifacts" / "bronze"
+    return ARTIFACTS_PATH / "bronze"
 
 
 def get_silver_path() -> Path:
-    return PROJECT_ROOT / "artifacts" / "silver"
+    return ARTIFACTS_PATH / "silver"
+
+
+def get_cache_path() -> Path:
+    return ARTIFACTS_PATH / "cache"

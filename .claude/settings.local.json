@@ -167,7 +167,13 @@
       "WebFetch(domain:docs.temporal.io)",
       "WebFetch(domain:community.temporal.io)",
       "WebFetch(domain:python.temporal.io)",
-      "Bash(docker-compose build:*)"
+      "Bash(docker-compose build:*)",
+      "Bash(docker volume:*)",
+      "Bash(while read svc)",
+      "Bash(do echo \"=== $svc ===\")",
+      "Bash(docker inspect:*)",
+      "Bash(make docker-prod-build:*)",
+      "Bash(make docker-prod-up:*)"
     ],
     "deny": [],
     "ask": []

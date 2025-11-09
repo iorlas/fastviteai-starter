@@ -5,9 +5,11 @@ from hishel import AsyncSqliteStorage, FilterPolicy
 from hishel._policies import BaseFilter, Response
 from hishel.httpx import AsyncCacheClient
 
+from dagster_project.utils.paths import get_cache_path
+
 logger = structlog.get_logger()
 
-DEFAULT_CACHE_DIR = Path("artifacts/cache/http_responses")
+DEFAULT_CACHE_DIR = get_cache_path() / "http_responses"
 DEFAULT_TTL = 86400  # 24 hours
 
 

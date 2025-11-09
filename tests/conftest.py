@@ -5,13 +5,13 @@ import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def set_project_root():
-    project_root = Path(__file__).parent.parent
-    os.environ["PROJECT_ROOT"] = str(project_root)
+def set_artifacts_path():
+    artifacts_path = Path(__file__).parent.parent / "artifacts"
+    os.environ["ARTIFACTS_PATH"] = str(artifacts_path)
     yield
-    del os.environ["PROJECT_ROOT"]
+    del os.environ["ARTIFACTS_PATH"]
 
 
 @pytest.fixture(scope="module")
-def project_root():
-    return Path(os.environ["PROJECT_ROOT"])
+def artifacts_path():
+    return Path(os.environ["ARTIFACTS_PATH"])

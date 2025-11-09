@@ -12,13 +12,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    project_root: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent,
-        description="Project root directory",
-    )
-    dagster_home: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent / ".dagster",
-        description="Dagster home directory",
+    artifacts_path: Path = Field(
+        default_factory=lambda: Path("artifacts"),
+        description="Artifacts directory for all persistent data (inputs, bronze, silver, cache)",
     )
 
     openai_api_key: str = Field(

@@ -15,16 +15,84 @@ Content processing pipeline that ingests links from various sources, extracts co
 
 - Python 3.12+
 - OpenRouter API key
+- Docker and Docker Compose (optional, for containerized deployment)
 
 ## Installation
+
+### Local Development
 
 ```bash
 uv sync
 ```
 
+### Docker Deployment
+
+DeepRock provides two Docker Compose configurations:
+- **Development** (`docker-compose.dev.yml`): Hot-reload configuration files via volume mounts
+- **Production** (`docker-compose.prod.yml`): Immutable containers with baked-in configuration
+
+#### Prerequisites
+
+```bash
+# Create .env file and input files
+cp .env.example .env
+mkdir -p artifacts/inputs
+cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
+cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
+
+# Edit .env and configure required variables:
+# - OPENAI_API_KEY (required for AI features)
+# - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB (optional, defaults provided)
+```
+
+#### Development Deployment (with config hot-reload)
+
+```bash
+# Build and start development services
+make docker-dev-build
+make docker-dev-up
+
+# Access Dagster UI at http://localhost:3000
+
+# View logs
+make docker-dev-logs
+
+# Stop services
+make docker-dev-down
+```
+
+**Development features:**
+- Configuration files (dagster.yaml, workspace.yaml) mounted as volumes
+- Changes to config files take effect on container restart (no rebuild needed)
+- Same environment as production, but with more flexibility
+
+#### Production Deployment (immutable configuration)
+
+```bash
+# Build and start production services
+make docker-prod-build
+make docker-prod-up
+
+# Access Dagster UI at http://localhost:3000
+
+# View logs
+make docker-prod-logs
+
+# Stop services
+make docker-prod-down
+```
+
+**Production features:**
+- Configuration files baked into Docker image
+- Fully immutable - config changes require image rebuild
+- Better for production deployments where config stability is critical
+- Faster startup (no volume mount overhead)
+
 ## Usage
 
 ### Dagster Pipeline (Link Processing)
+
+#### Local Development
 
 ```bash
 # Start Dagster development server
@@ -33,15 +101,33 @@ uv run dagster dev
 # Access Dagster UI at http://localhost:3000
 ```
 
+#### Docker Deployment
+
+```bash
+# Development (with config hot-reload)
+make docker-dev-up
+make docker-dev-logs
+
+# Production (immutable config)
+make docker-prod-up
+make docker-prod-logs
+
+# Access Dagster UI at http://localhost:3000
+
+# Backwards compatible commands (default to development)
+make docker-up    # Same as docker-dev-up
+make docker-logs  # Same as docker-dev-logs
+```
+
 **Adding links to process:**
 
 ```bash
 # Manual links (processed on-demand)
-echo "https://example.com/article" >> manual_links.txt
+echo "https://example.com/article" >> artifacts/inputs/manual_links.txt
 
 # Monitoring links - supports both direct URLs and RSS feeds
-echo "https://news.ycombinator.com/rss" >> monitoring_list.txt
-echo "https://example.com/feed.xml" >> monitoring_list.txt
+echo "https://news.ycombinator.com/rss" >> artifacts/inputs/monitoring_list.txt
+echo "https://example.com/feed.xml" >> artifacts/inputs/monitoring_list.txt
 
 # RSS feeds are automatically detected and processed by RSSWatcher
 # Direct article URLs can also be added to monitoring_list.txt
@@ -49,8 +135,9 @@ echo "https://example.com/feed.xml" >> monitoring_list.txt
 
 **Note:** Create input files from templates if they don't exist:
 ```bash
-cp manual_links.txt.template manual_links.txt
-cp monitoring_list.txt.template monitoring_list.txt
+mkdir -p artifacts/inputs
+cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
+cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
 ```
 
 #### Known Limitations
@@ -74,6 +161,8 @@ uv run streamlit run src/ui/app.py
 
 ## Development
 
+### Local Development
+
 ```bash
 # Run tests
 uv run pytest
@@ -84,6 +173,35 @@ make check
 # Pre-commit hooks (managed by prek)
 prek install  # If not already installed
 ```
+
+### Docker Development
+
+```bash
+# Run tests inside development container
+make docker-exec CMD="uv run pytest"
+
+# Run quality checks inside container
+make docker-exec CMD="make check"
+
+# Open shell in container
+make docker-shell
+
+# View logs
+make docker-dev-logs
+
+# Rebuild and restart services after code changes
+make docker-dev-rebuild
+
+# Switch between dev and prod
+make docker-dev-down && make docker-prod-up  # Dev → Prod
+make docker-prod-down && make docker-dev-up  # Prod → Dev
+```
+
+**Notes:**
+- **Development deployment** (`docker-compose.dev.yml`): Allows config hot-reload via volume mounts
+- **Production deployment** (`docker-compose.prod.yml`): Immutable config baked into image
+- Both use production-optimized images with pre-built dependencies
+- For hot-reload of source code, use `uv run dagster dev` locally instead of Docker
 
 ## Architecture
 

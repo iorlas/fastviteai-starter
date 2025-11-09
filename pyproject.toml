@@ -2,7 +2,7 @@
 name = "deeprock"
 version = "0.1.0"
 description = "aggregates knowledge from various sources using LLMs"
-readme = "README.md"
+# readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "openai>=1.0.0",
@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.12.2",
     "dagster>=1.12.0",
     "dagster-webserver>=1.12.0",
+    "dagster-postgres>=0.25.0",
     "beautifulsoup4>=4.14.2",
     "yt-dlp>=2025.10.22",
     "feedparser>=6.0.12",
