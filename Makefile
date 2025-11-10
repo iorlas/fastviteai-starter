@@ -1,4 +1,5 @@
 .PHONY: check format lint typecheck test init
+.PHONY: cache-clear-openai cache-inspect-openai
 .PHONY: docker-dev-build docker-dev-up docker-dev-down docker-dev-logs docker-dev-restart docker-dev-clean
 .PHONY: docker-prod-build docker-prod-up docker-prod-down docker-prod-logs docker-prod-restart docker-prod-clean
 .PHONY: docker-build docker-up docker-down docker-logs docker-restart docker-clean
@@ -25,6 +26,19 @@ init:
 	uv venv
 	uv sync
 	uvx prek
+
+# ============================================
+# Cache Management Commands
+# ============================================
+
+cache-clear-openai:  ## Clear OpenAI request cache only
+	rm -rf artifacts/cache/openai_requests
+	@echo "OpenAI cache cleared"
+
+cache-inspect-openai:  ## Inspect OpenAI cache statistics
+	@echo "Cache location: artifacts/cache/openai_requests/openai_cache.db"
+	@du -sh artifacts/cache/openai_requests 2>/dev/null || echo "Cache is empty"
+	@sqlite3 artifacts/cache/openai_requests/openai_cache.db "SELECT COUNT(*) FROM Cache" 2>/dev/null | xargs echo "Cached requests:" || echo "Cache is empty"
 
 # ============================================
 # Docker Development Commands

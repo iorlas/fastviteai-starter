@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from dagster import ConfigurableResource
+from openai import OpenAI
 from pydantic import Field
 
 from dagster_project.config import settings
@@ -19,8 +20,6 @@ class SummaryGeneratorResource(ConfigurableResource):
 
     @cached_property
     def _openai_client(self):
-        from openai import OpenAI
-
         return OpenAI(
             api_key=self.api_key,
             base_url=self.base_url,

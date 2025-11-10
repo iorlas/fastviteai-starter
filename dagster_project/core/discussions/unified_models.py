@@ -1,12 +1,9 @@
-"""Unified discussion models - platform-agnostic discussion representation."""
-
 from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
 
 def coerce_to_str(v: Any) -> str:
-    """Coerce any value to string (handles int IDs from APIs)."""
     return str(v) if v is not None else ""
 
 
@@ -15,11 +12,6 @@ StrId = Annotated[str, BeforeValidator(coerce_to_str)]
 
 
 class UnifiedComment(BaseModel):
-    """Platform-agnostic comment representation.
-
-    Using BaseModel instead of TypedDict for proper validation and type coercion.
-    """
-
     id: StrId  # Auto-coerces int → str
     author: str | None = None
     text: str | None = None
@@ -31,12 +23,6 @@ class UnifiedComment(BaseModel):
 
 
 class UnifiedDiscussion(BaseModel):
-    """Platform-agnostic discussion thread.
-
-    All discussion clients return this unified format, abstracting away
-    platform-specific field names and structures.
-    """
-
     platform: str  # "hackernews" | "lobsters"
     id: StrId  # Auto-coerces int → str
     discussion_url: str  # URL to the discussion page
@@ -54,14 +40,12 @@ class UnifiedDiscussion(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def calculate_comment_count(cls, data: Any) -> Any:
-        """Auto-calculate comment_count from comments if not provided."""
         if isinstance(data, dict) and "comments" in data:
             data["comment_count"] = cls._count_comments(data["comments"])
         return data
 
     @staticmethod
     def _count_comments(comments: list) -> int:
-        """Recursively count all comments including nested children."""
         count = len(comments)
         for comment in comments:
             if isinstance(comment, dict) and comment.get("children"):

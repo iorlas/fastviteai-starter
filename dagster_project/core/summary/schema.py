@@ -125,8 +125,6 @@ class Signals(BaseModel):
 
 
 class LLMTake(BaseModel):
-    """Your technical assessment"""
-
     verdict: Literal["solid", "flawed", "shallow", "excellent"]
     what_works: list[str] = Field(description="Max 2 strengths. Be specific. Each max 80 chars.")
     what_fails: list[str] = Field(description="Max 2 problems. Be direct. Each max 80 chars.")
@@ -134,19 +132,32 @@ class LLMTake(BaseModel):
 
 
 class CommunityTake(BaseModel):
-    """What people found"""
-
+    # Summary assessments (LLM-evaluated in Stage 2/3)
     consensus: Literal["validates", "split", "refutes"]
     quality: Literal["low", "med", "high"]
-    experts_found: list[str] = Field(default_factory=list, description="Max 2. Format: 'username: their take (one line, max 100 chars)'")
-    key_corrections: list[str] = Field(default_factory=list, description="Max 3 technical issues raised. Be specific. Each max 100 chars.")
-    added_context: list[str] = Field(default_factory=list, description="Max 2. Important info article missed. Each max 100 chars.")
     community_verdict: str = Field(description="What community concluded (max 120 chars)")
+
+    # Content from discussions (merged in Stage 3)
+    key_themes: list[str] = Field(default_factory=list, description="Main themes from discussions")
+    notable_insights: list[str] = Field(default_factory=list, description="Information nuggets and key observations")
+    consensus_points: list[str] = Field(default_factory=list, description="Points where community agrees")
+    disagreements: list[str] = Field(default_factory=list, description="Points of debate or controversy")
+    experts_found: list[str] = Field(
+        default_factory=list, description="Expert perspectives. Format: 'username: their take (one line, max 100 chars)'"
+    )
+    key_corrections: list[str] = Field(
+        default_factory=list, description="Technical issues or corrections raised. Be specific. Each max 100 chars."
+    )
+    added_context: list[str] = Field(default_factory=list, description="Important info article missed. Each max 100 chars.")
+
+
+class CommunityConsensus(BaseModel):
+    consensus: Literal["validates", "split", "refutes"]
+    quality: Literal["low", "med", "high"]
+    community_verdict: str
 
 
 class SignalQuality(BaseModel):
-    """Meta-analysis of information quality"""
-
     signal_to_noise: Literal["high", "medium", "low"]
     noise_factors: list[Literal["marketing_fluff", "obvious_points", "off_topic_discussion", "low_quality_comments", "no_new_info"]] = (
         Field(default_factory=list, description="Why it's noisy")
@@ -161,6 +172,6 @@ class ArticleAnalysis(BaseModel):
     triage: Triage
     article: Article
     signals: Signals
-    signal_quality: SignalQuality  # Add this
+    signal_quality: SignalQuality
     llm: LLMTake
-    community: CommunityTake
+    community: CommunityTake | None = None  # Optional until Stage 3

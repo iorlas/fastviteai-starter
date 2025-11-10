@@ -9,7 +9,6 @@ from dagster_project.utils.url_utils import compute_url_hash
 
 
 def _clean_html(text: str) -> str:
-    """Remove HTML tags and decode entities from text."""
     # Decode HTML entities (&#x27; -> ', &quot; -> ", etc.)
     text = html.unescape(text)
     # Remove HTML tags
@@ -57,11 +56,6 @@ def _load_bronze_content(base_path: Path, url_hash: str, url: str) -> dict:
 
 
 def _slim_comment(comment_data: dict) -> list | None:
-    """Convert comment to minimal array: [author, text, ?children].
-
-    Strips HTML and removes ID/points for compactness while keeping author context.
-    Works with unified comment format (standard field names: text, author).
-    """
     # Try multiple field name variants for backwards compatibility
     text = comment_data.get("text") or comment_data.get("comment_plain")
     author = comment_data.get("author") or comment_data.get("commenting_user")
@@ -86,15 +80,6 @@ def _slim_comment(comment_data: dict) -> list | None:
 
 
 def _format_comment_thread(comments: list, indent_level: int = 0) -> str:
-    """Recursively format comment threads with tab indentation.
-
-    Args:
-        comments: List of comment arrays [author, text, ?children]
-        indent_level: Current indentation depth (0 = no indent)
-
-    Returns:
-        Formatted comment thread as string
-    """
     lines = []
     tabs = "\t" * indent_level
 
@@ -115,14 +100,6 @@ def _format_comment_thread(comments: list, indent_level: int = 0) -> str:
 
 
 def _format_discussion_as_text(discussions: list[dict]) -> str:
-    """Convert discussion threads to plain text format.
-
-    Args:
-        discussions: List of discussion dicts with {id, author, points, children}
-
-    Returns:
-        Formatted discussions as plain text with tab-indented replies
-    """
     if not discussions:
         return ""
 
@@ -150,7 +127,6 @@ def _format_discussion_as_text(discussions: list[dict]) -> str:
 
 
 def _extract_discussions_metadata(discussions: list[dict]) -> list[DiscussionMetadata]:
-    """Extract metadata from unified discussion dicts for UI display."""
     return [
         DiscussionMetadata(
             platform=d["platform"],
@@ -164,11 +140,6 @@ def _extract_discussions_metadata(discussions: list[dict]) -> list[DiscussionMet
 
 
 def _load_discussions(base_path: Path, url_hash: str) -> list[dict] | None:
-    """Load discussions from bronze storage.
-
-    Bronze data is now stored in UnifiedDiscussion format with common field names.
-    This eliminates platform-specific parsing and field mapping.
-    """
     discussions_dir = base_path / BronzeTable.DISCUSSIONS / url_hash
 
     if not discussions_dir.exists():

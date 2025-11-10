@@ -1,16 +1,9 @@
-"""HackerNews API response models.
-
-Only contains models for search API responses. Discussion data uses UnifiedDiscussion.
-"""
-
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 
 class HNStory(BaseModel):
-    """HN story from search API response."""
-
     id: int | None = None
     story_id: int
     title: str
@@ -23,8 +16,6 @@ class HNStory(BaseModel):
 
 
 class HNSearchResponse(BaseModel):
-    """HN Algolia search API response."""
-
     hits: list[HNStory]
     nb_hits: int = Field(alias="nbHits")
     page: int

@@ -178,7 +178,11 @@
       "Bash(for f in artifacts/bronze/discussions/39a7d20827e58cd01e247f8f0eee49f314954ab0eb36255621733af78fbbfa73/*.json)",
       "Bash(do if [ '$(basename $f)' != metadata.json ])",
       "Bash(then jq -r .comment_count $f 2)",
-      "Bash(/dev/null fi done)"
+      "Bash(/dev/null fi done)",
+      "WebFetch(domain:python.useinstructor.com)",
+      "Bash(timeout 60 uv run:*)",
+      "Bash(timeout 120 uv run:*)",
+      "WebFetch(domain:platform.openai.com)"
     ],
     "deny": [],
     "ask": []

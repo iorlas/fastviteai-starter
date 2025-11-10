@@ -10,6 +10,7 @@ from dagster_project.core.cache.hishel_cache import get_async_cache_client
 from dagster_project.core.discussions.hn_models import HNSearchResponse
 from dagster_project.core.discussions.shared_models import DiscussionLink, ExtractionResult
 from dagster_project.core.discussions.unified_models import UnifiedDiscussion
+from dagster_project.utils.url_utils import normalize_url
 
 logger = structlog.get_logger()
 
@@ -89,14 +90,19 @@ class HackerNewsClient:
         data = response.json()
         search_response = HNSearchResponse(**data)
 
+        # Filter for exact URL matches using normalized comparison
+        normalized_search_url = normalize_url(url)
+        exact_matches = [s for s in search_response.hits if s.url and normalize_url(s.url) == normalized_search_url]
+
         logger.info(
             "hn_search_complete",
             url=url,
-            stories_found=len(search_response.hits),
-            total_hits=search_response.nb_hits,
+            total_hits=len(search_response.hits),
+            exact_matches=len(exact_matches),
+            filtered_out=len(search_response.hits) - len(exact_matches),
         )
 
-        return [f"https://news.ycombinator.com/item?id={s.story_id}" for s in search_response.hits]
+        return [f"https://news.ycombinator.com/item?id={s.story_id}" for s in exact_matches]
 
     async def fetch_story(self, discussion_url: str, story_id: int | None = None) -> UnifiedDiscussion:
         if story_id is None:
