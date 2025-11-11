@@ -6,7 +6,8 @@ manual_urls_pipeline = define_asset_job(
     selection=AssetSelection.assets(
         "discovered_urls",
         "bronze_html",
-        "bronze_youtube",
+        "bronze_youtube_download",
+        "bronze_youtube_transcription",
         "bronze_discussions",
         "silver_article_summary",
         "silver_discussion_summary",
@@ -30,7 +31,8 @@ watchers_pipeline = define_asset_job(
     selection=AssetSelection.assets(
         "discovered_urls",
         "bronze_html",
-        "bronze_youtube",
+        "bronze_youtube_download",
+        "bronze_youtube_transcription",
         "bronze_discussions",
         "silver_article_summary",
         "silver_discussion_summary",

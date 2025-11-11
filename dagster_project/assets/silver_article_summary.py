@@ -10,7 +10,7 @@ from dagster_project.utils.tables import BronzeTable
 
 
 @asset(
-    deps=["bronze_html", "bronze_youtube"],
+    deps=["bronze_html", "bronze_youtube_transcription"],
     required_resource_keys={"article_summarizer", "bronze_storage"},
     compute_kind="python",
     group_name="silver_layer",

@@ -192,6 +192,7 @@ artifacts/
     summaries/            # AI-generated summaries
   cache/
     http_responses/       # HTTP cache database
+    whisper_models/       # Whisper model files (persistent across Docker restarts)
 ```
 
 **Usage**: Import settings from the global config:

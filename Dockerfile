@@ -39,9 +39,10 @@ FROM python:3.12-slim AS development
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for runtime (curl for healthcheck)
+# Install system dependencies for runtime (curl for healthcheck, ffmpeg for yt-dlp)
 RUN apt-get update && apt-get install -y \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv in runtime stage (needed for uv run command)
@@ -87,9 +88,10 @@ FROM python:3.12-slim AS production
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for runtime (curl for healthcheck)
+# Install system dependencies for runtime (curl for healthcheck, ffmpeg for yt-dlp)
 RUN apt-get update && apt-get install -y \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv in runtime stage (needed for uv run command)

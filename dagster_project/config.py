@@ -40,5 +40,18 @@ class Settings(BaseSettings):
         description="HTTP/HTTPS/SOCKS5 proxy URL for all HTTP operations (e.g., http://proxy:port or socks5://proxy:port)",
     )
 
+    whisper_model: str = Field(
+        default="medium",
+        description="Whisper model for local transcription (tiny, base, small, medium, large)",
+    )
+    whisper_device: str = Field(
+        default="cpu",
+        description="Device for Whisper inference (cpu, cuda, or mps for Mac M1/M2)",
+    )
+    whisper_cache_dir: Path = Field(
+        default_factory=lambda: Path("artifacts/cache/whisper_models"),
+        description="Directory for Whisper model cache (persistent across Docker restarts)",
+    )
+
 
 settings = Settings()

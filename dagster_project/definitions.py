@@ -3,7 +3,8 @@ from dagster import Definitions
 from dagster_project.assets import (
     bronze_discussions,
     bronze_html,
-    bronze_youtube,
+    bronze_youtube_download,
+    bronze_youtube_transcription,
     discovered_urls,
     silver_article_summary,
     silver_discussion_summary,
@@ -23,7 +24,8 @@ from dagster_project.utils.paths import get_bronze_path, get_silver_path
 all_assets = [
     discovered_urls,
     bronze_html,
-    bronze_youtube,
+    bronze_youtube_download,
+    bronze_youtube_transcription,
     bronze_discussions,
     silver_article_summary,
     silver_discussion_summary,

@@ -20,6 +20,7 @@ dependencies = [
     "streamlit>=1.51.0",
     "tenacity>=9.1.2",
     "youtube-transcript-api>=1.2.3",
+    "faster-whisper>=1.1.0",
     "pysocks>=1.7.1",
     "url-normalize>=2.2.1",
     "trafilatura>=2.0.0",

@@ -182,7 +182,8 @@
       "WebFetch(domain:python.useinstructor.com)",
       "Bash(timeout 60 uv run:*)",
       "Bash(timeout 120 uv run:*)",
-      "WebFetch(domain:platform.openai.com)"
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(uv cache clean:*)"
     ],
     "deny": [],
     "ask": []
