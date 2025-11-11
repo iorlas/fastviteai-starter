@@ -29,11 +29,30 @@ async def bronze_youtube_download(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        result = await extractor.download_video(url)
+        try:
+            video_id = YouTubeExtractor.extract_video_id(url)
+        except Exception as e:
+            context.log.warning(f"✗ Failed to extract video ID: {url} - {e}")
+            stats.failed += 1
+            continue
 
-        download_data = {**result.model_dump(), "url_hash": url_hash}
+        # Check cache at asset level
+        if bronze_storage.exists(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id):
+            context.log.info(f"Cache hit: {url}")
+            stats.cached += 1
+            continue
 
-        bronze_storage.save(BronzeTable.YOUTUBE_DOWNLOADS, result.video_id if result.video_id else url_hash, download_data)
+        # Compute download directory
+        download_dir = bronze_storage.get_path(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id).parent
+
+        result = await extractor.download_video(url, download_dir)
+
+        bronze_storage.save(
+            BronzeTable.YOUTUBE_DOWNLOADS,
+            "metadata",
+            result.model_dump(),
+            sub_partition=result.video_id if result.video_id else url_hash,
+        )
 
         if result.success:
             context.log.info(f"✓ Downloaded: {result.title} (video_id: {result.video_id})")
@@ -42,5 +61,5 @@ async def bronze_youtube_download(
             context.log.warning(f"✗ Download failed: {url} - {result.error}")
             stats.failed += 1
 
-    context.log.info(f"YouTube download complete: {stats.processed} downloaded, {stats.failed} failed")
+    context.log.info(f"YouTube download complete: {stats.processed} downloaded, {stats.cached} cached, {stats.failed} failed")
     context.add_output_metadata(stats.model_dump())

@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.config import settings
+from dagster_project.core.content_types.youtube import YouTubeExtractor
 from dagster_project.utils.asset_utils import Stats
 from dagster_project.utils.paths import get_article_summary_path
 from dagster_project.utils.tables import BronzeTable
@@ -47,8 +48,13 @@ async def silver_article_summary(
             bronze_content = None
             if content_type == "html" and bronze_storage.exists(BronzeTable.HTML, url_hash):
                 bronze_content = bronze_storage.load(BronzeTable.HTML, url_hash)
-            elif content_type == "youtube" and bronze_storage.exists(BronzeTable.YOUTUBE, url_hash):
-                bronze_content = bronze_storage.load(BronzeTable.YOUTUBE, url_hash)
+            elif content_type == "youtube":
+                try:
+                    video_id = YouTubeExtractor.extract_video_id(url)
+                    if bronze_storage.exists(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", sub_partition=video_id):
+                        bronze_content = bronze_storage.load(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", sub_partition=video_id)
+                except Exception as e:
+                    context.log.warning(f"Failed to extract video ID for {url}: {e}")
 
             if not bronze_content:
                 context.log.warning(f"No bronze content found for {url}")

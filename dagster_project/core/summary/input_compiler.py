@@ -3,6 +3,7 @@ import json
 import re
 from pathlib import Path
 
+from dagster_project.core.content_types.youtube import YouTubeExtractor
 from dagster_project.core.summary.summarizer import DiscussionMetadata, SummaryInput
 from dagster_project.utils.tables import BronzeTable
 from dagster_project.utils.url_utils import compute_url_hash
@@ -47,10 +48,20 @@ def compile_summary_input(url: str, artifacts_base_path: str) -> SummaryInput:
 
 
 def _load_bronze_content(base_path: Path, url_hash: str, url: str) -> dict:
-    for partition in [BronzeTable.HTML, BronzeTable.YOUTUBE]:
-        file_path = base_path / partition / f"{url_hash}.json"
-        if file_path.exists():
-            return json.loads(file_path.read_text())
+    # Check HTML content
+    html_path = base_path / BronzeTable.HTML / f"{url_hash}.json"
+    if html_path.exists():
+        return json.loads(html_path.read_text())
+
+    # Check YouTube content (new location: youtube_downloads/{video_id}/transcription.json)
+    if YouTubeExtractor.matches(url):
+        try:
+            video_id = YouTubeExtractor.extract_video_id(url)
+            youtube_path = base_path / BronzeTable.YOUTUBE_DOWNLOADS / video_id / "transcription.json"
+            if youtube_path.exists():
+                return json.loads(youtube_path.read_text())
+        except Exception:
+            pass  # Fall through to error below
 
     raise ValueError(f"No bronze content found for {url} (hash: {url_hash})")
 

@@ -47,9 +47,11 @@ def create_html_content(bronze_dir: Path, url: str, success: bool = True, conten
 
 
 def create_youtube_content(bronze_dir: Path, url: str, success: bool = True):
-    url_hash = compute_url_hash(url)
-    raw_youtube_dir = bronze_dir / "youtube"
-    raw_youtube_dir.mkdir(exist_ok=True)
+    from dagster_project.core.content_types.youtube import YouTubeExtractor
+
+    video_id = YouTubeExtractor.extract_video_id(url)
+    youtube_dir = bronze_dir / "youtube_downloads" / video_id
+    youtube_dir.mkdir(parents=True, exist_ok=True)
 
     data = {
         "url": url,
@@ -63,7 +65,7 @@ def create_youtube_content(bronze_dir: Path, url: str, success: bool = True):
     if not success:
         data["error"] = "Video extraction failed"
 
-    file_path = raw_youtube_dir / f"{url_hash}.json"
+    file_path = youtube_dir / "transcription.json"
     file_path.write_text(json.dumps(data))
 
 

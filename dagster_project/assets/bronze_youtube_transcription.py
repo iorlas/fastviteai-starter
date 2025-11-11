@@ -36,11 +36,6 @@ async def bronze_youtube_transcription(
         url = url_data["url"]
         url_hash = url_data["url_hash"]
 
-        if bronze_storage.exists(BronzeTable.YOUTUBE, url_hash):
-            context.log.info(f"Cache hit: {url}")
-            stats.cached += 1
-            continue
-
         try:
             video_id = YouTubeExtractor.extract_video_id(url)
         except Exception as e:
@@ -48,7 +43,12 @@ async def bronze_youtube_transcription(
             stats.failed += 1
             continue
 
-        download_data = bronze_storage.load(BronzeTable.YOUTUBE_DOWNLOADS, video_id)
+        if bronze_storage.exists(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", sub_partition=video_id):
+            context.log.info(f"Cache hit: {url}")
+            stats.cached += 1
+            continue
+
+        download_data = bronze_storage.load(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id)
 
         if not download_data:
             context.log.warning(f"✗ Download data not found for video_id: {video_id}")
@@ -56,11 +56,16 @@ async def bronze_youtube_transcription(
             continue
 
         if not download_data.get("success"):
-            context.log.warning(f"✗ Download failed, skipping transcription: {url}")
+            error_msg = download_data.get("error", "Unknown error")
+            context.log.warning(f"✗ Download failed, skipping transcription: {url} - {error_msg}")
             stats.failed += 1
             continue
 
         context.log.info(f"Transcribing YouTube video: {url}")
+
+        # Compute directories
+        download_dir = bronze_storage.get_path(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id).parent
+        cache_dir = bronze_storage.get_cache_path("transcriptions", video_id, extension=".txt").parent
 
         result = await extractor.transcribe_video(
             video_id=download_data["video_id"],
@@ -68,11 +73,13 @@ async def bronze_youtube_transcription(
             url_hash=url_hash,
             title=download_data["title"],
             content_metadata=download_data["content_metadata"],
+            download_dir=download_dir,
+            cache_dir=cache_dir,
         )
 
         bronze_data = {**result.model_dump(), "url_hash": url_hash}
 
-        bronze_storage.save(BronzeTable.YOUTUBE, url_hash, bronze_data)
+        bronze_storage.save(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", bronze_data, sub_partition=video_id)
 
         if result.success:
             context.log.info(f"✓ Transcribed: {result.title}")

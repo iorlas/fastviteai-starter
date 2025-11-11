@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -7,11 +8,9 @@ import structlog
 import yt_dlp
 from faster_whisper import WhisperModel
 from pydantic import BaseModel
-from yt_dlp.utils import DownloadError
 
 from dagster_project.config import settings
 from dagster_project.core.content_types.models import ExtractionResult
-from dagster_project.utils.url_utils import compute_url_hash
 
 logger = structlog.get_logger()
 
@@ -50,9 +49,10 @@ class YouTubeExtractor:
         self.proxy = proxy
         self.progress_callback = progress_callback
 
-    def matches(self, url: str) -> bool:
+    @staticmethod
+    def matches(url: str) -> bool:
         parsed = urlparse(url)
-        return parsed.netloc.lower() in self.YOUTUBE_DOMAINS
+        return parsed.netloc.lower() in YouTubeExtractor.YOUTUBE_DOMAINS
 
     @staticmethod
     def extract_video_id(url: str) -> str:
@@ -68,233 +68,112 @@ class YouTubeExtractor:
 
         raise YouTubeExtractionError(f"Could not extract video ID from URL: {url}")
 
-    async def extract(self, url: str) -> ExtractionResult:
+    async def extract(self, url: str, download_dir: Path, cache_dir: Path) -> ExtractionResult:
         logger.info("youtube_extract.started", url=url)
 
-        try:
-            # Get URL hash for storage
-            url_hash = compute_url_hash(url)
+        # Extract video ID
+        video_id = self.extract_video_id(url)
 
-            # Fetch video metadata
-            info = await asyncio.to_thread(self._fetch_video_info, url)
-            title = info.get("title", "Untitled")
+        # Fetch video metadata
+        info = await asyncio.to_thread(self._fetch_video_info, url)
+        title = info.get("title", "Untitled")
 
-            # Download audio file
-            audio_path = await asyncio.to_thread(self._download_audio, url, url_hash)
+        # Construct paths
+        audio_path = download_dir / "video.m4a"
+        cache_path = cache_dir / f"{video_id}.txt"
 
-            # Transcribe with Whisper
-            transcript = await asyncio.to_thread(self._transcribe_with_whisper, audio_path, url_hash)
+        # Download audio file
+        await asyncio.to_thread(self._download_audio, url, audio_path)
 
-            if not transcript:
-                raise YouTubeExtractionError(f"Whisper transcription failed for video: {url}")
+        # Transcribe with Whisper
+        transcript = await asyncio.to_thread(self._transcribe_with_whisper, audio_path, video_id, cache_path)
 
-            metadata = {
-                "content_length": len(transcript),
-                "final_url": url,
-                "transcription_method": "whisper_local",
-                "video_file": f"{url_hash}.m4a",
-                "whisper_model": settings.whisper_model,
-            }
+        if not transcript:
+            raise YouTubeExtractionError(f"Whisper transcription failed for video: {url}")
 
-            logger.info("youtube_extract.success", url=url, title=title)
+        metadata = {
+            "content_length": len(transcript),
+            "final_url": url,
+            "transcription_method": "whisper_local",
+            "video_id": video_id,
+            "video_file": f"youtube_downloads/{video_id}/video.m4a",
+            "whisper_model": settings.whisper_model,
+        }
 
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title=title,
-                content=transcript,
-                metadata=metadata,
-                content_metadata=self._filter_metadata(info),
-                success=True,
-            )
+        logger.info("youtube_extract.success", url=url, title=title)
 
-        except DownloadError as e:
-            error_msg = str(e).lower()
-            if "private" in error_msg or "unavailable" in error_msg:
-                logger.warning("youtube_extract.failed", url=url, error="Video is private or unavailable")
-                return ExtractionResult(
-                    url=url,
-                    content_type="youtube",
-                    title="Extraction Failed",
-                    content="",
-                    success=False,
-                    error=f"Video is private or unavailable: {url}",
-                )
-            logger.warning("youtube_extract.failed", url=url, error=str(e))
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title="Extraction Failed",
-                content="",
-                success=False,
-                error=f"yt-dlp error for {url}: {e}",
-            )
-        except YouTubeExtractionError as e:
-            logger.warning("youtube_extract.failed", url=url, error=str(e))
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title="Extraction Failed",
-                content="",
-                success=False,
-                error=str(e),
-            )
-        except Exception as e:
-            logger.warning("youtube_extract.failed", url=url, error=str(e))
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title="Extraction Failed",
-                content="",
-                success=False,
-                error=f"Error extracting content from {url}: {e}",
-            )
+        return ExtractionResult(
+            url=url,
+            content_type="youtube",
+            title=title,
+            content=transcript,
+            metadata=metadata,
+            content_metadata=self._filter_metadata(info),
+            success=True,
+        )
 
-    async def download_video(self, url: str) -> VideoDownloadResult:
+    async def download_video(self, url: str, download_dir: Path) -> VideoDownloadResult:
         logger.info("youtube_download.started", url=url)
 
-        try:
-            video_id = self.extract_video_id(url)
+        video_id = self.extract_video_id(url)
 
-            download_dir = settings.artifacts_path / "bronze" / "youtube_downloads" / video_id
-            video_path = download_dir / "video"
-            metadata_path = download_dir / "metadata.json"
+        video_path = download_dir / "video.m4a"
 
-            if video_path.exists() and metadata_path.exists():
-                logger.info("youtube_download.cache_hit", url=url, video_id=video_id)
+        info = await asyncio.to_thread(self._fetch_video_info, url)
+        title = info.get("title", "Untitled")
 
-                import json
-                from datetime import UTC, datetime
+        await asyncio.to_thread(self._download_audio_to_path, url, video_path)
 
-                metadata = json.loads(metadata_path.read_text())
-                return VideoDownloadResult(
-                    url=url,
-                    video_id=video_id,
-                    video_path=str(video_path.relative_to(settings.artifacts_path / "bronze")),
-                    title=metadata.get("title", "Untitled"),
-                    content_metadata=metadata.get("content_metadata", {}),
-                    success=True,
-                    created_at=metadata.get("created_at", datetime.now(UTC).isoformat()),
-                )
+        created_at = datetime.now(UTC).isoformat()
 
-            download_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("youtube_download.success", url=url, video_id=video_id, title=title)
 
-            info = await asyncio.to_thread(self._fetch_video_info, url)
-            title = info.get("title", "Untitled")
+        return VideoDownloadResult(
+            url=url,
+            video_id=video_id,
+            video_path=f"youtube_downloads/{video_id}/video.m4a",
+            title=title,
+            content_metadata=self._filter_metadata(info),
+            success=True,
+            created_at=created_at,
+        )
 
-            await asyncio.to_thread(self._download_audio_to_path, url, video_path)
-
-            import json
-            from datetime import UTC, datetime
-
-            created_at = datetime.now(UTC).isoformat()
-            metadata = {
-                "title": title,
-                "content_metadata": self._filter_metadata(info),
-                "created_at": created_at,
-            }
-
-            metadata_path.write_text(json.dumps(metadata, indent=2))
-
-            logger.info("youtube_download.success", url=url, video_id=video_id, title=title)
-
-            return VideoDownloadResult(
-                url=url,
-                video_id=video_id,
-                video_path=str(video_path.relative_to(settings.artifacts_path / "bronze")),
-                title=title,
-                content_metadata=self._filter_metadata(info),
-                success=True,
-                created_at=created_at,
-            )
-
-        except DownloadError as e:
-            error_msg = str(e).lower()
-            if "private" in error_msg or "unavailable" in error_msg:
-                logger.warning("youtube_download.failed", url=url, error="Video is private or unavailable")
-                error_message = f"Video is private or unavailable: {url}"
-            else:
-                logger.warning("youtube_download.failed", url=url, error=str(e))
-                error_message = f"yt-dlp error for {url}: {e}"
-
-            return VideoDownloadResult(
-                url=url,
-                video_id="",
-                video_path="",
-                title="Download Failed",
-                content_metadata={},
-                success=False,
-                error=error_message,
-                created_at="",
-            )
-        except Exception as e:
-            logger.warning("youtube_download.failed", url=url, error=str(e))
-            return VideoDownloadResult(
-                url=url,
-                video_id="",
-                video_path="",
-                title="Download Failed",
-                content_metadata={},
-                success=False,
-                error=f"Error downloading video from {url}: {e}",
-                created_at="",
-            )
-
-    async def transcribe_video(self, video_id: str, url: str, url_hash: str, title: str, content_metadata: dict) -> ExtractionResult:
+    async def transcribe_video(
+        self, video_id: str, url: str, url_hash: str, title: str, content_metadata: dict, download_dir: Path, cache_dir: Path
+    ) -> ExtractionResult:
         logger.info("youtube_transcribe.started", url=url, video_id=video_id)
 
-        try:
-            video_path = settings.artifacts_path / "bronze" / "youtube_downloads" / video_id / "video"
+        video_path = download_dir / "video.m4a"
+        cache_path = cache_dir / f"{video_id}.txt"
 
-            if not video_path.exists():
-                raise YouTubeExtractionError(f"Video file not found: {video_path}")
+        if not video_path.exists():
+            raise YouTubeExtractionError(f"Video file not found: {video_path}")
 
-            transcript = await asyncio.to_thread(self._transcribe_with_whisper, video_path, url_hash)
+        transcript = await asyncio.to_thread(self._transcribe_with_whisper, video_path, video_id, cache_path)
 
-            if not transcript:
-                raise YouTubeExtractionError(f"Whisper transcription failed for video: {url}")
+        if not transcript:
+            raise YouTubeExtractionError(f"Whisper transcription failed for video: {url}")
 
-            metadata = {
-                "content_length": len(transcript),
-                "final_url": url,
-                "transcription_method": "whisper_local",
-                "video_id": video_id,
-                "video_file": f"youtube_downloads/{video_id}/video",
-                "whisper_model": settings.whisper_model,
-            }
+        metadata = {
+            "content_length": len(transcript),
+            "final_url": url,
+            "transcription_method": "whisper_local",
+            "video_id": video_id,
+            "video_file": f"youtube_downloads/{video_id}/video",
+            "whisper_model": settings.whisper_model,
+        }
 
-            logger.info("youtube_transcribe.success", url=url, video_id=video_id, title=title)
+        logger.info("youtube_transcribe.success", url=url, video_id=video_id, title=title)
 
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title=title,
-                content=transcript,
-                metadata=metadata,
-                content_metadata=content_metadata,
-                success=True,
-            )
-
-        except YouTubeExtractionError as e:
-            logger.warning("youtube_transcribe.failed", url=url, error=str(e))
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title="Transcription Failed",
-                content="",
-                success=False,
-                error=str(e),
-            )
-        except Exception as e:
-            logger.warning("youtube_transcribe.failed", url=url, error=str(e))
-            return ExtractionResult(
-                url=url,
-                content_type="youtube",
-                title="Transcription Failed",
-                content="",
-                success=False,
-                error=f"Error transcribing video from {url}: {e}",
-            )
+        return ExtractionResult(
+            url=url,
+            content_type="youtube",
+            title=title,
+            content=transcript,
+            metadata=metadata,
+            content_metadata=content_metadata,
+            success=True,
+        )
 
     @staticmethod
     def _filter_metadata(info: dict) -> dict:
@@ -334,24 +213,8 @@ class YouTubeExtractor:
 
         return {k: v for k, v in info.items() if k not in excluded_fields}
 
-    @staticmethod
-    def _get_video_storage_path(url_hash: str) -> Path:
-        """Get storage path for video file"""
-        videos_dir = settings.artifacts_path / "bronze" / "youtube_videos"
-        videos_dir.mkdir(parents=True, exist_ok=True)
-        return videos_dir / f"{url_hash}.m4a"
-
-    @staticmethod
-    def _get_transcription_cache_path(url_hash: str) -> Path:
-        """Get storage path for cached transcription"""
-        transcriptions_dir = settings.artifacts_path / "cache" / "transcriptions"
-        transcriptions_dir.mkdir(parents=True, exist_ok=True)
-        return transcriptions_dir / f"{url_hash}.txt"
-
-    def _download_audio(self, url: str, url_hash: str) -> Path:
+    def _download_audio(self, url: str, output_path: Path) -> Path:
         """Download audio-only file using yt-dlp"""
-        output_path = self._get_video_storage_path(url_hash)
-
         # Skip download if file already exists
         if output_path.exists():
             logger.info("youtube_audio.exists", url=url, path=str(output_path))
@@ -382,14 +245,14 @@ class YouTubeExtractor:
         return output_path
 
     def _download_audio_to_path(self, url: str, output_path: Path) -> None:
-        """Download audio-only file to specific path using yt-dlp (no extension)"""
+        """Download audio-only file to specific path using yt-dlp (.m4a extension added by yt-dlp)"""
         if output_path.exists():
             logger.info("youtube_audio.exists", url=url, path=str(output_path))
             return
 
         ydl_opts = {
             "format": "bestaudio/best",
-            "outtmpl": str(output_path),
+            "outtmpl": str(output_path.with_suffix("")),  # Remove extension, yt-dlp will add it
             "quiet": True,
             "no_warnings": True,
             "postprocessors": [
@@ -409,11 +272,9 @@ class YouTubeExtractor:
 
         logger.info("youtube_audio.downloaded", url=url, path=str(output_path))
 
-    def _transcribe_with_whisper(self, audio_path: Path, url_hash: str) -> str:
+    def _transcribe_with_whisper(self, audio_path: Path, video_id: str, cache_path: Path) -> str:
         """Transcribe audio file using faster-whisper with progress tracking"""
         # Check transcription cache first
-        cache_path = self._get_transcription_cache_path(url_hash)
-
         if cache_path.exists():
             logger.info("whisper.cache_hit", audio_path=str(audio_path), cache_path=str(cache_path))
             return cache_path.read_text()

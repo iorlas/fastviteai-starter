@@ -1,9 +1,8 @@
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-from dagster_project.core.content_types.youtube import YouTubeExtractor
+from dagster_project.core.content_types.youtube import YouTubeExtractionError, YouTubeExtractor
 
 
 @pytest.fixture
@@ -21,35 +20,40 @@ def mock_youtube_info():
     }
 
 
-def test_matches_youtube_urls():
-    extractor = YouTubeExtractor()
+@pytest.fixture
+def mock_storage(tmp_path):
+    storage = Mock()
+    storage.get_path = Mock(return_value=tmp_path / "bronze" / "youtube_downloads" / "test_video_id" / "metadata.json")
+    return storage
 
-    assert extractor.matches("https://www.youtube.com/watch?v=test")
-    assert extractor.matches("https://youtube.com/watch?v=test")
-    assert extractor.matches("https://youtu.be/test")
-    assert extractor.matches("https://m.youtube.com/watch?v=test")
+
+def test_matches_youtube_urls():
+    assert YouTubeExtractor.matches("https://www.youtube.com/watch?v=test")
+    assert YouTubeExtractor.matches("https://youtube.com/watch?v=test")
+    assert YouTubeExtractor.matches("https://youtu.be/test")
+    assert YouTubeExtractor.matches("https://m.youtube.com/watch?v=test")
 
 
 def test_does_not_match_non_youtube_urls():
-    extractor = YouTubeExtractor()
-
-    assert not extractor.matches("https://example.com/page")
-    assert not extractor.matches("https://vimeo.com/123456")
+    assert not YouTubeExtractor.matches("https://example.com/page")
+    assert not YouTubeExtractor.matches("https://vimeo.com/123456")
 
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_extract_success(mock_youtube_info, tmp_path):
+async def test_extract_success(mock_youtube_info, mock_storage, tmp_path):
     extractor = YouTubeExtractor()
-    mock_audio_path = Path("/tmp/test_video.m4a")
+    download_dir = tmp_path / "downloads"
+    cache_dir = tmp_path / "cache"
+    download_dir.mkdir()
+    cache_dir.mkdir()
 
     with (
         patch.object(extractor, "_fetch_video_info", return_value=mock_youtube_info),
-        patch.object(extractor, "_download_audio", return_value=mock_audio_path),
+        patch.object(extractor, "_download_audio"),
         patch.object(extractor, "_transcribe_with_whisper", return_value="Test transcript") as mock_transcribe,
-        patch("dagster_project.core.content_types.youtube.compute_url_hash", return_value="test_hash"),
     ):
-        result = await extractor.extract("https://www.youtube.com/watch?v=test")
+        result = await extractor.extract("https://www.youtube.com/watch?v=test", download_dir, cache_dir)
 
     assert result.url == "https://www.youtube.com/watch?v=test"
     assert result.content_type == "youtube"
@@ -67,34 +71,32 @@ async def test_extract_success(mock_youtube_info, tmp_path):
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_extract_no_transcript(mock_youtube_info):
+async def test_extract_no_transcript(mock_youtube_info, mock_storage, tmp_path):
     extractor = YouTubeExtractor()
-    mock_audio_path = Path("/tmp/test_video.m4a")
+    download_dir = tmp_path / "downloads"
+    cache_dir = tmp_path / "cache"
+    download_dir.mkdir()
+    cache_dir.mkdir()
 
     with (
         patch.object(extractor, "_fetch_video_info", return_value=mock_youtube_info),
-        patch.object(extractor, "_download_audio", return_value=mock_audio_path),
+        patch.object(extractor, "_download_audio"),
         patch.object(extractor, "_transcribe_with_whisper", return_value=""),
-        patch("dagster_project.core.content_types.youtube.compute_url_hash", return_value="test_hash"),
     ):
-        result = await extractor.extract("https://www.youtube.com/watch?v=test")
-
-    assert result.success is False
-    assert result.error is not None
-    assert "Whisper transcription failed" in result.error
-    assert result.title == "Extraction Failed"
+        with pytest.raises(YouTubeExtractionError, match="Whisper transcription failed"):
+            await extractor.extract("https://www.youtube.com/watch?v=test", download_dir, cache_dir)
 
 
 @pytest.mark.asyncio
-async def test_transcription_caching(tmp_path):
+async def test_transcription_caching(mock_storage, tmp_path):
     """Test that transcription results are cached and reused"""
 
     # Setup temporary cache directory
     cache_dir = tmp_path / "cache" / "transcriptions"
     cache_dir.mkdir(parents=True)
 
-    url_hash = "test_hash_12345"
-    cache_file = cache_dir / f"{url_hash}.txt"
+    video_id = "test_video_id"
+    cache_file = cache_dir / f"{video_id}.txt"
     cached_transcript = "This is a cached transcript"
 
     # Write cached transcription
@@ -104,12 +106,9 @@ async def test_transcription_caching(tmp_path):
     audio_path = tmp_path / "test_audio.m4a"
     audio_path.touch()  # Create dummy audio file
 
-    with (
-        patch.object(extractor, "_get_transcription_cache_path", return_value=cache_file),
-        patch("dagster_project.core.content_types.youtube.WhisperModel") as mock_whisper_model,
-    ):
+    with patch("dagster_project.core.content_types.youtube.WhisperModel") as mock_whisper_model:
         # Call transcribe - should hit cache
-        result = extractor._transcribe_with_whisper(audio_path, url_hash)
+        result = extractor._transcribe_with_whisper(audio_path, video_id, cache_file)
 
         # Verify cache hit
         assert result == cached_transcript
@@ -118,7 +117,7 @@ async def test_transcription_caching(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_transcription_cache_miss_and_save(tmp_path):
+async def test_transcription_cache_miss_and_save(mock_storage, tmp_path):
     """Test that transcription results are saved to cache on cache miss"""
     from dagster_project.config import settings
 
@@ -126,8 +125,8 @@ async def test_transcription_cache_miss_and_save(tmp_path):
     cache_dir = tmp_path / "cache" / "transcriptions"
     cache_dir.mkdir(parents=True)
 
-    url_hash = "test_hash_67890"
-    cache_file = cache_dir / f"{url_hash}.txt"
+    video_id = "test_video_id_2"
+    cache_file = cache_dir / f"{video_id}.txt"
     new_transcript = "This is a newly generated transcript"
 
     # Ensure cache file doesn't exist
@@ -150,12 +149,11 @@ async def test_transcription_cache_miss_and_save(tmp_path):
     mock_model.transcribe = Mock(return_value=([mock_segment], mock_info))
 
     with (
-        patch.object(extractor, "_get_transcription_cache_path", return_value=cache_file),
         patch("dagster_project.core.content_types.youtube.WhisperModel", return_value=mock_model),
         patch.object(settings, "whisper_cache_dir", tmp_path / "whisper_models"),
     ):
         # Call transcribe - should miss cache and run Whisper
-        result = extractor._transcribe_with_whisper(audio_path, url_hash)
+        result = extractor._transcribe_with_whisper(audio_path, video_id, cache_file)
 
         # Verify transcription was generated
         assert result == f"[0m]\n{new_transcript}"
@@ -166,15 +164,15 @@ async def test_transcription_cache_miss_and_save(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_progress_callback_invoked_during_transcription(tmp_path):
+async def test_progress_callback_invoked_during_transcription(mock_storage, tmp_path):
     """Test that progress_callback is invoked during Whisper transcription with correct parameters"""
     from dagster_project.config import settings
 
     # Setup
     cache_dir = tmp_path / "cache" / "transcriptions"
     cache_dir.mkdir(parents=True)
-    url_hash = "test_hash_callback"
-    cache_file = cache_dir / f"{url_hash}.txt"
+    video_id = "test_video_callback"
+    cache_file = cache_dir / f"{video_id}.txt"
 
     # Track callback invocations
     progress_updates = []
@@ -200,12 +198,11 @@ async def test_progress_callback_invoked_during_transcription(tmp_path):
     mock_model.transcribe = Mock(return_value=(mock_segments, mock_info))
 
     with (
-        patch.object(extractor, "_get_transcription_cache_path", return_value=cache_file),
         patch("dagster_project.core.content_types.youtube.WhisperModel", return_value=mock_model),
         patch.object(settings, "whisper_cache_dir", tmp_path / "whisper_models"),
     ):
         # Run transcription (result not needed, we're testing callback)
-        extractor._transcribe_with_whisper(audio_path, url_hash)
+        extractor._transcribe_with_whisper(audio_path, video_id, cache_file)
 
         # Verify callback was invoked (once for 20.0s mark, passing 15s threshold)
         assert len(progress_updates) >= 1

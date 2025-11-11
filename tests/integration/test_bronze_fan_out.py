@@ -4,8 +4,7 @@ from dagster_project.core.content_types.youtube import YouTubeExtractor
 
 
 def _detect_content_type(url: str) -> str:
-    youtube_extractor = YouTubeExtractor()
-    if youtube_extractor.matches(url):
+    if YouTubeExtractor.matches(url):
         return "youtube"
     return "html"
 

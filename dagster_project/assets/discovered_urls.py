@@ -33,8 +33,7 @@ def read_links_from_file(file_path: Path) -> list[str]:
 
 
 def _detect_content_type(url: str) -> str:
-    youtube_extractor = YouTubeExtractor()
-    if youtube_extractor.matches(url):
+    if YouTubeExtractor.matches(url):
         return "youtube"
     return "html"
 
