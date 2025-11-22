@@ -1,3 +1,5 @@
+import traceback
+
 from dagster import AssetExecutionContext, asset
 
 from dagster_project.config import settings
@@ -45,21 +47,26 @@ async def bronze_youtube_download(
         # Compute download directory
         download_dir = bronze_storage.get_path(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id).parent
 
-        result = await extractor.download_video(url, download_dir)
+        try:
+            result = await extractor.download_video(url, download_dir)
 
-        bronze_storage.save(
-            BronzeTable.YOUTUBE_DOWNLOADS,
-            "metadata",
-            result.model_dump(),
-            sub_partition=result.video_id if result.video_id else url_hash,
-        )
+            bronze_storage.save(
+                BronzeTable.YOUTUBE_DOWNLOADS,
+                "metadata",
+                result.model_dump(),
+                sub_partition=result.video_id if result.video_id else url_hash,
+            )
 
-        if result.success:
-            context.log.info(f"✓ Downloaded: {result.title} (video_id: {result.video_id})")
-            stats.processed += 1
-        else:
-            context.log.warning(f"✗ Download failed: {url} - {result.error}")
+            if result.success:
+                context.log.info(f"✓ Downloaded: {result.title} (video_id: {result.video_id})")
+                stats.processed += 1
+            else:
+                context.log.warning(f"✗ Download failed: {url} - {result.error}")
+                stats.failed += 1
+        except Exception:
+            context.log.error(f"✗ Exception during download: {url}\n{traceback.format_exc()}")
             stats.failed += 1
+            continue
 
     context.log.info(f"YouTube download complete: {stats.processed} downloaded, {stats.cached} cached, {stats.failed} failed")
     context.add_output_metadata(stats.model_dump())

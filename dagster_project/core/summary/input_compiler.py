@@ -23,13 +23,33 @@ def compile_summary_input(url: str, artifacts_base_path: str) -> SummaryInput:
 
     extracted_content = _load_bronze_content(base_path, url_hash, url)
 
-    if not extracted_content.get("success"):
+    # For YouTube, file existence implies success (no success/error in transcription.json)
+    # For HTML, check success field
+    is_youtube = YouTubeExtractor.matches(url)
+    if not is_youtube and not extracted_content.get("success"):
         error_msg = extracted_content.get("error", "Content extraction failed")
         raise ValueError(f"Extraction failed for {url}: {error_msg}")
 
-    title = extracted_content.get("title", url)
+    # YouTube transcription.json is minimal - get title from metadata.json
+    title = extracted_content.get("title")
+    if not title and is_youtube:
+        try:
+            video_id = YouTubeExtractor.extract_video_id(url)
+            metadata_path = base_path / BronzeTable.YOUTUBE_DOWNLOADS / video_id / "metadata.json"
+            if metadata_path.exists():
+                metadata = json.loads(metadata_path.read_text())
+                title = metadata.get("title") or url
+            else:
+                title = url
+        except Exception:
+            title = url
+
+    # Ensure title is always a string
+    if not title:
+        title = url
+
     content = extracted_content.get("content", "")
-    content_type = extracted_content.get("content_type", "unknown")
+    content_type = extracted_content.get("content_type", "youtube" if is_youtube else "unknown")
 
     discussions_data = _load_discussions(base_path, url_hash)
     discussions_text = _format_discussion_as_text(discussions_data) if discussions_data else None

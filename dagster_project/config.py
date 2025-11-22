@@ -41,8 +41,11 @@ class Settings(BaseSettings):
     )
 
     whisper_model: str = Field(
-        default="medium",
-        description="Whisper model for local transcription (tiny, base, small, medium, large)",
+        default="large-v3",
+        description=(
+            "Whisper model for local transcription (tiny, base, small, medium, large-v2, large-v3, large, "
+            "distil-large-v2, distil-large-v3, large-v3-turbo)"
+        ),
     )
     whisper_device: str = Field(
         default="cpu",

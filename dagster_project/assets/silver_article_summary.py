@@ -53,6 +53,11 @@ async def silver_article_summary(
                     video_id = YouTubeExtractor.extract_video_id(url)
                     if bronze_storage.exists(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", sub_partition=video_id):
                         bronze_content = bronze_storage.load(BronzeTable.YOUTUBE_DOWNLOADS, "transcription", sub_partition=video_id)
+                        # Load metadata for title (transcription.json is minimal)
+                        metadata = bronze_storage.load(BronzeTable.YOUTUBE_DOWNLOADS, "metadata", sub_partition=video_id)
+                        if metadata:
+                            bronze_content["title"] = metadata.get("title", url)
+                            bronze_content["content_type"] = "youtube"
                 except Exception as e:
                     context.log.warning(f"Failed to extract video ID for {url}: {e}")
 
@@ -61,7 +66,9 @@ async def silver_article_summary(
                 stats.failed += 1
                 continue
 
-            if not bronze_content.get("success"):
+            # For YouTube, file existence implies success (no success/error fields in transcription.json)
+            # For HTML, check success field
+            if content_type != "youtube" and not bronze_content.get("success"):
                 error_msg = bronze_content.get("error", "Content extraction failed")
                 context.log.warning(f"Skipping {url}: Bronze extraction failed - {error_msg}")
                 stats.failed += 1
