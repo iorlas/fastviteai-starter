@@ -20,27 +20,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Async-first HTTP** - all HTTP operations use AsyncCacheClient with native async/await (no sync clients)
 
 ### Async/Await Pattern
-**All HTTP operations are async** to leverage Dagster's native async def support for assets:
+**All HTTP operations are async** to leverage Python's native async/await support:
 
 ```python
-# ✅ Correct - async def asset with await
-@asset
-async def my_asset(context):
+# ✅ Correct - async function with await
+async def my_function():
     downloader = HTTPDownloader()
     result = await downloader.download(url)  # await async operations
     return result
 
-# ❌ Wrong - don't use asyncio.run() wrappers
-@asset
-def my_asset(context):
+# ❌ Wrong - don't use asyncio.run() wrappers in async contexts
+async def my_function():
     result = asyncio.run(some_async_function())  # avoid this pattern
     return result
 ```
 
 **Why async-first:**
-- Dagster supports `async def` for assets natively (since 2023)
 - Simpler code - no `asyncio.run()` wrappers needed
-- Better concurrency within single assets
+- Better concurrency for HTTP operations
 - Unified HTTP client API - single `AsyncCacheClient` instead of dual sync/async
 - Future-proof for concurrent operations
 
@@ -72,89 +69,42 @@ uv run pytest -m unit          # Unit tests only
 uv run pytest -m contract      # Contract tests (external API verification)
 ```
 
-### Dagster Pipeline
+### Pipeline Execution
 ```bash
-# Start Dagster development server
-uv run dagster dev             # UI at http://localhost:3000
+# Process URLs from manual input file
+make process-manual           # Reads artifacts/inputs/manual_links.txt
+uv run ailabbrains process --source manual
 
-# Add links to process
-echo "https://example.com" >> artifacts/inputs/manual_links.txt     # Manual processing
-echo "https://news.site/rss" >> artifacts/inputs/monitoring_list.txt # Monitoring (RSS/direct URLs)
+# Process URLs from monitoring list
+make process-monitoring       # Reads artifacts/inputs/monitoring_list.txt
+uv run ailabbrains process --source monitoring
+
+# View statistics
+make stats
+uv run ailabbrains stats
 
 # Create input files from templates if missing
 cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
 cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
 ```
 
-### Docker Deployment
-
-**Two deployment modes:**
-- **Development** (`docker-compose.dev.yml`): Config hot-reload via volume mounts
-- **Production** (`docker-compose.prod.yml`): Immutable config baked into image
-
+### Cache Management
 ```bash
-# Prerequisites: Create .env file and input files
-cp .env.example .env                    # Configure environment variables
-mkdir -p artifacts/inputs
-cp artifacts/inputs/manual_links.txt.template artifacts/inputs/manual_links.txt
-cp artifacts/inputs/monitoring_list.txt.template artifacts/inputs/monitoring_list.txt
+# Clean different cache layers
+make clean-cache      # Clean HTTP cache only
+make clean-bronze     # Clean bronze layer (immutable data)
+make clean-silver     # Clean silver layer (regenerable summaries)
+make clean-all        # Clean all caches and layers
 
-# Development deployment (with config hot-reload)
-make docker-dev-build                   # Build development images
-make docker-dev-up                      # Start services (UI at http://localhost:3000)
-make docker-dev-logs                    # View logs
-make docker-dev-restart                 # Restart after config changes
-make docker-dev-down                    # Stop services
-
-# Production deployment (immutable config)
-make docker-prod-build                  # Build production images
-make docker-prod-up                     # Start services (UI at http://localhost:3000)
-make docker-prod-logs                   # View logs
-make docker-prod-restart                # Restart services
-make docker-prod-down                   # Stop services
-
-# Development workflow (works with both modes)
-make docker-shell                       # Open shell in webserver container
-make docker-exec CMD="uv run pytest"   # Run commands in container
-make docker-status                      # Check service status
-
-# Clean up (removes volumes)
-make docker-dev-clean                   # Development cleanup
-make docker-prod-clean                  # Production cleanup
-
-# Backwards compatible commands (default to development)
-make docker-build                       # Same as docker-dev-build
-make docker-up                          # Same as docker-dev-up
-make docker-down                        # Same as docker-dev-down
+# Or use CLI directly
+uv run ailabbrains clean-cache --layer http
+uv run ailabbrains clean-cache --layer bronze
+uv run ailabbrains clean-cache --layer silver
+uv run ailabbrains clean-cache --layer all
 ```
 
-**Docker Architecture:**
-- `dagster-webserver`: Dagster UI and GraphQL API (port 3000) - runs `dagster-webserver` in production mode
-- `dagster-daemon`: Background scheduler for automated pipelines - runs `dagster-daemon run`
-- `dagster-postgresql`: PostgreSQL 16 database for Dagster storage (runs, events, schedules)
-- **Instance configuration**: `dagster.yaml` and `workspace.yaml` define storage backends, code locations, and daemon configuration
-
-**Volume Mounts (differs by deployment mode):**
-
-Development (`docker-compose.dev.yml`):
-  - `./artifacts:/app/artifacts` - persistent data storage
-  - `./dagster.yaml:/app/.dagster/dagster.yaml:ro` - config hot-reload (read-only)
-  - `./workspace.yaml:/app/workspace.yaml:ro` - workspace hot-reload (read-only)
-  - `dagster-postgresql-data:/var/lib/postgresql/data` - PostgreSQL storage
-
-Production (`docker-compose.prod.yml`):
-  - `./artifacts:/app/artifacts` - persistent data storage
-  - `dagster-postgresql-data:/var/lib/postgresql/data` - PostgreSQL storage
-  - Config files baked into image (no volume mounts for dagster.yaml/workspace.yaml)
-
-**Deployment Strategy:**
-Both modes use production-optimized images with pre-built dependencies. Code is baked into the image (no source code volume mount), ensuring fast startup. The `.venv` directory is built during image creation, not at container startup.
-
-**Development Workflow:**
-For local development with source code hot-reload, use `uv run dagster dev` directly on your host machine, not Docker.
-
 ### Environment Setup
-All configuration is managed via **pydantic-settings** in `dagster_project/config.py`.
+All configuration is managed via **pydantic-settings** in `ailabbrains/config.py`.
 
 Required `.env` variables (see `.env.example`):
 ```bash
@@ -169,13 +119,13 @@ OPENAI_MODEL=openai/gpt-4o
 # Feature Flags
 ENABLE_SUMMARIZATION=true  # Set to 'false' to disable AI summarization
 
-# PostgreSQL (for Docker deployment)
-POSTGRES_USER=dagster
-POSTGRES_PASSWORD=dagster
-POSTGRES_DB=dagster
-
 # Network
 HTTP_PROXY=  # Optional: http://proxy:port or socks5://proxy:port for all HTTP operations
+
+# Whisper Transcription
+WHISPER_MODEL=large-v3  # Model size: tiny, base, small, medium, large-v2, large-v3, distil-large-v3
+WHISPER_DEVICE=cpu  # Device: cpu, cuda, or mps (for Mac M1/M2)
+WHISPER_CACHE_DIR=artifacts/cache/whisper_models  # Persistent model cache
 ```
 
 **ARTIFACTS_PATH Structure:**
@@ -186,28 +136,44 @@ artifacts/
     monitoring_list.txt   # RSS feeds and monitoring sources
   bronze/
     html/                 # Extracted HTML content
-    youtube/              # YouTube transcripts
+    youtube_downloads/    # YouTube metadata and transcripts
     discussions/          # Discussion threads
   silver/
-    summaries/            # AI-generated summaries
+    article_summaries/    # Stage 1: Article-only AI analysis
+    discussion_summaries/ # Stage 2: Per-discussion AI analysis
+    summaries/            # Stage 3: Final synthesis
   cache/
     http_responses/       # HTTP cache database
-    whisper_models/       # Whisper model files (persistent across Docker restarts)
+    whisper_models/       # Whisper model files
+    openai_structured_outputs/ # OpenAI response cache
 ```
 
 **Usage**: Import settings from the global config:
 ```python
-from dagster_project.config import settings
+from ailabbrains.config import settings
 
 # Access configuration
 if settings.enable_summarization:
     model = settings.openai_model
 
 # Access paths
-from dagster_project.utils.paths import ARTIFACTS_PATH, get_bronze_path
+from ailabbrains.utils.paths import ARTIFACTS_PATH, MANUAL_LINKS_FILE
 ```
 
 ## Architecture
+
+### Simplified CLI Architecture
+The pipeline uses a **single-orchestrator design** with Typer CLI and Rich progress bars:
+
+```
+ailabbrains/
+  cli.py                    # Typer CLI entry point
+  orchestrator.py           # Main pipeline orchestration
+  storage.py                # Simplified I/O functions (BronzeTable, SilverTable enums)
+  core/                     # Pure business logic (framework-agnostic)
+  utils/                    # Shared utilities (paths, url_utils, asset_utils)
+  config.py                 # Pydantic settings
+```
 
 ### Integration Unit Boundary Principle
 **Code organization follows external service boundaries, not internal usage patterns.**
@@ -219,29 +185,35 @@ When integrating with external services, organize code by **integration boundary
 - Discussion fetching via Algolia API (`search_by_url()`, `fetch_story()`)
 
 **Why not split by usage pattern?**
-- **Shared operational boundary**: Rate limits, monitoring, error handling, and caching operate at the service level, not the usage level
+- **Shared operational boundary**: Rate limits, monitoring, error handling, and caching operate at the service level
 - **Concentrated domain knowledge**: HN URL structure, API quirks, error patterns all live in one place
-- **Simpler mental model**: One import for all HN operations - no deciding between "extractor" vs "client"
+- **Simpler mental model**: One import for all HN operations
 - **Unified configuration**: Single timeout, cache client, retry logic shared across all HN operations
 - **Easier testing**: Mock one service, not multiple facades
 
 **Applied to**: `HackerNewsClient`, `LobstersClient` (both in `core/discussions/`)
 
-**Handler responsibility boundary**: `DiscussionPlatformHandler` implementations return data only - no file I/O operations. Assets handle orchestration and persistence, keeping handlers focused on external service integration.
-
-**Anti-pattern**: Splitting `HackerNewsExtractor` (aggregator extraction) and `HackerNewsClient` (discussion fetching) fragments what is logically one integration point.
+**Handler responsibility boundary**: Platform handler implementations return data only - no file I/O operations. Orchestrator handles persistence, keeping handlers focused on external service integration.
 
 ### Medallion Data Architecture
-The pipeline uses a **medallion architecture** (Bronze → Silver → Gold) with immutable bronze layer:
+The pipeline uses a **medallion architecture** (Bronze → Silver) with immutable bronze layer:
 
 ```
 artifacts/
   bronze/                    # Extracted, immutable data (never modified/deleted)
     html/{url_hash}.json           # Extracted HTML content
-    youtube/{url_hash}.json        # YouTube video metadata & transcripts
-    discussions/{url_hash}.json    # HN/Lobsters comments
+    youtube_downloads/{video_id}/  # YouTube video metadata & transcripts
+      metadata.json
+      transcription.json
+      video.m4a
+    discussions/{url_hash}/        # HN/Lobsters comments
+      metadata.json
+      {platform}_{discussion_id}.json
   silver/                    # AI-generated summaries (can be regenerated)
-    summaries/{url_hash}.json      # AI-generated summaries
+    article_summaries/{url_hash}.json      # Stage 1: Article analysis
+    discussion_summaries/{url_hash}/       # Stage 2: Per-discussion analysis
+      {platform}_{discussion_id}.json
+    summaries/{url_hash}.json              # Stage 3: Final synthesis
 ```
 
 **Key principle**: Bronze layer is append-only cache. Silver layer can be deleted and regenerated.
@@ -257,7 +229,7 @@ The pipeline implements **multi-layer caching** with different strategies per la
 - Supports proxy configuration via `HTTP_PROXY` environment variable
 
 **Bronze Layer Caching**:
-- All bronze assets check for existing data before downloading
+- All bronze operations check for existing data before downloading
 - Immutable by design - once written, never modified
 - Cache check is **always required** to prevent duplicate file writes
 - Protects external APIs from repeated calls (HN, Lobsters, HTML downloads)
@@ -265,20 +237,19 @@ The pipeline implements **multi-layer caching** with different strategies per la
 **YouTube Caching** (special case):
 - yt_dlp and youtube_transcript_api bypass the HTTP cache layer (use their own HTTP clients)
 - Bronze layer caching provides primary protection against re-fetching
-- Proxy configuration encapsulated in `YouTubeExtractor` class for both yt_dlp and youtube_transcript_api
+- Proxy configuration encapsulated in `YouTubeExtractor` class
 - Acceptable by design - bronze cache is sufficient for YouTube operations
 
 **Silver Layer Caching** (selective strategy):
 - **Cheap operations** (extraction, discussion parsing): **No cache checks**
-  - `silver_extracted_content`: Always regenerates from bronze (CPU cost acceptable)
-  - `silver_discussions`: Always re-processes discussions (trivial JSON parsing)
+  - `silver_article_summary`: Always regenerates from bronze (CPU cost acceptable)
+  - `silver_discussion_summary`: Always re-processes discussions (trivial JSON parsing)
   - Rationale: Deterministic operations with negligible cost; simpler code
 
 - **Expensive operations** (AI summarization): **Cache checks required**
   - `silver_summary`: **MUST check cache** to prevent wasteful OpenAI API calls
   - Cost: ~$0.005 per article (~$15/month for 3k articles)
   - Non-deterministic and expensive - cache is critical
-  - See comment in `assets/silver_summary.py` for details
 
 **Philosophy**: Cache at the layer where it provides maximum value. HTTP cache prevents network waste, bronze cache protects immutability, silver cache only for operations where regeneration cost is significant.
 
@@ -286,87 +257,87 @@ The pipeline implements **multi-layer caching** with different strategies per la
 Clean separation of concerns following **framework-agnostic core**:
 
 ```
-dagster_project/
+ailabbrains/
+  cli.py                     # Typer CLI entry point
+  orchestrator.py            # Pipeline orchestration with Rich progress bars
+  storage.py                 # Simple I/O functions (save, load, exists, get_path)
+
   core/                      # Pure business logic (framework-agnostic, could be pip package)
-    summarizer.py                 # Summary generation logic
-    content_extractor.py          # Content extraction orchestration
-    downloader.py                 # HTTP download with caching
+    summarizer/
+      article/summarizer.py       # Stage 1: Article-only analysis
+      discussion/summarizer.py    # Stage 2: Per-discussion analysis
+      synthesis/synthesizer.py    # Stage 3: Community synthesis
+      schema.py                   # Pydantic models (ArticleAnalysis, CommunityTake)
+    content_types/
+      generic_html.py             # HTML content extraction
+      youtube.py                  # YouTube download + extraction
     extractors/
-      html_extractor.py           # HTML content extraction
-      youtube_extractor.py        # YouTube content extraction
       watchers.py                 # RSS/feed monitoring
-    aggregators/                  # Aggregator URL detection
+    aggregators/
       detector.py                 # Detect if URL is aggregator (HN, Lobsters)
-    discussions/                  # Platform integrations (extraction + discussion threads)
+    discussions/                  # Platform integrations
       hn_client.py                # HackerNews client (extraction + discussions)
       lobsters_client.py          # Lobsters client (extraction + discussions)
+      discussion_fetcher.py       # Multi-platform orchestration
       comment_processor.py        # Comment thread flattening
     cache/                        # HTTP caching layer
       http_cache.py               # Cache-aware HTTP client
-
-  resources/                 # Dagster adapters (thin wrappers managing lifecycle)
-    summary_generator_resource.py  # Wraps core/summarizer
-    bronze_io_manager.py           # Bronze layer I/O (immutable)
-    silver_io_manager.py           # Silver layer I/O (mutable)
-    openai.py                      # OpenAI/OpenRouter client wrapper
-
-  assets/                    # Dagster orchestration (DAG definition)
-    discovered_urls.py             # Entry point: read input files, detect aggregators
-    bronze_html.py                 # Extract HTML content
-    bronze_youtube.py              # Extract YouTube transcripts
-    bronze_discussions.py          # Fetch discussion threads
-    silver_summary.py              # Generate AI summaries
-
-  jobs/                      # Pipeline definitions
-    pipelines.py                   # manual_urls_pipeline, watchers_pipeline
-
-  schedules/                 # Automated scheduling
-    monitoring_schedule.py         # Run watchers_pipeline every 6 hours
+      cached_openai_client.py     # OpenAI response cache
+    tools/
+      transcriber/transcriber.py  # Whisper transcription
 
   utils/                     # Shared utilities
-    paths.py                       # Centralized path constants
-    url_utils.py                   # URL normalization
-    content_type.py                # ContentType enum (HTML/YouTube detection)
+    paths.py                      # Centralized path constants
+    url_utils.py                  # URL normalization
+    asset_utils.py                # Stats tracking (Pydantic model)
+
+  config.py                  # Pydantic settings
 ```
 
-**Dependency flow**: `core` (pure logic) → `resources` (Dagster adapters) → `assets` (orchestration)
+**Dependency flow**: `core` (pure logic) → `orchestrator` (pipeline coordination) → `cli` (user interface)
 
 ### Pipeline Flow
-Two pipelines process content differently:
+The CLI provides a single orchestrator that processes URLs through three stages:
 
-1. **manual_urls_pipeline** (on-demand):
-   - Reads `manual_links.txt`
-   - Processes URLs immediately
-   - Triggered manually via Dagster UI
+**Stage 0: URL Discovery**
+- Reads input files (`manual_links.txt` or `monitoring_list.txt`)
+- Expands RSS feeds to individual article URLs
+- Resolves aggregator URLs (HN/Lobsters) to discussions + linked articles
+- Normalizes and deduplicates URLs
+- Detects content type (HTML vs YouTube)
 
-2. **watchers_pipeline** (automated):
-   - Reads `monitoring_list.txt`
-   - Auto-detects RSS feeds vs direct URLs
-   - Runs every 6 hours via schedule
-   - RSS feeds: RSSWatcher expands to article URLs
-   - Aggregators (HN/Lobsters): Fetches discussions, extracts linked URLs
+**Stage 1: Bronze Layer Extraction** (parallel fan-out)
+- **HTML extraction**: `GenericHTMLExtractor` via trafilatura
+- **YouTube download**: `YouTubeExtractor` via yt-dlp
+- **YouTube transcription**: `Transcriber` via faster-whisper
+- **Discussion fetching**: Multi-platform via `HackerNewsClient`, `LobstersClient`
 
-**Asset DAG**:
-```
-discovered_urls
-    ├─> bronze_html ──────────┐
-    ├─> bronze_youtube ────────┤
-    └─> bronze_discussions ────┼─> silver_summary
-```
+**Stage 2: Silver Layer Summarization** (3-stage AI pipeline)
+- **Article Summary** (Stage 1): Analyze content only, no discussions
+- **Discussion Summaries** (Stage 2): Per-discussion analysis with article context
+- **Final Synthesis** (Stage 3): Synthesize multiple discussions into single community take
 
 **Data flow**:
-- `discovered_urls`: Detects content type (HTML/YouTube), aggregators, normalizes URLs
-- Bronze assets: Extract content (HTML text, YouTube transcripts, discussion threads)
-- Silver summary: Generate AI summaries from bronze extracted content + discussions
+```
+Input Files → discover_urls() → Bronze Layer (extract_html, download_youtube,
+transcribe_youtube, fetch_discussions) → Silver Layer (generate_article_summary,
+generate_discussion_summaries, synthesize_final_summary)
+```
+
+**Progress Tracking**:
+- Rich progress bars show real-time status for each stage
+- Color-coded output: [green]✓ success[/green], [cyan]cached[/cyan], [red]✗ failed[/red]
+- Sequential URL processing with async HTTP operations
 
 ### Key Architectural Principles
 1. **Immutable bronze layer**: Never modify/delete; acts as source-of-truth cache
 2. **Regenerable silver layer**: Can delete and re-process from bronze
 3. **URL hash partitioning**: All artifacts stored by `sha256(url)` for deduplication
-4. **Fan-out pattern**: `discovered_urls` fans out to multiple bronze assets (HTML, YouTube, discussions)
+4. **Fan-out pattern**: URL discovery fans out to multiple bronze operations (HTML, YouTube, discussions)
 5. **Content type detection**: `ContentType.HTML` vs `ContentType.YOUTUBE` determines processing path
 6. **Aggregator expansion**: URLs to HN/Lobsters fetch discussions + expand to linked articles
 7. **Caching at every layer**: Bronze caching (immutable), HTTP caching (core/cache/), silver caching (regenerable)
+8. **Sequential orchestration with async HTTP**: Process URLs one at a time with progress bars, use async for HTTP
 
 ## Testing Structure
 ```
@@ -380,8 +351,6 @@ tests/
     test_comment_processor.py
   integration/               # End-to-end integration tests
     test_bronze_fan_out.py       # Test URL discovery → bronze fan-out
-  assets/                    # Tests for Dagster assets
-  fixtures/                  # Shared test data
   utils/                     # Utility tests
 ```
 
@@ -400,10 +369,55 @@ tests/
 ## Data Persistence
 - **Bronze/Silver artifacts**: `artifacts/{bronze,silver}/` (git-ignored)
 - **Input files**: `manual_links.txt`, `monitoring_list.txt` (use `.template` versions as reference)
-- **Dagster metadata**: `.dagster/` directory (configured via `DAGSTER_HOME`)
+- **Cache**: `.cache/` directory for HTTP and OpenAI caches
 
 ## Tool Configuration
 - **Ruff**: Line length 140, Python 3.12+ target
 - **Pytest**: Configured for `tests/` directory with custom markers
 - **Ty (type checker)**: Python 3.12, strict type safety rules
 - **Prek**: Pre-commit hooks for ruff + ty
+
+## CLI Reference
+
+### Main Commands
+
+**process** - Run the full pipeline (discovery → bronze → silver)
+```bash
+ailabbrains process --source manual       # Process manual_links.txt
+ailabbrains process --source monitoring   # Process monitoring_list.txt
+```
+
+**stats** - Show artifact statistics
+```bash
+ailabbrains stats
+# Output: Bronze layer (HTML, YouTube, Discussions) + Silver layer counts
+```
+
+**clean-cache** - Clean cache layers
+```bash
+ailabbrains clean-cache --layer http      # HTTP cache only
+ailabbrains clean-cache --layer bronze    # Bronze layer
+ailabbrains clean-cache --layer silver    # Silver layer
+ailabbrains clean-cache --layer all       # All caches and layers
+```
+
+### Makefile Shortcuts
+
+Development:
+- `make init` - Initialize project (venv, deps, prek)
+- `make check` - Run all checks (format, lint, typecheck, test)
+- `make format` - Format code with ruff
+- `make lint` - Lint with ruff --fix
+- `make typecheck` - Type check with ty
+- `make test` - Run pytest
+
+Pipeline:
+- `make process-manual` - Process manual URLs
+- `make process-monitoring` - Process monitoring URLs
+- `make stats` - Show artifact statistics
+
+Cache Management:
+- `make clean-cache` - Clean HTTP cache
+- `make clean-bronze` - Clean bronze layer
+- `make clean-silver` - Clean silver layer
+- `make clean-all` - Clean all caches and layers

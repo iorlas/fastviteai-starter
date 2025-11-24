@@ -189,7 +189,8 @@
       "Bash(for model in \"Systran/faster-whisper-large-v2\" \"Systran/faster-whisper-medium\" \"Systran/faster-whisper-base\" \"guillaumekln/faster-whisper-large-v3\")",
       "Bash(do echo \"Testing: $model\")",
       "Bash(timeout 900 uv run python:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(make process-manual:*)"
     ],
     "deny": [],
     "ask": []

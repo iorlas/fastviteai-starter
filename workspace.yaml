@@ -1,8 +1,0 @@
-# Dagster Workspace Configuration
-# Defines code locations for webserver and daemon
-
-load_from:
-  - python_module:
-      module_name: dagster_project.definitions
-      location_name: deeprock
-      working_directory: /app
