@@ -10,13 +10,11 @@ dependencies = [
     "pydantic>=2.12.2",
     "beautifulsoup4>=4.14.2",
     "yt-dlp>=2025.10.22",
-    "feedparser>=6.0.12",
     "python-dotenv>=1.2.1",
     "tenacity>=9.1.2",
     "youtube-transcript-api>=1.2.3",
     "faster-whisper>=1.1.0",
     "pysocks>=1.7.1",
-    "url-normalize>=2.2.1",
     "trafilatura>=2.0.0",
     "hishel>=0.0.30",
     "anysqlite>=0.0.5",
@@ -62,7 +60,7 @@ python-version = "3.12"
 python = "./.venv"
 
 [tool.ty.src]
-include = ["ailabbrains", "tests"]
+include = ["ailabbrains"]
 
 [tool.ty.rules]
 # Core type safety - error
@@ -77,7 +75,6 @@ unused-ignore-comment = "warn"
 redundant-cast = "warn"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

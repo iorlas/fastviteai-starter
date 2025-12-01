@@ -18,15 +18,3 @@ def get_silver_path() -> Path:
 
 def get_cache_path() -> Path:
     return ARTIFACTS_PATH / "cache"
-
-
-def get_article_summary_path(url_hash: str) -> Path:
-    return ARTIFACTS_PATH / "silver" / "article_summaries" / f"{url_hash}.json"
-
-
-def get_discussion_summary_dir(url_hash: str) -> Path:
-    return ARTIFACTS_PATH / "silver" / "discussion_summaries" / url_hash
-
-
-def get_discussion_summary_path(url_hash: str, platform: str, discussion_id: str) -> Path:
-    return get_discussion_summary_dir(url_hash) / f"{platform}_{discussion_id}.json"

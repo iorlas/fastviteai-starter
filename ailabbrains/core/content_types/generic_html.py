@@ -1,10 +1,23 @@
+from datetime import UTC, datetime
+
 import structlog
 import trafilatura
+from pydantic import BaseModel, Field
 
 from ailabbrains.core.cache.hishel_cache import get_async_cache_client
-from ailabbrains.core.content_types.models import ExtractionResult
 
 logger = structlog.get_logger()
+
+
+class ExtractionResult(BaseModel):
+    url: str
+    content_type: str
+    title: str
+    content: str
+    metadata: dict = Field(default_factory=dict)
+    content_metadata: dict = Field(default_factory=dict)
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    url_hash: str | None = None
 
 
 class HTMLExtractionError(Exception):

@@ -190,7 +190,8 @@
       "Bash(do echo \"Testing: $model\")",
       "Bash(timeout 900 uv run python:*)",
       "Bash(tee:*)",
-      "Bash(make process-manual:*)"
+      "Bash(make process-manual:*)",
+      "Bash(uv pip install:*)"
     ],
     "deny": [],
     "ask": []

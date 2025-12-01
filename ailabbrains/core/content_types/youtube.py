@@ -19,8 +19,6 @@ class VideoDownloadResult(BaseModel):
     video_id: str
     title: str
     content_metadata: dict
-    success: bool
-    error: str | None = None
     created_at: str
 
 
@@ -76,7 +74,6 @@ class YouTubeExtractor:
             video_id=video_id,
             title=title,
             content_metadata=self._filter_metadata(info),
-            success=True,
             created_at=created_at,
         )
 

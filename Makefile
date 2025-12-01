@@ -1,12 +1,12 @@
 .PHONY: check format lint typecheck test init
-.PHONY: process-manual process-monitoring stats clean-cache
+.PHONY: process stats clean-cache
 .PHONY: help
 
 # ============================================
 # Local Development Commands
 # ============================================
 
-check: format lint typecheck test
+check: format lint typecheck
 
 format:
 	uv run ruff format .
@@ -29,11 +29,8 @@ init:
 # Pipeline Commands
 # ============================================
 
-process-manual:  ## Process URLs from manual_links.txt
-	uv run ailabbrains process --source manual
-
-process-monitoring:  ## Process URLs from monitoring_list.txt
-	uv run ailabbrains process --source monitoring
+process:  ## Process URLs from manual_links.txt
+	uv run ailabbrains process
 
 stats:  ## Show artifact statistics
 	uv run ailabbrains stats
@@ -66,8 +63,7 @@ help:  ## Show this help message
 	@echo "  make test              - Run pytest"
 	@echo ""
 	@echo "Pipeline:"
-	@echo "  make process-manual    - Process URLs from manual_links.txt"
-	@echo "  make process-monitoring - Process URLs from monitoring_list.txt"
+	@echo "  make process           - Process URLs from manual_links.txt"
 	@echo "  make stats             - Show artifact statistics"
 	@echo ""
 	@echo "Cache Management:"

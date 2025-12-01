@@ -15,23 +15,12 @@ console = Console()
 
 
 @app.command()
-def process(
-    source: str = typer.Option(
-        "manual",
-        "--source",
-        "-s",
-        help="Source type: 'manual' or 'monitoring'",
-    ),
-) -> None:
-    """Process URLs from input files through the extraction and summarization pipeline."""
-    if source not in ("manual", "monitoring"):
-        console.print(f"[red]Error: source must be 'manual' or 'monitoring', got '{source}'[/red]")
-        raise typer.Exit(1)
-
-    console.print(Panel.fit(f"[bold blue]AI Lab Brains Pipeline[/bold blue]\n[dim]Source: {source}[/dim]"))
+def process() -> None:
+    """Process URLs from manual_links.txt through the extraction and summarization pipeline."""
+    console.print(Panel.fit("[bold blue]AI Lab Brains Pipeline[/bold blue]"))
 
     try:
-        process_urls(source)
+        process_urls()
         console.print("\n[bold green]✓ Pipeline completed successfully![/bold green]")
     except KeyboardInterrupt:
         console.print("\n[yellow]Pipeline interrupted by user[/yellow]")
